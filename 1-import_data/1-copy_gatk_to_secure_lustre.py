@@ -57,14 +57,11 @@ def get_shard_intervals(wdir):
 
         first_interval_cmd = "grep -m1 ^chr " + intervalfilepath
         first_interval_output = subprocess.getoutput(first_interval_cmd)
-        print(first_interval_output)
         startchrom = first_interval_output.split()[0]
         startpos = first_interval_output.split()[1]
 
         last_interval_cmd = "tail -n 1 " + intervalfilepath
         last_interval_output = subprocess.getoutput(last_interval_cmd)
-        print(last_interval_output)
-        exit(0)
         endchrom = last_interval_output.split()[0]#start and end of intervals could be on different chrom
         endpos = last_interval_output.split()[2]
 
