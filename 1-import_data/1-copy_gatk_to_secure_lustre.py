@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import shutil
 
 def find_exec_dir(indir):
     '''
@@ -38,6 +39,7 @@ def get_shard_intervals(wdir):
     '''
     create a dict containing each shard number and it's start and end locations
     '''
+    print("Creating intervals dict")
     shard_intervals = {}
     split_interval_dir = wdir + "/call-SplitIntervalList/"
     exec_dir = find_exec_dir(split_interval_dir)
@@ -73,6 +75,7 @@ def copy_output_vcfs(wdir, shard_intervals, targetdir):
     '''
     for each shard interval, find the output vcf.gz and tbi in call-MergeVCF and copy to target dir, renaming with intervals
     '''
+    print("copying and renaming VCFs")
     merge_dir = wdir + "/call-MergeVCFs/"
 
     for shard in shard_intervals.keys():
@@ -86,11 +89,10 @@ def copy_output_vcfs(wdir, shard_intervals, targetdir):
             exit(1)
         dest_vcf = targetdir + shard_intervals[shard] + ".gatk.vcf.gz"
         dest_tabix = targetdir +  shard_intervals[shard] + ".gatk.vcf.gz.tbi"
-        cp_vcf_cmd = "cp " + vcf_path + " " + dest_vcf
-        cp_tabix_cmd = "cp " + tabix_path + " " + dest_tabix
-        print(cp_vcf_cmd)
-        print(cp_tabix_cmd)
+        shutil.copyfile(vcf_path, dest_vcf)
+        shutil.copyfile(tabix_path, dest_tabix)
         exit(0)
+
 
 
 def main():
@@ -103,6 +105,7 @@ def main():
                }
 
     for reg in regions.keys():
+        print("Processing " + reg)
         wdir = cromwell_base_dir + regions[reg]
         shard_intervals = get_shard_intervals(wdir)
         copy_output_vcfs(wdir, shard_intervals, target_dir)
