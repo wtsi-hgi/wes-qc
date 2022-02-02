@@ -46,7 +46,7 @@ def get_shard_intervals(wdir):
     scatter_dir_list = os.listdir(scatter_dir)
 
     for intervalfile in scatter_dir_list:
-        intervalfilepath = scatter_dir_list + intervalfile
+        intervalfilepath = scatter_dir + intervalfile
         intervalnum = intervalfile[0:4]
         #remove leading zeros from file name to get shard number, except for 0
         if intervalnum == '0000':
