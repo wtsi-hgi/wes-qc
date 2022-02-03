@@ -75,7 +75,8 @@ def copy_output_vcfs(wdir, shard_intervals, targetdir):
     '''
     for each shard interval, find the output vcf.gz and tbi in call-MergeVCF and copy to target dir, renaming with intervals
     '''
-    print("copying and renaming VCFs")
+    shardcount = len(shard_intervals.keys())
+    print("copying and renaming " + str(shardcount) + "VCFs")
     merge_dir = wdir + "/call-MergeVCFs/"
 
     for shard in shard_intervals.keys():
@@ -91,7 +92,7 @@ def copy_output_vcfs(wdir, shard_intervals, targetdir):
         dest_tabix = targetdir +  shard_intervals[shard] + ".gatk.vcf.gz.tbi"
         shutil.copyfile(vcf_path, dest_vcf)
         shutil.copyfile(tabix_path, dest_tabix)
-        exit(0)
+
 
 
 
