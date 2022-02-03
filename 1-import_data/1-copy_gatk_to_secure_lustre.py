@@ -102,7 +102,7 @@ def main():
     regions = {'chr1_3_dir': '303af8c0-4b7b-4388-98b5-2f552584a8f7',
                'chr4_8_dir': '5b20ad2f-9f35-4713-b171-a7f8f0b0aebc',
                'chr9_14_dir': '679738e5-0a41-4196-8b4e-f1e01d80b077',
-               'chr15_Y_dir': 'e5540273-472e-4a46-b691-568316b4075d'
+               'chr15_Y_dir': '75f0aeda-115f-46c0-bcfe-44344cd6fec9'
                }
 
     for reg in regions.keys():
