@@ -2,6 +2,7 @@ from hail import Table
 import hail as hl
 import pyspark
 import yaml
+import os
 
 def get_script_path():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
