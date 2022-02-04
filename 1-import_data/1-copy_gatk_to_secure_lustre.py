@@ -75,14 +75,14 @@ def get_shard_intervals(wdir):
         shard_intervals[intervalnum] = ('_').join([startchrom, startpos, endchrom, endpos])
 
     return shard_intervals
-    
+
 
 def copy_output_vcfs(wdir, shard_intervals, targetdir):
     '''
     for each shard interval, find the output vcf.gz and tbi in call-MergeVCF and copy to target dir, renaming with intervals
     '''
     shardcount = len(shard_intervals.keys())
-    print("copying and renaming " + str(shardcount) + "VCFs")
+    print("copying and renaming " + str(shardcount) + " VCFs")
     merge_dir = wdir + "/call-MergeVCFs/"
 
     for shard in shard_intervals.keys():
@@ -103,7 +103,7 @@ def copy_output_vcfs(wdir, shard_intervals, targetdir):
 def main():
 
     script_dir = get_script_path()
-    input_yaml = script_dir + '/../config/input_files.yaml'
+    input_yaml = script_dir + '/../config/inputs.yaml'
     with open(input_yaml, 'r') as y:
         inputs = yaml.load(y, Loader=yaml.FullLoader)
 
