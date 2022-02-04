@@ -4,6 +4,7 @@ import os
 import subprocess
 import shutil
 import sys
+import yaml
 
 def get_script_path():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -115,9 +116,11 @@ def main():
     #     shard_intervals = get_shard_intervals(wdir)
     #     copy_output_vcfs(wdir, shard_intervals, target_dir)
     script_dir = get_script_path()
-    print(script_dir)
+    input_yaml = script_dir + '/../config/input_files.yaml'
+    with open(input_yaml, 'r') as y:
+        inputs = yaml.load(y, Loader=yaml.FullLoader)
 
-    #config_yaml = yaml_dir
+    print(inputs)
 
 if __name__ == '__main__':
     main() 
