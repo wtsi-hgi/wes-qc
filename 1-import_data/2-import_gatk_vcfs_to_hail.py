@@ -15,7 +15,10 @@ def load_vcfs_to_mt(indir, outdir, header):
     '''
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
-    print(vcfs[0:3])
+    vcfs = vcfs[0:3]
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
+    count = mt.count
+    print(count)
 
 def main():
     #set up directories
