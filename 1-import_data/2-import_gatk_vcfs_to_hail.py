@@ -13,7 +13,7 @@ def load_vcfs_to_mt(indir, outdir, header):
     '''
     load VCFs and save as hail mt
     '''
-    objects = hl.utils.hadoop_ls(import_lustre_dir)
+    objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print(vcfs[0:3])
 
