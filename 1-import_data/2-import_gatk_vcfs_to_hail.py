@@ -1,4 +1,3 @@
-from hail import Table
 import hail as hl
 import pyspark
 import yaml
@@ -16,6 +15,7 @@ def load_vcfs_to_mt(indir, outdir, header):
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
+    exit(0)
     mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
     print("Saving as hail mt")
     mt_out_file = outdir + "/gatk_unprocessed.mt"
