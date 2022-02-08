@@ -1,3 +1,4 @@
+# Load GATK VCFs into hail and save as matrixtable
 import hail as hl
 import pyspark
 import yaml
