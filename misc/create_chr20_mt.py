@@ -26,7 +26,7 @@ def main():
     mt = hl.read_matrix_table(mt_in_file)
     intervals = ['chr20']
     print("Subsetting to chr20")
-    mt = hl.filter_intervals(mt, [hl.parse_locus_interval(x, reference_genome='GRCh38') for x in intervals])
+    mt = hl.filter_intervals(mt, [hl.parse_locus_interval('chr17')])
     mt.write(mt_out_file, overwrite=True)
 
 if __name__ == '__main__':

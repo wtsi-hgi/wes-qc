@@ -25,7 +25,6 @@ def load_vcfs_to_mt(indir, outdir, header):
 def main():
     #set up directories
     tmp_dir = "hdfs://spark-master:9820/"
-    temp_dir = "file:///home/ubuntu/data/tmp"
     script_dir = get_script_path()
     input_yaml = script_dir + '/../config/inputs.yaml'
     with open(input_yaml, 'r') as y:
@@ -34,11 +33,12 @@ def main():
     vcf_header = inputs['gatk_vcf_header']
     import_vcf_dir = inputs['gatk_import_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
-    lustre_dir = inputs['hail_lustre_dir']
 
     #initialise hail
     sc = pyspark.SparkContext()
-    hl.init(sc=sc, tmp_dir=lustre_dir, local_tmpdir=lustre_dir, default_reference="GRCh38")
+    hadoop_config = sc._jsc.hadoopConfiguration()
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    #hl.init(sc=sc, tmp_dir=lustre_dir, local_tmpdir=lustre_dir, default_reference="GRCh38")
 
     #load VCFs
     load_vcfs_to_mt(import_vcf_dir, mtdir, vcf_header)
