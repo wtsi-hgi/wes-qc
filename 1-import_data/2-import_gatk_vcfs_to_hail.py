@@ -20,7 +20,7 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     # mt_out_file = outdir + "gatk_unprocessed.mt"
     # mt.write(mt_out_file, overwrite=True)
     #create sparse mt
-    vcfs = ['file:///lustre/scratch123/qc/gatk_vcfs/chr17_64212474_chr17_64531131.gatk.vcf.gz']
+    vcfs = ['file:/lustre/scratch123/qc/gatk_vcfs/chr17_64212474_chr17_64531131.gatk.vcf.gz']
     sparse_mt_out_file = outdir + "gatk_unprocessed_sparse.mt"
     hl.experimental.run_combiner(vcfs, out_file=sparse_mt_out_file, tmp_path=tmp_dir, use_exome_default_intervals=True, reference_genome='GRCh38')
 
