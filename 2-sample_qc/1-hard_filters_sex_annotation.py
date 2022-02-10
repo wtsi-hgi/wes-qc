@@ -3,7 +3,7 @@
 import hail as hl
 import pyspark
 import yaml
-from utils import get_script_path
+from utils.utils import get_script_path
 
 def main():
     script_dir = get_script_path()
