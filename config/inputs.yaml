@@ -8,5 +8,6 @@ regions:
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
 gatk_vcf_header: file:///lustre/scratch123/qc/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs
-matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables
+gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs/
+matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
+annotation_lustre_dir: /lustre/scratch123/qc/annotations/
