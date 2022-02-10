@@ -4,44 +4,43 @@ import pyspark
 import yaml
 import os
 import sys
-
-def get_script_path():
-    return os.path.dirname(os.path.realpath(sys.argv[0]))
+from wes_qc.utils.utils import parse_config
 
 
-def load_vcfs_to_mt(indir, outdir, header):
+def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     '''
-    load VCFs and save as hail mt
+    load VCFs and save as hail mt and as a sparse_mt
     '''
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
-    print("Saving as hail mt")
-    mt_out_file = outdir + "/gatk_unprocessed.mt"
-    mt.write(mt_out_file, overwrite=True)
+    #create and save normal MT
+    # mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
+    # print("Saving as hail mt")
+    # mt_out_file = outdir + "gatk_unprocessed.mt"
+    # mt.write(mt_out_file, overwrite=True)
+    #create sparse mt
+    sparse_mt_out_file = outdir + "gatk_unprocessed_sparse.mt"
+    hl.experimental.run_combiner(vcfs, out_file=sparse_mt_out_file, tmp_path=tmp_dir, use_exome_default_intervals=True, reference_genome='GRCh38')
 
 
 def main():
-    #set up directories
-    tmp_dir = "hdfs://spark-master:9820/"
-    script_dir = get_script_path()
-    input_yaml = script_dir + '/../config/inputs.yaml'
-    with open(input_yaml, 'r') as y:
-        inputs = yaml.load(y, Loader=yaml.FullLoader)
-
+    #set up input variables
+    inputs = parse_config()
     vcf_header = inputs['gatk_vcf_header']
     import_vcf_dir = inputs['gatk_import_lustre_dir']
+    inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
 
     #initialise hail
+    tmp_dir = "hdfs://spark-master:9820/"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
     #hl.init(sc=sc, tmp_dir=lustre_dir, local_tmpdir=lustre_dir, default_reference="GRCh38")
 
     #load VCFs
-    load_vcfs_to_mt(import_vcf_dir, mtdir, vcf_header)
+    load_vcfs_to_mt(import_vcf_dir, mtdir, tmp_dir, vcf_header)
 
 
 if __name__ == '__main__':
