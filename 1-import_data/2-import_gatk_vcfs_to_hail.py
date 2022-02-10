@@ -9,20 +9,16 @@ from wes_qc.utils.utils import parse_config
 
 def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     '''
-    load VCFs and save as hail mt and as a sparse_mt
+    load VCFs and save as hail mt
     '''
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
-    #create and save normal MT
-    # mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
-    # print("Saving as hail mt")
-    # mt_out_file = outdir + "gatk_unprocessed.mt"
-    # mt.write(mt_out_file, overwrite=True)
-    #create sparse mt
-    vcfs = vcfs[0:5]
-    sparse_mt_out_file = outdir + "gatk_unprocessed_sparse.mt"
-    hl.experimental.run_combiner(vcfs, out_file=sparse_mt_out_file, tmp_path=tmp_dir, use_exome_default_intervals=True, reference_genome='GRCh38')
+    #create and save MT
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
+    print("Saving as hail mt")
+    mt_out_file = outdir + "gatk_unprocessed.mt"
+    mt.write(mt_out_file, overwrite=True
 
 
 def main():
@@ -38,7 +34,6 @@ def main():
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
-    #hl.init(sc=sc, tmp_dir=lustre_dir, local_tmpdir=lustre_dir, default_reference="GRCh38")
 
     #load VCFs
     load_vcfs_to_mt(import_vcf_dir, mtdir, tmp_dir, vcf_header)
