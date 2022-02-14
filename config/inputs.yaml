@@ -9,5 +9,6 @@ regions:
 
 gatk_vcf_header: file:///lustre/scratch123/qc/gatk_vcf_header.txt
 gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs/
-matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
-annotation_lustre_dir: /lustre/scratch123/qc/annotations/
+load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
+annotation_lustre_dir: file:///lustre/scratch123/qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/

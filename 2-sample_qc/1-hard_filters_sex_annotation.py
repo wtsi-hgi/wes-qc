@@ -46,6 +46,7 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     sex_ht = sex_ht.select(*sex_colnames)
     mt = mt.annotate_cols(**sex_ht[mt.col_key])
     sex_mt_file = mtdir + "mt_sex_annotated.mt"
+    print("Writing to " + sex_mt_file)
     mt.write(sex_mt_file, overwrite=True)
 
     return mt
@@ -82,6 +83,7 @@ def annotate_ambiguous_sex(mt: hl.MatrixTable, mtdir: str):
 def main():
     #set up
     inputs = parse_config()
+    importmtdir = inputs['import_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
 
