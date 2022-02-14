@@ -100,7 +100,7 @@ def main():
 
     #impute sex and annotate samples wih ambiguous sex
     mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
-    annotate_ambiguous_sex(mt_sex, mtdir)
+    # annotate_ambiguous_sex(mt_sex, mtdir)
 
 
 if __name__ == '__main__':
