@@ -83,7 +83,7 @@ def annotate_ambiguous_sex(mt: hl.MatrixTable, mtdir: str):
 def main():
     #set up
     inputs = parse_config()
-    importmtdir = inputs['import_matrixtables_lustre_dir']
+    importmtdir = inputs['load_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
 
