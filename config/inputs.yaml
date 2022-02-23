@@ -13,3 +13,4 @@ load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
 annotation_lustre_dir: file:///lustre/scratch123/qc/annotations/
 matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/
 plots_lustre_dir: file:///lustre/scratch123/qc/plots/
+resource_dir: file:///lustre/scratch123/qc/resources/

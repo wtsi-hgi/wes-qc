@@ -24,22 +24,21 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     pruned_mt.write(mtoutfile, overwrite=True)
 
 
-def run_pc_relate(pruned_mtfile: str, mtdir: str, samples_to_remove_file: str):
+def run_pc_relate(pruned_mt_file: str, relatedness_ht_file: str, samples_to_remove_file: str, scores_file: str):
     '''
     Runs PC relate on pruned MT
-    :param str prunedmt_file: ld pruned MT file
-    :param str mtdir: directory output matrix tables are written to
+    :param str pruned_mt_file: ld pruned MT file
+    :param str relatedness_ht_file: relatedness ht file
     :param str samples_to_remove_file: file samples to remove ht is written to
+    :param str scores_file: file scores ht is written to
     '''
-    print("Running PCRelate")
-    pruned_mt = hl.read_matrix_table(pruned_mtfile)
+    print("Running PC relate")
+    pruned_mt = hl.read_matrix_table(pruned_mt_file)
     eig, scores, _ = hl.hwe_normalized_pca(pruned_mt.GT, k=10, compute_loadings=False)
-    scoresfile = mtdir + "mt_pruned.pca_scores.ht"
-    scores.write(scoresfile, overwrite=True)
+    scores.write(scores_file, overwrite=True)
 
     print("Calculating relatedness")
     relatedness_ht = hl.pc_relate(pruned_mt.GT, min_individual_maf=0.05, scores_expr=scores[pruned_mt.col_key].scores, block_size=4096, min_kinship=0.05, statistics='kin2')
-    relatedness_ht_file = mtdir + "mt_relatedness.ht"
     relatedness_ht.write(relatedness_ht_file, overwrite=True)
     #prune individuals to be left with unrelated - creates a table containing one column - samples to remove
     pairs = relatedness_ht.filter(relatedness_ht['kin'] > 0.125)
@@ -47,18 +46,18 @@ def run_pc_relate(pruned_mtfile: str, mtdir: str, samples_to_remove_file: str):
     related_samples_to_remove.write(samples_to_remove_file, overwrite=True)   
 
 
-def run_population_pca(pruned_mtfile: str, pca_mtfile: str, mtdir: str, plotdir: str, samples_to_remove_file: str):
+def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdir: str, samples_to_remove_file: str):
     '''
     Runs PCA and creates a matrix table of non-related individuals with PCA scores
     Remove related samples from PC relate from pruned MT and run PCA
-    :param str prunedmt_file: ld pruned MT file
-    :param str prunedmt_file: PCA output MT file
+    :param str pruned_mt_file: ld pruned MT file
+    :param str pca_mt_file: PCA output MT file
     :param str mtdir: directory output matrix tables are written to
     :param str plotdir: directory output plots are written to
     :param str samples_to_remove_file: related samples to remove ht file
     '''
     print("Running population PCA")
-    pruned_mt = hl.read_matrix_table(pruned_mtfile)
+    pruned_mt = hl.read_matrix_table(pruned_mt_file)
     print("Removing related samples")
     related_samples_to_remove = hl.read_table(samples_to_remove_file)
     pca_mt = pruned_mt.filter_cols(hl.is_defined(related_samples_to_remove[pruned_mt.col_key]), keep=False)
@@ -78,7 +77,7 @@ def run_population_pca(pruned_mtfile: str, pca_mtfile: str, mtdir: str, plotdir:
     pca_loadings_file = mtdir + "mt_pca_loadings.ht"#table of SNPs, PCA loadings and AF
     pca_loadings.write(pca_loadings_file, overwrite=True)
     pca_mt = pca_mt.annotate_cols(scores=pca_scores[pca_mt.col_key].scores)
-    pca_mt.write(pca_mtfile, overwrite=True)
+    pca_mt.write(pca_mt_file, overwrite=True)
 
     print("Plotting PC1 vs PC2")
     p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title='PCA', xlabel='PC1', ylabel='PC2')
@@ -104,16 +103,18 @@ def main():
     mt = hl.read_matrix_table(mtfile)
 
     #ld prune to get a table of variants which are not correlated
-    prunedmt_file = mtdir + "mt_ldpruned.mt"
-    prune_mt(mt, prunedmt_file)
+    pruned_mt_file = mtdir + "mt_ldpruned.mt"
+    prune_mt(mt, pruned_mt_file)
 
     #run pcrelate
+    relatedness_ht_file = mtdir + "mt_relatedness.ht"
     samples_to_remove_file = mtdir + "mt_related_samples_to_remove.ht"
-    run_pc_relate(prunedmt_file, mtdir, samples_to_remove_file)
+    scores_file = mtdir + "mt_pruned.pca_scores.ht"
+    run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
     #run PCA
-    pcamt_file = mtdir + "mt_pca.mt"
-    run_population_pca(prunedmt_file, pcamt_file, mtdir, plotdir, samples_to_remove_file)
+    pca_mt_file = mtdir + "mt_pca.mt"
+    run_population_pca(pruned_mt_file, pca_mt_file, mtdir, plotdir, samples_to_remove_file)
 
 
 if __name__ == '__main__':
