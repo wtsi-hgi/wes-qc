@@ -18,11 +18,11 @@ def get_options():
     return args
     
 
-def create_1kg_mt(resourcedir: str, kgmtdir: str):
+def create_1kg_mt(resourcedir: str, mtdir: str):
     '''
     Create matrixtable of 1kg data
     :param str resourcedir: resources directory
-    :param str kgmtdir: matrixtable directory
+    :param str mtdir: matrixtable directory
     '''
     indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits/"
     vcfheader = indir + "header.txt"
@@ -32,7 +32,7 @@ def create_1kg_mt(resourcedir: str, kgmtdir: str):
     #create and save MT
     mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = vcfheader)
     print("Saving as hail mt")
-    mt_out_file = kgmtdir + "1kg_wes_regions.mt"
+    mt_out_file = mtdir + "kg_wes_regions.mt"
     mt.write(mt_out_file, overwrite=True)
 
 
@@ -129,7 +129,7 @@ def main():
 
     #if needed, create 1kg matrixtable
     if args.kg_to_mt:
-        create_1kg_mt(resourcedir, kgmtdir)
+        create_1kg_mt(resourcedir, mtdir)
     exit(0)
 
 
