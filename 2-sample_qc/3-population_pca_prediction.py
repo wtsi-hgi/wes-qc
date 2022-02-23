@@ -13,6 +13,16 @@ def get_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", "--kg_to_mt", required=True,
                             help="convert 1kg data to matrixtable", action="store_true")
+    parser.add_argument("-m", "--merge", required=True,
+                            help="merge alspac mt with 1kg mt", action="store_true")
+    parser.add_argument("-f", "--filter", required=True,
+                            help="annotate and filter merged mt", action="store_true")
+    parser.add_argument("-p", "--pca", required=True,
+                            help="run pca", action="store_true")
+    parser.add_argument("-a", "--assign_pops", required=True,
+                            help="assign populations", action="store_true")
+    parser.add_argument("-r", "--run", required=True,
+                            help="run all steps except kg_to_mt", action="store_true")
     args = parser.parse_args()
 
     return args
@@ -36,23 +46,23 @@ def create_1kg_mt(resourcedir: str, mtdir: str):
     mt.write(mt_out_file, overwrite=True)
 
 
-def merge_with_1kg(pruned_mt_file: str, resourcedir: str, merged_mt_file: str):
+def merge_with_1kg(pruned_mt_file: str, mtdir: str, merged_mt_file: str):
     '''
     merge the birth cohort WES ld-pruned data with 1kg data of known population
     :param str pruned_mt_file: ld pruned MT file
-    :param str resourcedir: resources directory
+    :param str mtdir: resources directory
     :param str merged_mt_file: merged output MT file
     '''
     print("Merging with 1kg data")
     mt = hl.read_matrix_table(pruned_mt_file)
-    akt_overlap_mt_file = resourcedir + "WES_AKT_1kg_intersection.vcf.mt"
-    overlap_1kg_AKT = hl.read_matrix_table(akt_overlap_mt_file)
+    kg_mt_file = mtdir + "kg_wes_regions.mt"
+    kg_mt = hl.read_matrix_table(kg_mt_file)
     # in order to create a union dataset the entries and column fields must be 
     # the same in each dataset. The following 2 lines take care of this.
-    overlap_1kg_AKT = overlap_1kg_AKT.select_entries(overlap_1kg_AKT.GT)
+    kg_mt = kg_mt.select_entries(kg_mt.GT)
     mt = mt.drop('callrate', 'f_stat', 'is_female')
     # union cols gives all samples and the rows which are found in both
-    mt_joined = mt.union_cols(overlap_1kg_AKT)
+    mt_joined = mt.union_cols(kg_mt)
     mt_joined.write(merged_mt_file, overwrite=True)
 
 
@@ -130,23 +140,24 @@ def main():
     #if needed, create 1kg matrixtable
     if args.kg_to_mt:
         create_1kg_mt(resourcedir, mtdir)
-    exit(0)
-
 
     #combine with 1KG data
     pruned_mt_file = mtdir + "mt_ldpruned.mt"
     merged_mt_file = mtdir + "merged_with_1kg.mt"
-    merge_with_1kg(pruned_mt_file, resourcedir, merged_mt_file)
+    if args.merge or args.run:
+        merge_with_1kg(pruned_mt_file, mtdir, merged_mt_file)
 
     #anotate and filter
     filtered_mt_file = mtdir + "merged_with_1kg_filtered.mt"
-    annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
+    if args.filter or args.run:
+        annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
 
     #run pca
     pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
     pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_evals_file = mtdir + "pca_evals_after_pruning.txt"#text file may need to be without file///
-    run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
+    if args.pca or args.run:
+        run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
 
     #assign pops
     # predict_pops()
