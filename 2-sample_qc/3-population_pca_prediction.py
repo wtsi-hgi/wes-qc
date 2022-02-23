@@ -112,7 +112,8 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str,
     pca_scores.write(pca_scores_file, overwrite=True)
     pca_loadings.write(pca_loadings_file, overwrite=True)
     with open(pca_evals_file, 'w') as f:
-        f.write(("\n").join(pca_evals))
+        for val in pca_evals:
+            f.write(str(val) + "\n")
 
 
 
