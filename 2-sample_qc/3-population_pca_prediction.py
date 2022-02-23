@@ -24,7 +24,7 @@ def create_1kg_mt(resourcedir: str, kgmtdir: str):
     :param str resourcedir: resources directory
     :param str kgmtdir: matrixtable directory
     '''
-    indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits"
+    indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits/"
     vcfheader = indir + "header.txt"
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
