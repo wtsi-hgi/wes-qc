@@ -1,0 +1,156 @@
+# population prediction with PCA
+from distutils.command.install_egg_info import to_filename
+import hail as hl
+import pyspark
+import argparse
+from gnomad.sample_qc.ancestry import assign_population_pcs
+from wes_qc.utils.utils import parse_config
+
+def get_options():
+    '''
+    Get options from the command line
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", "--kg_to_mt", required=True,
+                            help="convert 1kg data to matrixtable", action="store_true")
+    args = parser.parse_args()
+
+    return args
+    
+
+def create_1kg_mt(resourcedir: str, kgmtdir: str):
+    '''
+    Create matrixtable of 1kg data
+    :param str resourcedir: resources directory
+    :param str kgmtdir: matrixtable directory
+    '''
+    indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits"
+    vcfheader = indir + "header.txt"
+    objects = hl.utils.hadoop_ls(indir)
+    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
+    print("Loading VCFs")
+    #create and save MT
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = vcfheader)
+    print("Saving as hail mt")
+    mt_out_file = kgmtdir + "1kg_wes_regions.mt"
+    mt.write(mt_out_file, overwrite=True)
+
+
+def merge_with_1kg(pruned_mt_file: str, resourcedir: str, merged_mt_file: str):
+    '''
+    merge the birth cohort WES ld-pruned data with 1kg data of known population
+    :param str pruned_mt_file: ld pruned MT file
+    :param str resourcedir: resources directory
+    :param str merged_mt_file: merged output MT file
+    '''
+    print("Merging with 1kg data")
+    mt = hl.read_matrix_table(pruned_mt_file)
+    akt_overlap_mt_file = resourcedir + "WES_AKT_1kg_intersection.vcf.mt"
+    overlap_1kg_AKT = hl.read_matrix_table(akt_overlap_mt_file)
+    # in order to create a union dataset the entries and column fields must be 
+    # the same in each dataset. The following 2 lines take care of this.
+    overlap_1kg_AKT = overlap_1kg_AKT.select_entries(overlap_1kg_AKT.GT)
+    mt = mt.drop('callrate', 'f_stat', 'is_female')
+    # union cols gives all samples and the rows which are found in both
+    mt_joined = mt.union_cols(overlap_1kg_AKT)
+    mt_joined.write(merged_mt_file, overwrite=True)
+
+
+def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file: str):
+    '''
+    Annotate with known pops for 1kg samples and filter to remove long range LD regions, 
+    common variants, palidromic variants, low call rate and HWE filtering
+    :param str merged_mt_file: merged birth cohort wes and 1kg MT file
+    :param str resourcedir: resources directory
+    :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
+    '''
+    print("Adding population annotation for 1kg samples")
+    mt = hl.read_matrix_table(merged_mt_file)
+    pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
+    cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Individual ID')
+    mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
+
+    print("Filtering variants")
+    mt_vqc = hl.variant_qc(mt, name='variant_QC_Hail')
+    mt_vqc_filtered = mt_vqc.filter_rows(
+        (mt_vqc.variant_QC_Hail.call_rate >= 0.99) &
+        (mt_vqc.variant_QC_Hail.AF[1] >= 0.05) &
+        (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
+    )
+    long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
+    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
+    mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
+    mt_non_pal = mt_vqc_filtered.filter_rows((mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False)
+    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "C") & (mt_non_pal.alleles[1] == "G"), keep=False)
+    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "A") & (mt_non_pal.alleles[1] == "T"), keep=False)
+    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "T") & (mt_non_pal.alleles[1] == "A"), keep=False)
+
+    mt_non_pal.write(filtered_mt_file, overwrite=True)
+
+
+def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str, pca_evals_file: str):
+    '''
+    Run PCA before population prediction
+    :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
+    :param str pca_sores_file: PCA scores HT file
+    :param str pca_loadings_file: PCA scores HT file
+    :param str pca_evals_file: PCA scores HT file
+    '''
+    mt = hl.read_matrix_table(filtered_mt_file)
+    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=10, compute_loadings=True)
+    pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
+    pca_scores.write(pca_scores_file, overwrite=True)
+    pca_loadings.write(pca_loadings_file, overwrite=True)
+    with open(pca_evals_file, 'w') as f:
+        f.write(("\n").join(pca_evals))
+
+
+
+# def predict_pops(pca_scores_file: str):
+#     '''
+#     Predict populations from PCA scores
+#     '''
+#     pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, known_col="known_pop", n_estimators=100, prop_train=0.8, min_prob=0.5)
+
+
+def main():
+    #set up
+    args = get_options()
+    inputs = parse_config()
+    mtdir = inputs['matrixtables_lustre_dir']
+    resourcedir = inputs['resource_dir']
+    kgmtdir = inputs['load_matrixtables_lustre_dir']
+
+    #initialise hail
+    tmp_dir = "hdfs://spark-master:9820/"
+    sc = pyspark.SparkContext()
+    hadoop_config = sc._jsc.hadoopConfiguration()
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+
+    #if needed, create 1kg matrixtable
+    if args.kg_to_mt:
+        create_1kg_mt(resourcedir, kgmtdir)
+    exit(0)
+
+
+    #combine with 1KG data
+    pruned_mt_file = mtdir + "mt_ldpruned.mt"
+    merged_mt_file = mtdir + "merged_with_1kg.mt"
+    merge_with_1kg(pruned_mt_file, resourcedir, merged_mt_file)
+
+    #anotate and filter
+    filtered_mt_file = mtdir + "merged_with_1kg_filtered.mt"
+    annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
+
+    #run pca
+    pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
+    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
+    pca_evals_file = mtdir + "pca_evals_after_pruning.txt"#text file may need to be without file///
+    run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
+
+    #assign pops
+    # predict_pops()
+
+
+if __name__ == '__main__':
+    main() 
