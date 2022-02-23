@@ -129,7 +129,8 @@ def main():
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
-    kgmtdir = inputs['load_matrixtables_lustre_dir']
+    mtdir2 = inputs['load_matrixtables_lustre_dir']
+ 
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -147,7 +148,7 @@ def main():
     if args.merge or args.run:
         merge_with_1kg(pruned_mt_file, mtdir, merged_mt_file)
 
-    #anotate and filter
+    #annotate and filter
     filtered_mt_file = mtdir + "merged_with_1kg_filtered.mt"
     if args.filter or args.run:
         annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
@@ -155,7 +156,7 @@ def main():
     #run pca
     pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
     pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
-    pca_evals_file = mtdir + "pca_evals_after_pruning.txt"#text file may need to be without file///
+    pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
     if args.pca or args.run:
         run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
 
