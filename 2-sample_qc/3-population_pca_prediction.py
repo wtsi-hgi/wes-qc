@@ -11,18 +11,18 @@ def get_options():
     Get options from the command line
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--kg_to_mt", required=True,
-                            help="convert 1kg data to matrixtable", action="store_true")
-    parser.add_argument("-m", "--merge", required=True,
-                            help="merge alspac mt with 1kg mt", action="store_true")
-    parser.add_argument("-f", "--filter", required=True,
-                            help="annotate and filter merged mt", action="store_true")
-    parser.add_argument("-p", "--pca", required=True,
-                            help="run pca", action="store_true")
-    parser.add_argument("-a", "--assign_pops", required=True,
-                            help="assign populations", action="store_true")
-    parser.add_argument("-r", "--run", required=True,
-                            help="run all steps except kg_to_mt", action="store_true")
+    parser.add_argument("-k", "--kg_to_mt", 
+        help="convert 1kg data to matrixtable", action="store_true")
+    parser.add_argument("-m", "--merge",
+        help="merge alspac mt with 1kg mt", action="store_true")
+    parser.add_argument("-f", "--filter",
+        help="annotate and filter merged mt", action="store_true")
+    parser.add_argument("-p", "--pca",
+        help="run pca", action="store_true")
+    parser.add_argument("-a", "--assign_pops",
+        help="assign populations", action="store_true")
+    parser.add_argument("-r", "--run",
+        help="run all steps except kg_to_mt", action="store_true")
     args = parser.parse_args()
 
     return args
