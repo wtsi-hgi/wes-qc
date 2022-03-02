@@ -76,7 +76,7 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     '''
     print("Adding population annotation for 1kg samples")
     mt = hl.read_matrix_table(merged_mt_file)   
-    # The following annotate by a more granular population
+    # The following annotates by a more granular population
     # pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
     # cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Individual ID')
     # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
@@ -122,11 +122,24 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str,
 
 
 
-# def predict_pops(pca_scores_file: str):
-#     '''
-#     Predict populations from PCA scores
-#     '''
-#     pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, known_col="known_pop", n_estimators=100, prop_train=0.8, min_prob=0.5)
+def predict_pops(pca_scores_file: str, pop_ht_file: str):
+    '''
+    Predict populations from PCA scores
+    :param str pca_sores_file: PCA scores HT file
+    :param str pop_ht_file: predicted population HT file
+    '''
+    pca_scores = hl.read_table(pca_scores_file)
+    known_col = "known_pop"
+    pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5)
+    # This is a work around for hail <0.2.88 - convert hail table to pandas df then run assign_population_pcs
+    # pop_pca_scores = pca_scores.select(known_col, pca_scores=pca_scores.scores)
+    # pop_pc_pd = pop_pca_scores.to_pandas()
+    # pop_pc_pd = expand_pd_array_col(pop_pc_pd, "pca_scores", 10, 'PC')  
+
+    # pop_pca_scores = pca_scores.select(known_col, pca_scores=pc_cols)
+    # pop_pc_pd = pop_pca_scores.to_pandas()
+    # pc_cols = [f"PC{i+1}" for i in range(10)]
+    # pop_pd, pop_clf = assign_population_pcs(pop_pc_pd, pc_cols, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5)
 
 
 def main():
@@ -136,7 +149,6 @@ def main():
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
     mtdir2 = inputs['load_matrixtables_lustre_dir']
- 
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -162,12 +174,14 @@ def main():
     #run pca
     pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
     pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
+    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
     if args.pca or args.run:
         run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
 
     #assign pops
-    # predict_pops()
+    pop_ht_file = mtdir + "pop_assignments.ht"
+    predict_pops(pca_scores_file, pop_ht_file)
 
 
 if __name__ == '__main__':
