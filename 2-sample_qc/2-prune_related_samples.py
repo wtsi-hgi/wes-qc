@@ -18,7 +18,7 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     print("Splitting multiallelic sites")
     mtin = hl.split_multi(mtin)
     print("Performing LD pruning")
-    pruned_ht = hl.ld_prune(mtin.GT, r2=0.2)
+    pruned_ht = hl.ld_prune(mtin.GT, r2=0.1)
     pruned_mt = mtin.filter_rows(hl.is_defined(pruned_ht[mtin.row_key]))
     pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
     pruned_mt.write(mtoutfile, overwrite=True)
