@@ -181,7 +181,8 @@ def main():
 
     #assign pops
     pop_ht_file = mtdir + "pop_assignments.ht"
-    predict_pops(pca_scores_file, pop_ht_file)
+    if args.assign_pops or args.run:
+        predict_pops(pca_scores_file, pop_ht_file)
 
 
 if __name__ == '__main__':
