@@ -133,6 +133,7 @@ def predict_pops(pca_scores_file: str, pop_ht_file: str):
     pca_scores = hl.read_table(pca_scores_file)
     known_col = "known_pop"
     pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5)
+    pop_ht.write(pop_ht_file, overwrite=True)
     # This is a work around for hail <0.2.88 - convert hail table to pandas df then run assign_population_pcs
     # pop_pca_scores = pca_scores.select(known_col, pca_scores=pca_scores.scores)
     # pop_pc_pd = pop_pca_scores.to_pandas()
