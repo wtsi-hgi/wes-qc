@@ -76,14 +76,16 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     '''
     print("Adding population annotation for 1kg samples")
     mt = hl.read_matrix_table(merged_mt_file)   
-    # The following annotates by a more granular population
-    # pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
-    # cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Individual ID')
-    # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
+
+    # The following annotates by population
+    pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
+    cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Individual ID')
+    mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
+
     # The following us 1kg superpop
-    pops_file = resourcedir + "/igsr_samples.tsv"
-    cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
-    mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])
+    # pops_file = resourcedir + "/igsr_samples.tsv"
+    # cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
+    # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])
 
     print("Filtering variants")
     mt_vqc = hl.variant_qc(mt, name='variant_QC_Hail')
