@@ -2,6 +2,7 @@
 import os
 import sys
 import yaml
+import pandas as pd
 
 def get_script_path():
     #returns the path of the script that is being run
