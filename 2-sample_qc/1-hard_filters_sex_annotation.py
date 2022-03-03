@@ -52,33 +52,43 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     return mt
 
 
-def annotate_ambiguous_sex(mt: hl.MatrixTable, mtdir: str):
+def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, resourcedir: str):
     '''
-    Annotated samples with ambiguous sex after impute_sex has run and save as a Table
+    Find samples where annotated sex conflicts with the sex in our metadata
+    Find samples where sex is not annotated
+    Find samples where f_stat is between 0.2 and 0.8
     :param MatrixTable mt: MT containing imputed sex in column 'sex_check'
     :param str mtdir: directory output matrix tables are written to
+    :param str annotdir: directory annotation files are written to
+    :param str resourcedir: directory annotation files are written to
     '''
-    print("Annotating samples with ambiguous sex:")
+    print("Annotating samples with inconsistencies:")
     qc_ht = mt.cols()
-
-    qc_ht = qc_ht.annotate(ambiguous_sex=((qc_ht.f_stat >= 0.5) & (hl.is_defined(qc_ht.normalized_y_coverage) & (qc_ht.normalized_y_coverage <= 0.1))) |
-                           (hl.is_missing(qc_ht.f_stat)) |
-                           ((qc_ht.f_stat >= 0.4) & (qc_ht.f_stat <= 0.6) & (hl.is_defined(
-                               qc_ht.normalized_y_coverage) & (qc_ht.normalized_y_coverage > 0.1))),
-                           sex_aneuploidy=(qc_ht.f_stat < 0.4) & hl.is_defined(qc_ht.normalized_y_coverage) & (qc_ht.normalized_y_coverage > 0.1))
-
+    #convert is_female boolean to sex
     sex_expr = (hl.case()
-                .when(qc_ht.ambiguous_sex, "ambiguous_sex")
-                .when(qc_ht.sex_aneuploidy, "sex_aneuploidy")
-                .when(qc_ht.is_female, "female")
-                .default("male"))
+            .when(qc_ht.is_female, "female")
+            .when(qc_ht.is_female == False, "male")
+            .default("undetermined"))
+    qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
-    qc_ht = qc_ht.annotate(
-        sex=sex_expr, data_type='exomes').key_by('data_type', 's')
+    #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
+    metadata_file =  resourcedir +  '/all_samples_with_proceed_and_seq_info_and_warehouse_info.txt'
+    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('ega')
+    #we only want those from the metadata file where sex is known
+    metadata_ht = metadata_ht.filter((metadata_ht.sex == 'Male') | (metadata_ht.sex == 'Female'))
 
-    qc_ht_file = mtdir + "mt_ambiguous_sex_samples.ht"
-    qc_ht.write(qc_ht_file, overwrite=True)
+    #annotate the sex-predictions with the manifest sex annotation - need to use a join here
+    ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].sex)
 
+    #identify samples where imputed sex and manifest sex conflict
+    conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
+        (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
+    conflicting_sex_ht.export(annotdir + '/conflicting_sex.txt.bgz')
+
+    #identify samples where f stat is between 0.2 and 0.8
+    f_stat_ht = qc_ht.filter( (qc_ht.f_stat > 0.2) & (qc_ht.f_stat < 0.8) )
+    f_stat_ht.export(annotdir + '/sex_annotation_f_stat_outliers.txt.bgz')
+    
 
 def main():
     #set up
@@ -86,6 +96,7 @@ def main():
     importmtdir = inputs['load_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
+    resourcedir = inputs['resource_dir']
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -100,9 +111,11 @@ def main():
     #apply hard fitlers
     mt_filtered = apply_hard_filters(mt_unfiiltered, mtdir)
 
-    #impute sex and annotate samples wih ambiguous sex
+    #impute sex
     mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
+
     # annotate_ambiguous_sex(mt_sex, mtdir)
+    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
 
 
 if __name__ == '__main__':
