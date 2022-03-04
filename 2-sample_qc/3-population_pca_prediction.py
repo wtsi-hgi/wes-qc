@@ -1,5 +1,4 @@
 # population prediction with PCA
-from distutils.command.install_egg_info import to_filename
 import hail as hl
 import pyspark
 import argparse
