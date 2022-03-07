@@ -18,13 +18,14 @@ def annotate_pops(pruned_mt_file: str, pop_ht_file: str, pops_annot_mt_file: str
     mt.write(pops_annot_mt_file, overwrite=True)
 
 
-def stratified_sample_qc(pops_annot_mt_file: str, mt_qc_outfile: str, ht_qc_cols_outfile: str, qc_filter_file: str):
+def stratified_sample_qc(pops_annot_mt_file: str, mt_qc_outfile: str, ht_qc_cols_outfile: str, qc_filter_file: str, annotdir: str):
     '''
     Run sample QC and stratify by population
     param str pops_annot_mt_file: population annotated MT file
     param str mt_qc_outfile: sample QC MT file
     param str ht_qccols_outfile: sample QC columns HT file
     param str qc_filter_file: output file for stratified sample QC HT
+    aram str annotdir: output directory for annotations
     '''
     mt = hl.read_matrix_table(pops_annot_mt_file)
     #run sample QC
@@ -54,11 +55,15 @@ def stratified_sample_qc(pops_annot_mt_file: str, mt_qc_outfile: str, ht_qc_cols
     print(f'{checkpoint} exome samples found passing pop filtering')
     pop_ht.write(qc_filter_file, overwrite=True)
 
+    output_text_file = annotdir + "sample_qc_by_pop.tsv.bgz"
+    pop_ht.export(output_text_file, delimiter="\t")
+
 
 def main():
     #set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
+    annotdir = inputs['annotation_lustre_dir']
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -76,7 +81,7 @@ def main():
     mt_qc_outfile = mtdir + "mt_pops_sampleqc.mt"
     ht_qc_cols_outfile = mtdir + "mt_pops_sampleqc.ht"
     qc_filter_file = mtdir + "mt_pops_QC_filters.ht"
-    stratified_sample_qc(pops_annot_mt_file, mt_qc_outfile, ht_qc_cols_outfile, qc_filter_file)
+    stratified_sample_qc(pops_annot_mt_file, mt_qc_outfile, ht_qc_cols_outfile, qc_filter_file, annotdir)
 
 
 if __name__ == '__main__':
