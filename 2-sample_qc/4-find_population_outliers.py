@@ -75,7 +75,7 @@ def main():
     #run sample QC and stratify by population
     mt_qc_outfile = mtdir + "mt_pops_sampleqc.mt"
     ht_qc_cols_outfile = mtdir + "mt_pops_sampleqc.ht"
-    qc_filter_file = mtdir + "mt_pops_QC_filters.mt"
+    qc_filter_file = mtdir + "mt_pops_QC_filters.ht"
     stratified_sample_qc(pops_annot_mt_file, mt_qc_outfile, ht_qc_cols_outfile, qc_filter_file)
 
 
