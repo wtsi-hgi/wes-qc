@@ -25,7 +25,7 @@ def write_ped():
 def main():
     inputs = parse_config()
     resourcedir = inputs['resource_dir_local']
-    manifest_file = resourcedir + "all_samples_with_proceed_and_seq_info.txt"
+    manifest_file = resourcedir + "all_samples_with_proceed_and_seq_info_and_warehouse_info.txt"
 
     triodata = parse_manifest(manifest_file)
     write_ped()
