@@ -9,17 +9,33 @@ def parse_manifest(manifest_file):
     '''
     trios = {}
     with open(manifest_file, 'r') as f:
-        lines = f.readlines()
+        lines = f.readlines('sangersampleid')
         for l in lines:
-            linedata = l.split("\t")
-            print(linedata)
-            exit(0)
+            if not l.startswith():
+                linedata = l.split("\t")
+                ega = linedata[25]
+                persontype = linedata[4]
+                famid = linedata[8]
+                trio = linedata[6]
+                if not ega.startswith('EGA'):#get rid of any people without a valid EGA acc
+                    continue
+                if trio == 'yes':
+                    # fix A or B
+                    persontype = persontype.replace(' ','')
+                    if famid not in trios.keys():
+                        trios[famid] = {}
+                    trios[famid][persontype] = ega
 
     return trios
 
 
-def write_ped():
-    pass
+def write_ped(trios, pedfile):
+    for famid in trios.keys():
+        if 'M' in trios[famid].keys() and 'P' in trios[famid].keys():#both parents present
+            for person in trios[famid].keys():
+                if person not in ['M', 'P']:
+                    print(trios[famid][person])
+                    exit(0)
 
 
 def main():
@@ -27,8 +43,9 @@ def main():
     resourcedir = inputs['resource_dir_local']
     manifest_file = resourcedir + "all_samples_with_proceed_and_seq_info_and_warehouse_info.txt"
 
-    triodata = parse_manifest(manifest_file)
-    write_ped()
+    trios = triodata = parse_manifest(manifest_file)
+    pedfile = resourcedir + "trios.ped"
+    write_ped(trios, pedfile)
 
 if __name__ == '__main__':
     main()
