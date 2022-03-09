@@ -9,9 +9,9 @@ def parse_manifest(manifest_file):
     '''
     trios = {}
     with open(manifest_file, 'r') as f:
-        lines = f.readlines('sangersampleid')
+        lines = f.readlines()
         for l in lines:
-            if not l.startswith():
+            if not l.startswith('sangersampleid'):
                 linedata = l.split("\t")
                 ega = linedata[25]
                 persontype = linedata[4]
