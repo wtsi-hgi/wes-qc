@@ -17,6 +17,15 @@ def parse_manifest(manifest_file):
                 persontype = linedata[4]
                 famid = linedata[8]
                 trio = linedata[6]
+                sex = linedata[26]
+                sexcode = '1'
+                if sex == 'Female':
+                    sexcode = '2'
+                elif sex == 'Male':
+                    sexcode = '1'
+                else:# in ALSPAC there is one proband with unknown gender in manifest, removing this
+                    continue
+
                 if not ega.startswith('EGA'):#get rid of any people without a valid EGA acc
                     continue
                 if trio == 'yes':
@@ -24,19 +33,24 @@ def parse_manifest(manifest_file):
                     persontype = persontype.replace(' ','')
                     if famid not in trios.keys():
                         trios[famid] = {}
-                    trios[famid][persontype] = ega
+                    trios[famid][persontype]['ega'] = ega
+                    trios[famid][persontype]['sex'] = sex
 
     return trios
 
 
 def write_ped(trios, pedfile):
+    peddata = []
     for famid in trios.keys():
         if 'M' in trios[famid].keys() and 'P' in trios[famid].keys():#both parents present
             for person in trios[famid].keys():
                 if person not in ['M', 'P']:
-                    print(trios[famid][person])
-                    exit(0)
+                    pedline = ("\t").join([ famid, trios[famid][person]['ega'], trios[famid]['P']['ega'], trios[famid]['M']['ega'], trios[famid][person]['sex'], '0' ])
+                    peddata.append(pedline)
 
+    with open(pedfile, 'w') as o:
+        o.write(("\n").join(peddata))
+        
 
 def main():
     inputs = parse_config()
