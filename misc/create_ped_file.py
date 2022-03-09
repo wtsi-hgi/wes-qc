@@ -33,6 +33,7 @@ def parse_manifest(manifest_file):
                     persontype = persontype.replace(' ','')
                     if famid not in trios.keys():
                         trios[famid] = {}
+                    trios[famid][persontype] = {}
                     trios[famid][persontype]['ega'] = ega
                     trios[famid][persontype]['sex'] = sex
 
@@ -50,7 +51,7 @@ def write_ped(trios, pedfile):
 
     with open(pedfile, 'w') as o:
         o.write(("\n").join(peddata))
-        
+
 
 def main():
     inputs = parse_config()
