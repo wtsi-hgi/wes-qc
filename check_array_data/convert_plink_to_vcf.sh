@@ -4,4 +4,4 @@ plinkdata=/lustre/scratch119/humgen/projects/birth_cohort_wes/alspac/existing_da
 outvcf=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_vcf
 plink=/software/hgi/installs/plink/dev-05-03-2022/plink2
 
-${plink} --pfile ${plinkdata} --recode vcf --out ${vcf}
+${plink} --pfile ${plinkdata} --recode vcf --out ${outvcf}
