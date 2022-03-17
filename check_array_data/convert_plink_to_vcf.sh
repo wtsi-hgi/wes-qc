@@ -9,3 +9,5 @@ ${plink} --bfile ${plinkdata} --recode vcf --out ${outvcf}
 bgzip -c ${outvcf}.vcf > ${outvcf}.vcf.gz
 
 tabix -p vcf ${outvcf}.vcf.gz
+
+rm ${outvcf}.vcf
