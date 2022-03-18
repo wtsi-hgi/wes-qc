@@ -12,6 +12,6 @@ chain=/lustre/scratch118/humgen/resources/liftover/hg19ToHg38.over.chain
 prefix=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/liftover
 outfile=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_vcf_b38_liftover.vcf.gz
 
-${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} | bgzip -c > ${outfile}
+${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} | bcftools sort | bgzip -c > ${outfile}
 
 tabix -p vcf ${outfile}
