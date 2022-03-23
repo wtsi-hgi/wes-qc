@@ -13,7 +13,7 @@ chain=/lustre/scratch118/humgen/resources/liftover/hg19ToHg38.over.chain
 prefix=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/liftover
 outfile=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_vcf_b38_liftover.vcf.gz
 
-tmp_outfile = ${outfile}_tmp
+tmp_outfile=${outfile}_tmp
 
 #liftOver path
 liftoverpath=/software/hgi/installs/liftOver
