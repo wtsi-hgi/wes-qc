@@ -26,4 +26,4 @@ sed s'/contig=<ID=/contig=<ID=chr/g' ${tmp_oufile} | bcftools sort | bgzip -c > 
 
 tabix -p vcf ${outfile}
 
-rm ${tmp_outfile}
+#rm ${tmp_outfile}
