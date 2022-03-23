@@ -19,6 +19,6 @@ liftoverpath=/software/hgi/installs/liftOver
 
 export PERL5LIB=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/tools/:$PERL5LIB
 
-${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} -l ${liftoverpath} | bgzip -c > ${outfile}
+${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} -l ${liftoverpath} | sed s '/contig=<ID=/contig=<ID=chr/g' | bcftools sort | bgzip -c > ${outfile}
 
-#tabix -p vcf ${outfile}
+tabix -p vcf ${outfile}
