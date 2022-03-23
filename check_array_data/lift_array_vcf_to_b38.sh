@@ -22,7 +22,7 @@ export PERL5LIB=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_
 
 ${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} -l ${liftoverpath} > ${tmp_outfile}
 
-sed s'/contig=<ID=/contig=<ID=chr/g' ${tmpoufile} | bcftools sort | bgzip -c > ${outfile}
+sed s'/contig=<ID=/contig=<ID=chr/g' ${tmp_oufile} | bcftools sort | bgzip -c > ${outfile}
 
 tabix -p vcf ${outfile}
 
