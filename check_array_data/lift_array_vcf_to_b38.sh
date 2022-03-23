@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail on 
 
 # infile
 arrayvcf=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_vcf.vcf.gz
@@ -12,11 +13,17 @@ chain=/lustre/scratch118/humgen/resources/liftover/hg19ToHg38.over.chain
 prefix=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/liftover
 outfile=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_vcf_b38_liftover.vcf.gz
 
+tmp_outfile = ${outfile}_tmp
+
 #liftOver path
 liftoverpath=/software/hgi/installs/liftOver
 
 export PERL5LIB=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/tools/:$PERL5LIB
 
-${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} -l ${liftoverpath} | sed s '/contig=<ID=/contig=<ID=chr/g' | bcftools sort | bgzip -c > ${outfile}
+${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} -l ${liftoverpath} > ${tmp_outfile}
+
+sed s '/contig=<ID=/contig=<ID=chr/g' ${tmpoufile} | bcftools sort | bgzip -c > ${outfile}
 
 tabix -p vcf ${outfile}
+
+rm ${tmp_outfile}
