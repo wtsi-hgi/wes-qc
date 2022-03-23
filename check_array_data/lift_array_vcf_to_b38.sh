@@ -23,7 +23,7 @@ export PERL5LIB=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_
 
 ${liftoverscript} -i ${arrayvcf} -p ${prefix} -o ${b37fa} -n ${b38fa} -c ${chain} -l ${liftoverpath} > ${outfile_l}
 
-sed s'/ID=/ID=chr/' ${oufile_l} > ${outfile_header_fix}
+sed s"/ID=/ID=chr/" ${oufile_l} > ${outfile_header_fix}
 bcftools sort -Oz -o ${outfile} ${outfile_header_fix}
 
 tabix -p vcf ${outfile}
