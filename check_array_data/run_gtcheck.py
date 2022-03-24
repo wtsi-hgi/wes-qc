@@ -22,8 +22,8 @@ def create_ids_file(wdir, metadata_file):
     outdata = []
     with open(metadata_file, 'r') as m:
         lines = m.readlines()
-        for l in linedata:
-            linedata = lines.split("\t")
+        for l in lines:
+            linedata = l.split("\t")
             print(linedata)
             exit(0)
 
