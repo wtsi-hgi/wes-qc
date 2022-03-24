@@ -19,13 +19,19 @@ def create_ids_file(wdir, metadata_file):
     '''
     create sample id mapping file
     '''
-    outdata = []
+    outdata = {}
     with open(metadata_file, 'r') as m:
         lines = m.readlines()
         for l in lines:
             linedata = l.split("\t")
-            print(linedata)
+            if linedata[0] == 'sangersampleid':
+                continue
+            ega = linedata[25]
+            familyid = linedata[11]
+            outdata[ega] = familyid
+            print(outdata)
             exit(0)
+
 
 
 def submit_gtcheck_jobs():
