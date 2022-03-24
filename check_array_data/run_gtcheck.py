@@ -22,9 +22,9 @@ def create_ids_file(wdir, metadata_file):
     outdata = []
     with open(metadata_file, 'r') as m:
         lines = m.readlines()
-        linedata = lines.split("\t")
         for l in linedata:
-            print(l)
+            linedata = lines.split("\t")
+            print(linedata)
             exit(0)
 
 
@@ -45,7 +45,6 @@ def concatenate_outputs():
 
 
 def main():
-
     wdir = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/run_getcheck/'
     metadata_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/resources/all_samples_with_proceed_and_seq_info_and_warehouse_info_egas_from_mlwh.txt'
 
@@ -57,6 +56,9 @@ def main():
 
     if args.parse:
         concatenate_outputs()
+
+    if not args.parse and not args.run:
+        print("Either --run (-r) or --parse (-p) is required")
 
 
 if __name__ == '__main__':
