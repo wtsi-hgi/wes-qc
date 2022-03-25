@@ -85,7 +85,7 @@ def concatenate_outputs():
 
 
 def main():
-    wdir = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/run_getcheck/'
+    wdir = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/run_gtcheck/'
     metadata_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/resources/all_samples_with_proceed_and_seq_info_and_warehouse_info_egas_from_mlwh.txt'
     gatk_vcf_dir = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/gatk_vcfs/'
     plink_vcf = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_vcf_b38_liftover.vcf.gz'
