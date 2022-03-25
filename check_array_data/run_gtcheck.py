@@ -47,7 +47,7 @@ def create_ids_file(wdir, metadata_file, gatk_vcf_dir, plink_vcf):
     #run bcftools query -l to get list of plink vcf samples
     bcftools_cmd_p = "bcftools query -l " + plink_vcf
     plink_samples_str = runcommand(bcftools_cmd_p)
-    plink_vcf_samples = plink_samples_str.split("\s+")
+    plink_vcf_samples = plink_samples_str.split()
     print(plink_vcf_samples)
     exit(0)
 
