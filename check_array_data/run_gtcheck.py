@@ -44,23 +44,27 @@ def create_ids_file(wdir, metadata_file, gatk_vcf_dir, plink_vcf):
             if not familyid.endswith('A or B'):
                 outdata[ega] = familyid
     
-    #run bcftools query -l to get list of plink vcf samples
+    # run bcftools query -l to get list of plink vcf samples
     bcftools_cmd_p = "bcftools query -l " + plink_vcf
     plink_samples_str = runcommand(bcftools_cmd_p)
     plink_vcf_samples = plink_samples_str.split()
-    print(plink_vcf_samples)
-    exit(0)
 
-
-    gatk_vcf_samples = []
-    #run bcftools query -l to get list of gatk vcf samples
+    # run bcftools query -l to get list of gatk vcf samples
     gatk_vcf = gatk_vcf_dir + "chr10_101587143_chr10_101849993.gatk.vcf.gz"
     bcftools_cmd_g = "bcftools query -l " + gatk_vcf
-
+    gatk_samples_str = runcommand(bcftools_cmd_g)
+    gatk_vcf_samples = gatk_samples_str.split()
 
     # for each sample pair - check if it is in both VCFs, if so add to the output 
     # file, if not report to command line
-
+    outfile = wdir + "pairs_file.txt"
+    with open(outfile, 'w') as o:
+        for s in outdata.keys():
+            plinkid = outdata[s] + "_" + outdata[s]
+            if s in gatk_vcf_samples and plinkid in plink_vcf_samples:
+                o.write(s + "\t" + plinkid + "\n")
+            else:
+                print("Skipping pair " + s + " " + outdata[s] + " not present in both VCFs")
 
 
 
