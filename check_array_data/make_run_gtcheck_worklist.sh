@@ -16,5 +16,5 @@ for f in `cat ${vcflist}`
     vcf="/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/gatk_vcfs/"${f}
     pos=${f::-12}
     cmd=${bcftools}" gtcheck -S gt:"${samplesg}" -S qry:"${samplesv}"  --n-matches 100 -g "${plinkvcf}" "${vcf}" > "${outfile}${pos}
-    echo ${cmd}
+    echo '"'${cmd}'"'
     done > ${worklist}
