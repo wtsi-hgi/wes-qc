@@ -14,6 +14,7 @@ worklist="/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genoty
 for f in `cat ${vcflist}`
     do
     vcf="/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/gatk_vcfs/"${f}
+    pos=${vcf::-7}
     cmd=${bcftools}" gtcheck -S gt:"${samplesg}" -S qry:"${samplesv}"  --n-matches 100 -g "${plinkvcf}" "${vcf}" > "${outfile}
     echo ${cmd}
     done > ${worklist}
