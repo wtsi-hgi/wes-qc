@@ -57,7 +57,7 @@ def main():
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
     mt_sample_qc_file = mtdir + "non_stratified_sample_qc.mt"
     ht_sample_qc_file = mtdir + "non_stratified_sample_qc_cols.ht"
-    metadatafile = resourcesdir + "all_samples_with_proceed_and_seq_info_and_warehouse_info_egas_from_mlwh.tx"
+    metadatafile = resourcesdir + "all_samples_with_proceed_and_seq_info_and_warehouse_info_egas_from_mlwh.txt"
     pop_ht_file = mtdir + "pop_assignments.ht"
     run_sample_qc(raw_mt_file, mt_sample_qc_file, ht_sample_qc_file, metadatafile, pop_ht_file, annotdir)
 
