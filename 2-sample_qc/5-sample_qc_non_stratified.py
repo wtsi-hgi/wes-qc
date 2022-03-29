@@ -29,7 +29,7 @@ def run_sample_qc(raw_mt_file, mt_sample_qc_file, ht_sample_qc_file, metadatafil
                    .when(mt.s.startswith('Z'), 'Bristol')
                    .default("")
                   )
-    mt = mt.annotate_cols(sequencing_location = seq_expr).key_by('s')
+    mt = mt.annotate_cols(sequencing_location = seq_expr).key_cols_by('s')
     pop_ht = hl.read_table(pop_ht_file)
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
 
