@@ -12,8 +12,19 @@ def read_output_files(output_file_list):
                 for gl in glines:
                     if gl.startswith('DC'):
                         gldata = gl.split()
-                        print(gldata)
-                        exit(0)
+                        ega = gldata[1]
+                        famid = gldata[2]
+                        discordance = float(gldata[3])
+                        nsites = int(gldata[5])
+                        if not ega in output_data.keys():
+                            output_data[ega] = {}
+                        if not famid in output_data[ega].keys():
+                            output_data[ega][famid] = {'sum_discordance':0, 'nsites':0}
+                        output_data[ega][famid]['sum_discordance'] +=  discordance
+                        output_data[ega][famid]['nsites'] += nsites
+                print(output_data)
+                exit(0)
+
 
 
     return output_data
