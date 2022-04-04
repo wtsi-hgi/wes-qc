@@ -1,4 +1,5 @@
 #get sequencing run IDs for Sanger samples to annotate plots for sample QC
+#run on hgi-farm5 not on os tenant due to scratch119 files
 
 sequencing_info_file = '/lustre/scratch119/humgen/projects/birth_cohort_wes/genestack/6407_QC_pass_seq_Batches.csv'
 idmap_file = '/lustre/scratch119/humgen/projects/birth_cohort_wes/genestack/sequencescape_dump_study_6407.txt'
@@ -16,5 +17,9 @@ with open(idmap_file, 'r') as f:
 with open(sequencing_info_file, 'r') as f2:
     lines2 = f2.readlines()
     for l2 in lines2:
-        print(l2)
-        exit(0)
+        if not l2.startswith('sanger_sample_id'):
+            l2data = l2.split(",")
+            print(l2data)
+            exit(0)
+            ega = sanger_ega[l2data[0]]
+            runid = l2data[3]
