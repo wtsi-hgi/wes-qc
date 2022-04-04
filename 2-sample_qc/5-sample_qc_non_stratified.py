@@ -92,12 +92,12 @@ def main():
     #run sample QC with sringent filters
     mt_sample_qc_file_s = mtdir + "non_stratified_sample_qc_dp20_gq20_vaf0_25.mt"
     ht_sample_qc_file_s = mtdir + "non_stratified_sample_qc_cols_dp20_gq20_vaf0_25.ht"
-    run_sample_qc(annotated_mt_file, mt_sample_qc_file_s, ht_sample_qc_file_s, annotdir)
+    run_sample_qc(annotated_mt_file, mt_sample_qc_file_s, ht_sample_qc_file_s, annotdir, 20, 20, 0.25)
 
     #run sample QC with more relaxed filters
     mt_sample_qc_file_r = mtdir + "non_stratified_sample_qc_dp10_gq10_vaf0_15.mt"
     ht_sample_qc_file_r = mtdir + "non_stratified_sample_qc_cols_dp10_gq10_vaf0_15.ht"
-    run_sample_qc(annotated_mt_file, mt_sample_qc_file_r, ht_sample_qc_file_r, annotdir)
+    run_sample_qc(annotated_mt_file, mt_sample_qc_file_r, ht_sample_qc_file_r, annotdir, 10, 10, 0.15)
 
 
 if __name__ == '__main__':
