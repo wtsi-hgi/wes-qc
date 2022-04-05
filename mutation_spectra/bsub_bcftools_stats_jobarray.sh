@@ -6,7 +6,6 @@ wdir=$(pwd)
 
 script=${wdir}/run_bcftools_stats.sh
 echo ${script}
-exit 0
 
 sample=$(sed -n -e ${LSB_JOBINDEX}p ${sample_list})
 
