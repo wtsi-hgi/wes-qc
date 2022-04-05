@@ -7,7 +7,7 @@ bcftools=/nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools
 bcfdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/gatk_vcfs/per_chromosome/
 outdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/mutation_spectra/
 tmpdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/mutation_spectra/tmp/
-tmpvcf=${tmpdir}${sample}_chr${chr}.bcf
+tmpbcf=${tmpdir}${sample}_chr${chr}.bcf
 
 echo "Running with sample:"$1" chromosome:chr"$2
 
