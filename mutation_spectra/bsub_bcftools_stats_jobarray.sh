@@ -16,6 +16,6 @@ echo ${sample}
 for chr in {{1..22},X,Y}
 do
 echo ${chr}
-script ${sample} ${chr}
+${script} ${sample} ${chr}
 done
 
