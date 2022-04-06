@@ -1,34 +1,36 @@
 # parse output of bcftools gtcheck
 
+from os import listdir
+from os.path import isfile, join
 
-from email.quoprimime import header_check
-from random import betavariate
-from tkinter import E
+# def read_output_files(output_file_list):
+#     output_data = {}
+#     with open(output_file_list, 'r') as f:
+#         lines = f.readlines()
+#         for l in lines:
+#             gtfile = l.rstrip()
+#             with open(gtfile, 'r') as g:
+#                 glines = g.readlines()
+#                 for gl in glines:
+#                     if gl.startswith('DC'):
+#                         gldata = gl.split()
+#                         ega = gldata[1]
+#                         famid = gldata[2]
+#                         discordance = float(gldata[3])
+#                         nsites = int(gldata[5])
+#                         if not ega in output_data.keys():
+#                             output_data[ega] = {}
+#                         if not famid in output_data[ega].keys():
+#                             output_data[ega][famid] = {'sum_discordance':0, 'nsites':0}
+#                         output_data[ega][famid]['sum_discordance'] +=  discordance
+#                         output_data[ega][famid]['nsites'] += nsites
 
+#     return output_data
 
-def read_output_files(output_file_list):
-    output_data = {}
-    with open(output_file_list, 'r') as f:
-        lines = f.readlines()
-        for l in lines:
-            gtfile = l.rstrip()
-            with open(gtfile, 'r') as g:
-                glines = g.readlines()
-                for gl in glines:
-                    if gl.startswith('DC'):
-                        gldata = gl.split()
-                        ega = gldata[1]
-                        famid = gldata[2]
-                        discordance = float(gldata[3])
-                        nsites = int(gldata[5])
-                        if not ega in output_data.keys():
-                            output_data[ega] = {}
-                        if not famid in output_data[ega].keys():
-                            output_data[ega][famid] = {'sum_discordance':0, 'nsites':0}
-                        output_data[ega][famid]['sum_discordance'] +=  discordance
-                        output_data[ega][famid]['nsites'] += nsites
-
-    return output_data
+def read_output_files(gtcheck_output_dir):
+    gtcheck_files = [f for f in listdir(gtcheck_output_dir) if isfile(join(gtcheck_output_dir, f))]
+    print(gtcheck_files)
+    exit(0)
 
 
 def parse_output_data(output_data):
@@ -61,11 +63,13 @@ def write_output(best_hits, outfile):
 
 
 def main():
-    output_file_list = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/gtcheck_output_files.txt'
-    output_data = read_output_files(output_file_list)
-    best_hits = parse_output_data(output_data)
-    outfile = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/gtcheck_best_hits.txt'
-    write_output(best_hits, outfile)
+    # output_file_list = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/gtcheck_output_files.txt'
+    # output_data = read_output_files(output_file_list)
+    gtcheck_output_dir = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/per_chromosome_output/'
+    output_data = read_output_files(gtcheck_output_dir)
+    # best_hits = parse_output_data(output_data)
+    # outfile = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/gtcheck_best_hits.txt'
+    # write_output(best_hits, outfile)
 
 if __name__ == '__main__':
     main() 
