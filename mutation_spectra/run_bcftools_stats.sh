@@ -13,7 +13,7 @@ bcf=${bcfdir}chr${chr}.bcf
 
 echo "Running with sample:"$1" chromosome:chr"$2
 
-#$cmd=${bcftools}" view -s "${sample}" --trim-alt-alleles -Ou "${bcfdir}"chr"${chr}".bcf | "${bcftools}" stats  -i 'N_ALT>1' "${tmpbcf}" > "${outdir}${sample}"_chr"${chr}".stats"
+#$cmd=${bcftools}" view -s "${sample}" --trim-alt-alleles -Ou "${bcfdir}"chr"${chr}".bcf | "${bcftools}" stats  -i 'N_ALT>0' "${tmpbcf}" > "${outdir}${sample}"_chr"${chr}".stats"
 
 #eval "${cmd}"
 
