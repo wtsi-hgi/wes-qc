@@ -17,4 +17,4 @@ echo "Running with sample:"$1" chromosome:chr"$2
 
 #eval "${cmd}"
 
-/nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools view -s ${sample} --trim-alt-alleles -Ou ${bcf} | /nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools stats  -i 'N_ALT>1' > ${outfile}
+/nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools view -s ${sample} --trim-alt-alleles -Ou ${bcf} | /nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools stats  -i 'N_ALT>0' > ${outfile}
