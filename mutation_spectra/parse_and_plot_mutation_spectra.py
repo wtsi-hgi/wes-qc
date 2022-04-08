@@ -76,7 +76,7 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
 
     summaryfile = outdir + "/proportions_per_person.txt"
     with open(summaryfile, 'w') as o:
-        header = sample + "\t" + ("\t").join(substitutions)
+        header = "sample" + "\t" + ("\t").join(substitutions)
         o.write(header)
         o.write("\n")
         for sample in props_per_sample.keys():
