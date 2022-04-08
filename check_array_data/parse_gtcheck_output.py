@@ -9,8 +9,9 @@ def read_output_files(gtcheck_output_dir):
     output_data = {}
     gtcheck_files = [f for f in listdir(gtcheck_output_dir) if isfile(join(gtcheck_output_dir, f))]
     for gtf in gtcheck_files:
-        print("Processing file: " + gtf)
-        with gzip.open(gtf, 'rt') as zf:
+        gtf_path = gtcheck_output_dir + "/" + gtf
+        print("Processing file: " + gtf_path)
+        with gzip.open(gtf_path, 'rt') as zf:
             for line in zf:
                 if line.startswith('DC'):
                     linedata = line.split()
