@@ -4,6 +4,8 @@
 import argparse
 import os
 import gzip
+import numpy as np
+import matplotlib.pyplot as plt
 
 def get_options():
     '''
@@ -16,6 +18,8 @@ def get_options():
                             help="path to bcftools stats directory")
     parser.add_argument("-o", "--output_directory", required=True,
                             help="path to bcftools output directory")
+    parser.add_argument("-p", "--plot",
+                            help="create plots for each sample", action="store_true")
     args = parser.parse_args()
 
     if not os.path.isdir(args.output_directory):
@@ -43,7 +47,7 @@ def parse_sample_list(sample_list):
     return samples
 
 
-def parse_bcftools_stats(samples, bcftoos_stats_dir, outdir):
+def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
     '''
     for each per-person, per-chromsome output file, combine counts of 
     substititions, work out fraction, create a summary and write this to an output file
@@ -51,8 +55,6 @@ def parse_bcftools_stats(samples, bcftoos_stats_dir, outdir):
     chroms = list(range(1,23))
     chroms = [str(x) for x in chroms]
     chroms.extend(['X', 'Y'])
-    substitutions = ['A>C', 'A>G', 'A>T', 'C>A', 'C>G',
-                     'C>T', 'G>A', 'G>C', 'G>T', 'T>A', 'T>C', 'T>G']
     props_per_sample = {}
 
     for s in samples:
@@ -88,18 +90,30 @@ def parse_bcftools_stats(samples, bcftoos_stats_dir, outdir):
     return props_per_sample
 
 
-def create_plots(props_per_sample, outdir):
+def create_plots(props_per_sample, substitutions, outdir):
     '''
     create a plot for each sample
     '''
-    pass
-
+    for sample in props_per_sample.keys():
+        plotfile = outdir + "/" + sample + "_mutation_spectrum.png"
+        bar_heights = []
+        for st in substitutions:
+            bar_heights.append(props_per_sample[sample][st])
+        x_pos = np.arange(len(substitutions))
+        plt.bar(x_pos, bar_heights, color=['blue', 'red', 'orange', 'green', 'purple', 'red', 'pink', 'purple', 'blue', 'orange', 'pink', 'green'])
+        plt.xticks(x_pos, substitutions)
+        plt.title(sample)
+        plt.ylabel('proportion')
+        plt.savefig(plotfile, dpi=100)
+        
 
 def main():
     args = get_options()
+    substitutions = ['A>C', 'A>G', 'A>T', 'C>A', 'C>G', 'C>T', 'G>A', 'G>C', 'G>T', 'T>A', 'T>C', 'T>G']
     samples = parse_sample_list(args.sample_list)
-    props_per_sample = parse_bcftools_stats(samples, args.bcftools_stats_directory, args.output_directory)
-    create_plots(props_per_sample, args.output_directory)
+    props_per_sample = parse_bcftools_stats(samples, substitutions, args.bcftools_stats_directory, args.output_directory)
+    if args.plot:
+        create_plots(props_per_sample, substitutions, args.output_directory)
 
 
 if __name__ == "__main__":
