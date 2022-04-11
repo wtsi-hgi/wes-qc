@@ -100,7 +100,7 @@ def create_plots(props_per_sample, substitutions, outdir):
         for st in substitutions:
             bar_heights.append(props_per_sample[sample][st])
         x_pos = np.arange(len(substitutions))
-        plt.bar(x_pos, bar_heights, color=['blue', 'red', 'orange', 'green', 'purple', 'red', 'pink', 'purple', 'blue', 'orange', 'pink', 'green'])
+        plt.bar(x_pos, bar_heights, color=['blue', 'red', 'orange', 'green', 'purple', 'pink', 'pink', 'purple', 'green', 'orange', 'red', 'blue'])
         plt.xticks(x_pos, substitutions)
         plt.title(sample)
         plt.ylabel('proportion')
