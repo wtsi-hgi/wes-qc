@@ -72,6 +72,8 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
                         counts_per_sample['total'] += count
         props_per_sample[s] = {}
         for st in substitutions:
+            if counts_per_sample['total'] == 0:
+                continue
             props_per_sample[s][st] = counts_per_sample[st]/counts_per_sample['total']
 
     summaryfile = outdir + "/proportions_per_person.txt"
