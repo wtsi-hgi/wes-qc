@@ -37,6 +37,8 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     aram str annotdir: output directory for annotations
     '''
     mt = hl.read_matrix_table(annotated_mt_file)
+    #filter to autosomes only
+    mt = mt.filter_rows(mt.locus.in_autosome())
 
     #filter MT by depth/gq/vaf
     min_dp = 20
