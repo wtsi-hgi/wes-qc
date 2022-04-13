@@ -86,8 +86,11 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
         for sample in props_per_sample.keys():
             outdata = [sample]
             for st in substitutions:
-                num = "{:.3f}".format(props_per_sample[sample][st])
-                outdata.append(num)
+                if st in props_per_sample[sample].keys():
+                    num = "{:.3f}".format(props_per_sample[sample][st])
+                    outdata.append(num)
+                else:
+                    outdata.append("NA")
             o.write(("\t").join(outdata))
             o.write("\n")
 
