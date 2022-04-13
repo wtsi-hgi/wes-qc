@@ -62,6 +62,8 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
                              'G>A': 0, 'G>C': 0, 'G>T': 0, 'T>A': 0, 'T>C': 0, 'T>G': 0, 'total': 0}        
         for c in chroms:
             statsfile = bcftoos_stats_dir + "/" + s + "_" + c + ".stats.gz"
+            if not os.path.isfile(statsfile):
+                continue
             with gzip.open(statsfile, 'rt') as zf:
                 for line in zf:
                     if line.startswith('ST'):
@@ -84,8 +86,11 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
         for sample in props_per_sample.keys():
             outdata = [sample]
             for st in substitutions:
-                num = "{:.3f}".format(props_per_sample[sample][st])
-                outdata.append(num)
+                if st in props_per_sample[sample].keys():
+                    num = "{:.3f}".format(props_per_sample[sample][st])
+                    outdata.append(num)
+                else:
+                    outdata.append("NA")
             o.write(("\t").join(outdata))
             o.write("\n")
 
