@@ -31,7 +31,7 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
         for l in lines:
             if l.startswith('sangersampleid'):
                 continue
-            ldata = l.split()
+            ldata = l.split('\t')
             if ldata[0] == 'bibkidex10090839':
                 print(ldata)
                 exit(0)
