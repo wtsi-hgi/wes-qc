@@ -36,9 +36,7 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
                 wes_sample = ldata[0]
             elif ldata[32].startswith('EGA'):
                 wes_sample = ldata[32]
-            else:
-                print("No WES sample id found in line: " + l)
-                exit(1)
+                
             plink_sample = ldata[14]
             sample_map[wes_sample] = plink_sample
             if not plink_sample in plink_to_ega.keys():
