@@ -32,19 +32,15 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
             if l.startswith('sangersampleid'):
                 continue
             ldata = l.split('\t')
-            print(ldata)
-            exit(0)
-            if ldata[0] == 'bibkidex10090839':
-                print(ldata)
-                exit(0)
             if ldata[0].startswith('Z'):
                 wes_sample = ldata[0]
-            elif len(ldata) > 31 and ldata[32].startswith('EGA'):
-                wes_sample = ldata[32]
-            if len(ldata) > 13:
-                plink_sample = ldata[14]
-            else:
-                continue
+            elif ldata[25].startswith('EGA'):
+                wes_sample = ldata[25]
+                print(wes_sample)
+                exit(0)
+
+            plink_sample = ldata[11]
+
             sample_map[wes_sample] = plink_sample
             if not plink_sample in plink_to_ega.keys():
                 plink_to_ega[plink_sample] = wes_sample
