@@ -29,7 +29,16 @@ def parse_metadata(metadata_file):
             if l.startswith('sangersampleid'):
                 continue
             ldata = l.split()
-            print(ldata)
+            if ldata[0].startswith('Z'):
+                wes_sample = ldata[0]
+            elif ldata[32].startswith('EGA'):
+                wes_sample = ldata[32]
+            else:
+                print("No WES sample id found in line: " + l)
+                exit(1)
+            plink_sample = ldata[14]
+            sample_map[wes_sample] = plink_sample
+            print(sample_map)
             exit(0)
 
 
