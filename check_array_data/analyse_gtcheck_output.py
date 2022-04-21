@@ -36,12 +36,9 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
                 wes_sample = ldata[0]
             elif ldata[25].startswith('EGA'):
                 wes_sample = ldata[25]
-                print(wes_sample)
-                exit(0)
-
             plink_sample = ldata[11]
-
             sample_map[wes_sample] = plink_sample
+            
             if not plink_sample in plink_to_ega.keys():
                 plink_to_ega[plink_sample] = wes_sample
             else:
