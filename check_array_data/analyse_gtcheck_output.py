@@ -36,8 +36,6 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
                 wes_sample = ldata[0]
             elif len(ldata) > 30 and ldata[32].startswith('EGA'):
                 wes_sample = ldata[32]
-                print(ldata[32])
-                exit(0)
 
             plink_sample = ldata[14]
             sample_map[wes_sample] = plink_sample
