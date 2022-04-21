@@ -36,7 +36,7 @@ def write_output(outfile, best_hits):
     '''
     print("Writing output")
     with open(outfile, 'w') as o:
-        header = ("\t").join(['EGA', 'fam_id_top_hit', 'sum_discordance', 'nsites', "discordance/nsites"])
+        header = ("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance', 'nsites', "discordance/nsites"])
         o.write(header + "\n")
         for sample in best_hits.keys():
             outline = ("\t").join([sample, best_hits[sample]['fam'], str(best_hits[sample]['discordance']), str(
