@@ -5,12 +5,12 @@
 #and is that sample in the gneotyping file?
 
 
-def find_plink_samples(plinksamplesfile):
+def find_plink_samples(plinksamples_file):
     '''
     create a list of samples that are in the plink data and parse to remove repetition (samples in plink are in format 123A_123A)
     '''
     samples = []
-    with open(plinksamplesfile, 'r') as f:
+    with open(plinksamples_file, 'r') as f:
         samples = f.readlines()
         samples = [x.strip() for x in samples]
         samples = [x.split("_")[0] for x in samples]
@@ -18,12 +18,32 @@ def find_plink_samples(plinksamplesfile):
     return samples
 
 
+def parse_metadata(metadata_file):
+    '''
+    create a dict of WES sample id and genotyping sample id
+    '''
+    sample_map = {}
+    with open(metadata_file, 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            if l.startswith('sangersampleid'):
+                continue
+            ldata = l.split()
+            print(ldata)
+            exit(0)
+
+
+    return sample_map
+
+
 def main():
     gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_best_hits.txt'
-    plinksamplesfile = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_samples.txt'
+    plinksamples_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/plink_samples.txt'
     metadata_file = '/lustre/scratch119/humgen/projects/birth_cohort_wes/genestack/all_samples_with_proceed_and_seq_info_and_warehouse_info.txt'
-    plink_samples = find_plink_samples(plinksamplesfile)
-    print(plink_samples)
+
+    plink_samples = find_plink_samples(plinksamples_file)
+    sample_map = parse_metadata(metadata_file)
+
 
 
 if __name__ == '__main__':
