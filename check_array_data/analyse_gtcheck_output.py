@@ -68,7 +68,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
     with open(gtcheck_output_file, 'r') as g:
         lines = g.readlines()
         for l in lines:
-            if l.startwith('#'):
+            if l.startswith('#'):
                 continue
             ldata = l.split()
             wes_sample = ldata[0]
