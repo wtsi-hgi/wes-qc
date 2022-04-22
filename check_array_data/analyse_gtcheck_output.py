@@ -132,7 +132,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
         o2.write("\n")
         for s in dodgy_samples.keys():
             o2.write(dodgy_samples[s]['line'] + "\t" + dodgy_samples[s]
-                     ['status'] + "\t" + dodgy_samples[s]['in_plink'] + "\t" + dodgy_samples[s]['expected_match'] + "\t" + dodgy_samples[s]['expected_in_plink'] "\n")
+                     ['status'] + "\t" + dodgy_samples[s]['in_plink'] + "\t" + dodgy_samples[s]['expected_match'] + "\t" + dodgy_samples[s]['expected_in_plink'] + "\n")
 
     with open(gtcheck_matches_file, 'w') as o3:
         o3.write("#samples where the top match in gtcheck is the expected top match\n")
