@@ -128,7 +128,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
     with open(gtcheck_dodgy_samples_file, 'w') as o2:
         o2.write("#samples with high discordance score\n")
         o2.write(("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance',
-                 'nsites', "discordance/nsites", "status", "top-hit_in_plink_file", "expected_match", "expected_match_in_plink_file"))
+                 'nsites', "discordance/nsites", "status", "top-hit_in_plink_file", "expected_match", "expected_match_in_plink_file"]))
         o2.write("\n")
         for s in dodgy_samples.keys():
             o2.write(dodgy_samples[s]['line'] + "\t" + dodgy_samples[s]
