@@ -36,6 +36,9 @@ def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
                 wes_sample = ldata[0]
             elif ldata[25].startswith('EGA'):
                 wes_sample = ldata[25]
+            if wes_sample == 'Z00283_2':
+                print(l)
+                exit(0)
             if not wes_sample in wes_samples:#we only want to include samples in the WES data
                 continue
             plink_sample = ldata[11]
