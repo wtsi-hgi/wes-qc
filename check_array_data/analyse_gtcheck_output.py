@@ -100,16 +100,23 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
                     mismatches.append(l.rstrip() + "\t" + sample_map[wes_sample] + "\n")
             # score >= 0.05 is not a good match - but check the top hit anyway just in case
             else:
-                if sample_map[wes_sample] == plink_sample:
-                    if plink_sample in plink_samples:
-                        dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': 'match', 'in_plink': 'yes', 'expected_match':sample_map[wes_sample]}
-                    else:
-                        dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': 'match', 'in_plink': 'no', 'expected_match':sample_map[wes_sample]}
+                expected_match = sample_map[wes_sample]
+                expected_plink = expected_match + "_" + expected_match
+                if expected_plink in plink_samples:
+                    expected_in_plink = 'yes'
                 else:
-                    if plink_sample in plink_samples:
-                        dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': 'mismatch', 'in_plink': 'yes', 'expected_match':sample_map[wes_sample]}
-                    else:
-                        dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': 'mismatch', 'in_plink': 'no', 'expected_match':sample_map[wes_sample]}
+                    expected_in_plink = 'no'
+                if plink_sample in plink_samples:
+                    in_plink = 'yes'
+                else:
+                    in_plink = 'no'
+                if sample_map[wes_sample] == plink_sample:
+                    status = 'match'
+                else:
+                    status = 'mismatch'
+                
+                dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': status, 'in_plink': in_plink, 'expected_match':expected_match, 'expected_in_plink':expected_in_plink}
+
 
     with open(gtcheck_mismatches_file, 'w') as o1:
         o1.write("#samples with mismatches between WES ID and genotyping ID\n")
@@ -121,11 +128,11 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
     with open(gtcheck_dodgy_samples_file, 'w') as o2:
         o2.write("#samples with high discordance score\n")
         o2.write(("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance',
-                 'nsites', "discordance/nsites", "status", "id_in_plink_file", "expected_match"]))
+                 'nsites', "discordance/nsites", "status", "top-hit_in_plink_file", "expected_match", "expected_match_in_plink_file"))
         o2.write("\n")
         for s in dodgy_samples.keys():
             o2.write(dodgy_samples[s]['line'] + "\t" + dodgy_samples[s]
-                     ['status'] + "\t" + dodgy_samples[s]['in_plink'] + "\t" + dodgy_samples[s]['expected_match'] + "\n")
+                     ['status'] + "\t" + dodgy_samples[s]['in_plink'] + "\t" + dodgy_samples[s]['expected_match'] + "\t" + dodgy_samples[s]['expected_in_plink'] "\n")
 
     with open(gtcheck_matches_file, 'w') as o3:
         o3.write("#samples where the top match in gtcheck is the expected top match\n")
