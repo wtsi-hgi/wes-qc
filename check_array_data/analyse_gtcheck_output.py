@@ -38,7 +38,7 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
                 wes_sample = ldata[25]
             plink_sample = ldata[11]
             sample_map[wes_sample] = plink_sample
-            
+
             if not plink_sample in plink_to_ega.keys():
                 plink_to_ega[plink_sample] = wes_sample
             else:
@@ -63,6 +63,9 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
     '''
     mismatches = []
     dodgy_samples = {}
+    samples_to_ignore = ['EGAN00003332049', 'EGAN00003332050', 'EGAN00003332051', 'EGAN00003332052', 'EGAN00003332053',
+                         'EGAN00003332049_remapped', 'EGAN00003332050_remapped', 'EGAN00003332051_remapped', 
+                         'EGAN00003332052_remapped', 'EGAN00003332053_remapped']
     with open(gtcheck_output_file, 'r') as g:
         lines = g.readlines()
         for l in lines:
@@ -70,6 +73,8 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
                 continue
             ldata = l.split()
             wes_sample = ldata[0]
+            if wes_sample in samples_to_ignore:
+                continue
             plink_sample = ldata[1].split("_")[0]
             score = float(ldata[4])
             # score of < 0.05 seen as good so check if the samples match - if they don't it is a mismatch
