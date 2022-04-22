@@ -48,7 +48,7 @@ def parse_metadata(metadata_file, gtcheck_duplicates_file):
 
     with open(gtcheck_duplicates_file, 'w') as o:
         for s in duplicates.keys():
-            o.write(s + (", ").join(duplicates[s]))
+            o.write(s + "\t" + (", ").join(duplicates[s]))
             o.write("\n")
 
     return sample_map
