@@ -56,7 +56,7 @@ def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
     return sample_map
 
 
-def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck_dodgy_samples_file, gtcheck_mismatches_file):
+def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck_dodgy_samples_file, gtcheck_mismatches_file, matches_file):
     '''
     parse gtcheck output
     for those with a good hit, check that the hit was with the expected id
@@ -64,6 +64,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
     check for families in plink that appear to be duplicated in WES
     '''
     mismatches = []
+    matches = {}
     dodgy_samples = {}
     samples_to_ignore = ['EGAN00003332049', 'EGAN00003332050', 'EGAN00003332051', 'EGAN00003332052', 'EGAN00003332053',
                          'EGAN00003332049_remapped', 'EGAN00003332050_remapped', 'EGAN00003332051_remapped', 
@@ -81,7 +82,9 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
             score = float(ldata[4])
             # score of < 0.05 seen as good so check if the samples match - if they don't it is a mismatch
             if score < 0.05:
-                if not sample_map[wes_sample] == plink_sample:
+                if sample_map[wes_sample] == plink_sample:
+                    matches[wes_sample] = plink_sample
+                else:
                     mismatches.append(l.rstrip() + "\t" + sample_map[wes_sample] + "\n")
             # score >= 0.05 is not a good match - but check the top hit anyway just in case
             else:
@@ -112,6 +115,11 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
             o2.write(dodgy_samples[s]['line'] + "\t" + dodgy_samples[s]
                      ['status'] + "\t" + dodgy_samples[s]['in_plink'] + "\t" + dodgy_samples[s]['expected_match'] + "\n")
 
+    with open(matches_file, 'w') as o3:
+        o3.write("#samples where the top match in gtcheck is the expected top match\n")
+        for s in matches.keys():
+            o3.write(s + "\t" + matches[s] + "\n")
+
 
 def main():
     gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_best_hits.txt'
@@ -122,12 +130,13 @@ def main():
     gtcheck_dodgy_samples_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_samples_without_good_hit.txt'
     gtcheck_duplicates_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_duplicates.txt'
     gtcheck_mismatches_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_mismatches.txt'
+    gtcheck_matches_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_matches.txt'
 
     plink_samples = get_sample_list(plink_samples_file)
     wes_samples = get_sample_list(wes_samples_file)
     sample_map = parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file)
     parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map,
-                         gtcheck_dodgy_samples_file, gtcheck_mismatches_file)
+                         gtcheck_dodgy_samples_file, gtcheck_mismatches_file, matches_file)
 
 
 if __name__ == '__main__':
