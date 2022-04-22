@@ -5,7 +5,7 @@
 # and is that sample in the gneotyping file?
 
 
-def get_sample_list(samples_file):
+def get_plink_sample_list(samples_file):
     '''
     create a list of samples that are in the plink data and parse to remove repetition (samples in plink are in format 123A_123A)
     '''
@@ -14,6 +14,18 @@ def get_sample_list(samples_file):
         samples = f.readlines()
         samples = [x.strip() for x in samples]
         samples = [x.split("_")[0] for x in samples]
+
+    return samples
+
+
+def get_wes_sample_list(samples_file):
+    '''
+    create a list of samples that are in the wes data
+    '''
+    samples = []
+    with open(samples_file, 'r') as f:
+        samples = f.readlines()
+        samples = [x.strip() for x in samples]
 
     return samples
 
@@ -36,9 +48,6 @@ def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
                 wes_sample = ldata[0]
             elif ldata[25].startswith('EGA'):
                 wes_sample = ldata[25]
-            if wes_sample == 'Z00283_2':
-                print(l)
-                exit(0)
             if not wes_sample in wes_samples:#we only want to include samples in the WES data
                 continue
             plink_sample = ldata[11]
@@ -135,8 +144,8 @@ def main():
     gtcheck_mismatches_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_mismatches.txt'
     gtcheck_matches_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_matches.txt'
 
-    plink_samples = get_sample_list(plink_samples_file)
-    wes_samples = get_sample_list(wes_samples_file)
+    plink_samples = get_plink_sample_list(plink_samples_file)
+    wes_samples = get_wes_sample_list(wes_samples_file)
     sample_map = parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file)
     parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map,
                          gtcheck_dodgy_samples_file, gtcheck_mismatches_file, gtcheck_matches_file)
