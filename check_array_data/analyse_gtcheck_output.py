@@ -97,7 +97,11 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
                 if sample_map[wes_sample] == plink_sample:
                     matches[wes_sample] = plink_sample
                 else:
-                    mismatches.append(l.rstrip() + "\t" + sample_map[wes_sample] + "\n")
+                    if sample_map[wes_sample] in plink_samples:
+                        expected_in_plink = 'yes'
+                    else:
+                        expected_in_plink = 'no'
+                    mismatches.append(l.rstrip() + "\t" + sample_map[wes_sample] + "\t" + expected_in_plink + "\n")
             # score >= 0.05 is not a good match - but check the top hit anyway just in case
             else:
                 expected_match = sample_map[wes_sample]
@@ -120,7 +124,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
 
     with open(gtcheck_mismatches_file, 'w') as o1:
         o1.write("#samples with mismatches between WES ID and genotyping ID\n")
-        o1.write(("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance', 'nsites', 'discordance/nsites', 'expected_match']))
+        o1.write(("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance', 'nsites', 'discordance/nsites', 'expected_match', 'expected_match_in_plink']))
         o1.write("\n")
         for m in mismatches:
             o1.write(m)
