@@ -56,7 +56,7 @@ def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
     return sample_map
 
 
-def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck_dodgy_samples_file, gtcheck_mismatches_file, matches_file):
+def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck_dodgy_samples_file, gtcheck_mismatches_file, gtcheck_matches_file):
     '''
     parse gtcheck output
     for those with a good hit, check that the hit was with the expected id
@@ -115,7 +115,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
             o2.write(dodgy_samples[s]['line'] + "\t" + dodgy_samples[s]
                      ['status'] + "\t" + dodgy_samples[s]['in_plink'] + "\t" + dodgy_samples[s]['expected_match'] + "\n")
 
-    with open(matches_file, 'w') as o3:
+    with open(gtcheck_matches_file, 'w') as o3:
         o3.write("#samples where the top match in gtcheck is the expected top match\n")
         for s in matches.keys():
             o3.write(s + "\t" + matches[s] + "\n")
@@ -136,7 +136,7 @@ def main():
     wes_samples = get_sample_list(wes_samples_file)
     sample_map = parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file)
     parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map,
-                         gtcheck_dodgy_samples_file, gtcheck_mismatches_file, matches_file)
+                         gtcheck_dodgy_samples_file, gtcheck_mismatches_file, gtcheck_matches_file)
 
 
 if __name__ == '__main__':
