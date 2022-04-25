@@ -147,13 +147,13 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, duplica
     with open(gtcheck_duplicates_file, 'w') as o4:
         o4.write("#duplicate ids\n")
         for aid in duplicates.keys():
-            outline = aid + "\t"
+            outline = aid
             samples = duplicates[aid]
             for s in samples:
                 if s in matches.keys():
-                    outline = outline + s + "\t" + "match"
+                    outline = outline + "\t" + s + "\t" + "match"
                 else:
-                    outline = outline + s + "\t" + "mismatch"
+                    outline = outline + "\t" + s + "\t" + "mismatch"
             o4.write(outline + "\n")
 
 
