@@ -30,7 +30,7 @@ def get_wes_sample_list(samples_file):
     return samples
 
 
-def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
+def parse_metadata(metadata_file, wes_samples):
     '''
     create a dict of WES sample id and genotyping sample id
     identify genotyping sample ids that correspond to more than one WES sample and print to file
@@ -48,7 +48,7 @@ def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
                 wes_sample = ldata[0]
             elif ldata[25].startswith('EGA'):
                 wes_sample = ldata[25]
-            if not wes_sample in wes_samples:#we only want to include samples in the WES data
+            if not wes_sample in wes_samples:  # we only want to include samples in the WES data
                 continue
             plink_sample = ldata[11]
             sample_map[wes_sample] = plink_sample
@@ -60,15 +60,15 @@ def parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file):
                     duplicates[plink_sample] = [plink_to_ega[plink_sample]]
                 duplicates[plink_sample].append(wes_sample)
 
-    with open(gtcheck_duplicates_file, 'w') as o:
-        for s in duplicates.keys():
-            o.write(s + "\t" + (", ").join(duplicates[s]))
-            o.write("\n")
+    # with open(gtcheck_duplicates_file, 'w') as o:
+    #     for s in duplicates.keys():
+    #         o.write(s + "\t" + (", ").join(duplicates[s]))
+    #         o.write("\n")
 
-    return sample_map
+    return sample_map, duplicates
 
 
-def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck_dodgy_samples_file, gtcheck_mismatches_file, gtcheck_matches_file):
+def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, duplicates, gtcheck_dodgy_samples_file, gtcheck_mismatches_file, gtcheck_matches_file, gtcheck_duplicates_file):
     '''
     parse gtcheck output
     for those with a good hit, check that the hit was with the expected id
@@ -79,7 +79,7 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
     matches = {}
     dodgy_samples = {}
     samples_to_ignore = ['EGAN00003332049', 'EGAN00003332050', 'EGAN00003332051', 'EGAN00003332052', 'EGAN00003332053',
-                         'EGAN00003332049_remapped', 'EGAN00003332050_remapped', 'EGAN00003332051_remapped', 
+                         'EGAN00003332049_remapped', 'EGAN00003332050_remapped', 'EGAN00003332051_remapped',
                          'EGAN00003332052_remapped', 'EGAN00003332053_remapped']
     with open(gtcheck_output_file, 'r') as g:
         lines = g.readlines()
@@ -118,13 +118,14 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
                     status = 'match'
                 else:
                     status = 'mismatch'
-                
-                dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': status, 'in_plink': in_plink, 'expected_match':expected_match, 'expected_in_plink':expected_in_plink}
 
+                dodgy_samples[wes_sample] = {'line': l.rstrip(), 'status': status, 'in_plink': in_plink,
+                                             'expected_match': expected_match, 'expected_in_plink': expected_in_plink}
 
     with open(gtcheck_mismatches_file, 'w') as o1:
         o1.write("#samples with mismatches between WES ID and genotyping ID\n")
-        o1.write(("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance', 'nsites', 'discordance/nsites', 'expected_match', 'expected_match_in_plink']))
+        o1.write(("\t").join(['#EGA', 'fam_id_top_hit', 'sum_discordance', 'nsites',
+                 'discordance/nsites', 'expected_match', 'expected_match_in_plink']))
         o1.write("\n")
         for m in mismatches:
             o1.write(m)
@@ -143,6 +144,19 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, gtcheck
         for s in matches.keys():
             o3.write(s + "\t" + matches[s] + "\n")
 
+    with open(gtcheck_duplicates_file, 'w') as o4:
+        o4.write("#duplicate ids\n")
+        for aid in duplicates.keys():
+            outline = aid + "\t"
+            samples = duplicates[aid]
+            for s in samples:
+                if s in matches.keys():
+                    outline = outline + s + "\t" + "match"
+                else:
+                    outline = outline + s + "\t" + "mismatch"
+            o4.write(outline + "\n")
+
+
 
 def main():
     gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_best_hits.txt'
@@ -157,9 +171,9 @@ def main():
 
     plink_samples = get_plink_sample_list(plink_samples_file)
     wes_samples = get_wes_sample_list(wes_samples_file)
-    sample_map = parse_metadata(metadata_file, wes_samples, gtcheck_duplicates_file)
-    parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map,
-                         gtcheck_dodgy_samples_file, gtcheck_mismatches_file, gtcheck_matches_file)
+    sample_map, duplicates = parse_metadata(metadata_file, wes_samples)
+    parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, duplicates, gtcheck_dodgy_samples_file,
+                         gtcheck_mismatches_file, gtcheck_matches_file, gtcheck_duplicates_file)
 
 
 if __name__ == '__main__':
