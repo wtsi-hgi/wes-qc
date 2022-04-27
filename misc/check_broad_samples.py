@@ -20,7 +20,7 @@ def parse_bristol_metadata(bristol_metadata_file):
             if ldata[0] == '"Collaborator_Sample_ID"':
                 continue
             broad_id = ldata[1].replace('"','')
-            alspac_id = ldata[0] + ldata[3].replace('"','')
+            alspac_id = ldata[0] + ldata[2].replace('"','')
             print(broad_id)
             print(alspac_id)
             exit(0)
