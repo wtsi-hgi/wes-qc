@@ -37,7 +37,7 @@ def identify_sanger_only_samples(bristol_id_map, broad_wes_sample_file, addition
             sanger_only.append(s)
     
     with open(additional_sanger_samples_file, 'w') as o:
-        o.write(("/n").join(sanger_only))
+        o.write(("\n").join(sanger_only))
 
 
 def get_duplicate_info(bristol_id_map, broad_wes_sample_file, gtcheck_duplicates_file, gtcheck_wes_duplicates_file, outfile, additional_sanger_samples_file):
