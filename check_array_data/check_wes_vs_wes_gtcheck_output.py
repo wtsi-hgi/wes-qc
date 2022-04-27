@@ -37,7 +37,7 @@ def analyse_gtcheck_output(gtcheck_output_file, expected_pairs, output_file):
 
 
 def main():
-    gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/check_wes_vs_wes/gtcheck_top_hits.txt'
+    gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/check_wes_vs_wes/gtcheck_best_hits.txt'
     expected_pairs_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/check_wes_vs_wes/sample_pairs.txt'
     output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/check_wes_vs_wes/gtcheck_analysis.txt'
 
