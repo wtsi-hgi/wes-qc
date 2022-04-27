@@ -30,6 +30,7 @@ def analyse_gtcheck_output(gtcheck_output_file, expected_pairs, output_file):
                 if float(ldata[4]) > 0.05:
                     note = 'high_score'
                 outline = l + "\t" + match + "\t" + note + "\n"
+                outdata.append(outline)
         
     with open(output_file, 'w') as o:
         for l in outdata:
