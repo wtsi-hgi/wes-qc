@@ -24,8 +24,8 @@ def analyse_gtcheck_output(gtcheck_output_file, expected_pairs, output_file):
                 l = l.rstrip()
                 ldata = l.split()
                 match = "no"
-                expected_match = expected_pairs[ldata[1]]
-                if ldata[0] == expected_match:
+                expected_match = expected_pairs[ldata[0]]
+                if ldata[1] == expected_match:
                     match = 'yes'
                 note = ''
                 if float(ldata[4]) > 0.05:
