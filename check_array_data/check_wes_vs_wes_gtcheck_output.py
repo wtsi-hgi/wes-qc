@@ -18,18 +18,19 @@ def analyse_gtcheck_output(gtcheck_output_file, expected_pairs, output_file):
         lines = f.readlines()
         for l in lines:
             if l.startswith('#EGA'):
-                outline = l.rstrip() + "\t" + "match_status" + "\t" + "note" + "\n"
+                outline = l.rstrip() + "\t" + "expected_match" + "\t" + "match_status" + "\t" + "note" + "\n"
                 outdata.append(outline)
             else:
                 l = l.rstrip()
                 ldata = l.split()
-                match = 'no'
-                if ldata[0] == expected_pairs[ldata[1]]:
+                match = "no"
+                expected_match = expected_pairs[ldata[1]]
+                if ldata[0] == expected_match:
                     match = 'yes'
                 note = ''
                 if float(ldata[4]) > 0.05:
                     note = 'high_score'
-                outline = l + "\t" + match + "\t" + note + "\n"
+                outline = l + "\t" + expected_match + "\t" + match + "\t" + note + "\n"
                 outdata.append(outline)
         
     with open(output_file, 'w') as o:
