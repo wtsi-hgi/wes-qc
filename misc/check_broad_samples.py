@@ -17,8 +17,10 @@ def parse_bristol_metadata(bristol_metadata_file):
         lines = f.readlines()
         for l in lines:
             ldata = l.split()
+            if ldata[0] == '"Collaborator_Sample_ID"':
+                continue
             print(ldata)
-            exit(0)
+
 
 
 
