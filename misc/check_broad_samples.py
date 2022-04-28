@@ -116,6 +116,8 @@ def parse_plink_wes_mismatch(bristol_id_map, plink_gtcheck_mismatch_file, ega_to
                 status = 'mismatch_expected_match_in_plink'
             elif ldata[6] == 'no':
                 status = 'mismatch_expected_match_not_in_plink'
+            else:
+                status = ''
             if wes_id in bristol_id_map.keys():
                 bristol_id_map[wes_id]['alspac_plink_match'] = status
             elif wes_id[:-2] in bristol_id_map.keys():
