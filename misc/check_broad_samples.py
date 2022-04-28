@@ -214,12 +214,12 @@ def print_outdata(bristol_id_map, outfile):
     Print outdata summary of all bristol samples
     '''
     with open(outfile, 'w') as o:
-        header = ("\t").join(['Broad_id', 'Alternate_id', 'ALSPAC_id', 'in_plink', 'plink_gtcheck', 'sequenced_at_sanger', 'ega_acc_1',
+        header = ("\t").join(['Broad_id', 'Alternate_id', 'ALSPAC_id', 'in_plink', 'plink_gtcheck', 'ega_acc_1',
                               'ega_acc_1_plink_gtcheck', 'ega_acc_1_wes_gtcheck', 'ega_acc_2', 'ega_acc_2_plink_gtcheck', 'ega_acc_2_wes_gtcheck'])
         o.write(header)
         o.write("\n")
         for s in bristol_id_map.keys():
-            outdata = [s, bristol_id_map[s]['alternative_id'], bristol_id_map[s]['alspac_id'], bristol_id_map[s]['in_plink'], bristol_id_map[s]['sent_to_sanger']]
+            outdata = [s, bristol_id_map[s]['alternative_id'], bristol_id_map[s]['alspac_id'], bristol_id_map[s]['in_plink'], bristol_id_map[s]['alspac_plink_match'] ]
             if len(bristol_id_map[s]['ega_accs'].keys()) == 0:
                 outdata = outdata + ['', '', '', '', '', '']
             elif len(bristol_id_map[s]['ega_accs'].keys()) == 1:
