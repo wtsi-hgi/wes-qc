@@ -113,6 +113,9 @@ def parse_plink_wes_mismatch(bristol_id_map, plink_gtcheck_mismatch_file, ega_to
                 continue
             ldata = l.split('\t')
             wes_id = ldata[0]
+            if wes_id == 'Z12475':
+                print(ldata)
+                exit(0)
             if ldata[6] == 'yes':
                 status = 'mismatch_expected_match_in_plink'
             elif ldata[6] == 'no':
