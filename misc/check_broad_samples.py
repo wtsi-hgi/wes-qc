@@ -83,6 +83,7 @@ def parse_wes_wes_gtcheck(bristol_id_map, gtcheck_wes_duplicates_file):
             ega = ldata[0]
             broad = ldata[5]
             status = ldata[6]
+            ldata[7] = ldata[7].rstrip()
             if not ldata[7] == '':
                 status = status + " " + ldata[7]
             if broad in bristol_id_map.keys():
