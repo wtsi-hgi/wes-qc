@@ -64,8 +64,8 @@ def get_ega_accs(bristol_id_map, gtcheck_duplicates_file, ega_to_broad):
             if ldata[1] in bristol_id_map.keys():
                 bristol_id_map[ldata[1]]['ega_accs'][ldata[0]] = {'gtcheck_plink_match': '', 'gtcheck_wes_match': ''}
             elif ldata[1][:-2] in bristol_id_map.keys():  # also try alternate id
-                bristol_id_map[ldata[1][:-2]]['ega_accs'][ldata[0]
-                                                          ] = {'gtcheck_plink_match': '', 'gtcheck_wes_match': ''}
+                altid = ldata[1][:-2]
+                bristol_id_map[altid]['ega_accs'][ldata[0]] = {'gtcheck_plink_match': '', 'gtcheck_wes_match': ''}
             else:
                 print(ldata[1] + " from duplicates file is not found in Bristol metadata")
 
@@ -91,8 +91,9 @@ def parse_wes_wes_gtcheck(bristol_id_map, gtcheck_wes_duplicates_file):
                 else:
                     print(ega + " not found in duplicates file")
             elif broad[:-2] in bristol_id_map.keys():  # check alternate id
-                if ega in bristol_id_map[broad][:-2]['ega_accs'].keys():
-                    bristol_id_map[broad][:-2]['ega_accs'][ega]['gtcheck_wes_match'] = status
+                altid = broad[:-2]
+                if ega in bristol_id_map[altid]['ega_accs'].keys():
+                    bristol_id_map[altid]['ega_accs'][ega]['gtcheck_wes_match'] = status
                 else:
                     print(ega + " not found in duplicates file")
             else:
@@ -118,7 +119,8 @@ def parse_plink_wes_mismatch(bristol_id_map, plink_gtcheck_mismatch_file, ega_to
             if wes_id in bristol_id_map.keys():
                 bristol_id_map[wes_id]['alspac_plink_match'] = status
             elif wes_id[:-2] in bristol_id_map.keys():
-                bristol_id_map[wes_id][:2]['alspac_plink_match'] = status
+                altid = wes_id[:-2]
+                bristol_id_map[altid]['alspac_plink_match'] = status
             elif wes_id in ega_to_broad.keys():
                 broad_id = ega_to_broad[wes_id]
                 if broad_id in bristol_id_map.keys():
@@ -127,8 +129,9 @@ def parse_plink_wes_mismatch(bristol_id_map, plink_gtcheck_mismatch_file, ega_to
                     else:
                         print(wes_id + " in mismatches file not found in Bristol metadata/duplicates")
                 elif broad_id[:-2] in bristol_id_map.keys():
-                    if wes_id in bristol_id_map[broad_id][:-2]['ega_accs'].keys():
-                        bristol_id_map[broad_id][:-2]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
+                    altid = broad_id[:-2]
+                    if wes_id in bristol_id_map[altid]['ega_accs'].keys():
+                        bristol_id_map[altid]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
                     else:
                         print(wes_id + " in mismatches file not found in Bristol metadata/duplicates")
                 else:
@@ -159,7 +162,8 @@ def parse_plink_wes_high_score(bristol_id_map, plink_gtcheck_high_score_file, eg
             if wes_id in bristol_id_map.keys():
                 bristol_id_map[wes_id]['alspac_plink_match'] = status
             elif wes_id[:-2] in bristol_id_map.keys():
-                bristol_id_map[wes_id][:2]['alspac_plink_match'] = status
+                altid = wes_id[:-2]
+                bristol_id_map[altid]['alspac_plink_match'] = status
             elif wes_id in ega_to_broad.keys():
                 broad_id = ega_to_broad[wes_id]
                 if broad_id in bristol_id_map.keys():
@@ -168,8 +172,9 @@ def parse_plink_wes_high_score(bristol_id_map, plink_gtcheck_high_score_file, eg
                     else:
                         print(wes_id + " in high scores file not found in Bristol metadata/duplicates")
                 elif broad_id[:-2] in bristol_id_map.keys():
-                    if wes_id in bristol_id_map[broad_id][:-2]['ega_accs'].keys():
-                        bristol_id_map[broad_id][:-2]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
+                    altid = broad_id[:-2]
+                    if wes_id in bristol_id_map[altid]['ega_accs'].keys():
+                        bristol_id_map[altid]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
                     else:
                         print(wes_id + " in high scores file not found in Bristol metadata/duplicates")
                 else:
@@ -194,7 +199,8 @@ def parse_plink_matches(bristol_id_map, plink_gtcheck_match_file, ega_to_broad):
             if wes_id in bristol_id_map.keys():
                 bristol_id_map[wes_id]['alspac_plink_match'] = status
             elif wes_id[:-2] in bristol_id_map.keys():
-                bristol_id_map[wes_id][:2]['alspac_plink_match'] = status
+                altid = wes_id[:-2]
+                bristol_id_map[altid]['alspac_plink_match'] = status
             elif wes_id in ega_to_broad.keys():
                 broad_id = ega_to_broad[wes_id]
                 if broad_id in bristol_id_map.keys():
@@ -203,8 +209,9 @@ def parse_plink_matches(bristol_id_map, plink_gtcheck_match_file, ega_to_broad):
                     else:
                         print(wes_id + " in matches file not found in Bristol metadata/duplicates")
                 elif broad_id[:-2] in bristol_id_map.keys():
-                    if wes_id in bristol_id_map[broad_id][:-2]['ega_accs'].keys():
-                        bristol_id_map[broad_id][:-2]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
+                    altid = broad_id[:-2]
+                    if wes_id in bristol_id_map[altid]['ega_accs'].keys():
+                        bristol_id_map[altid]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
                     else:
                         print(wes_id + " in matches file not found in Bristol metadata/duplicates")
                 else:
