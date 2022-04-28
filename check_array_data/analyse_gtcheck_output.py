@@ -108,6 +108,8 @@ def parse_gtcheck_output(gtcheck_output_file, plink_samples, sample_map, duplica
                 expected_plink = expected_match + "_" + expected_match
                 if expected_plink in plink_samples:
                     expected_in_plink = 'yes'
+                elif expected_match in plink_samples:
+                    expected_in_plink = 'yes'
                 else:
                     expected_in_plink = 'no'
                 if plink_sample in plink_samples:
