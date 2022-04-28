@@ -208,18 +208,10 @@ def parse_plink_matches(bristol_id_map, plink_gtcheck_match_file, ega_to_broad):
                 if broad_id in bristol_id_map.keys():
                     if wes_id in bristol_id_map[broad_id]['ega_accs'].keys():
                         bristol_id_map[broad_id]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
-                    else:
-                        print(wes_id + " in matches file not found in Bristol metadata/duplicates")
                 elif broad_id[:-2] in bristol_id_map.keys():
                     altid = broad_id[:-2]
                     if wes_id in bristol_id_map[altid]['ega_accs'].keys():
                         bristol_id_map[altid]['ega_accs'][wes_id]['gtcheck_plink_match'] = status
-                    else:
-                        print(wes_id + " in matches file not found in Bristol metadata/duplicates")
-                else:
-                    print(broad_id + " mapping to " + wes_id + " in matches file not found in Bristol metadata")
-            else:
-                print(wes_id + " in matches file not found in Bristol metadata")
 
 
 def get_duplicate_info(bristol_id_map, broad_wes_sample_file, gtcheck_duplicates_file, gtcheck_wes_duplicates_file, plink_gtcheck_mismatch_file, plink_gtcheck_high_score_file, plink_gtcheck_match_file, additional_sanger_samples_file):
@@ -240,7 +232,7 @@ def print_outdata(bristol_id_map, outfile):
     with open(outfile, 'w') as o:
         header = ("\t").join(['Broad_id', 'Alternate_id', 'ALSPAC_id', 'in_plink', 'plink_gtcheck', 'sequenced_at_sanger', 'ega_acc_1',
                               'ega_acc_1_plink_gtcheck', 'ega_acc_1_wes_gtcheck', 'ega_acc_2', 'ega_acc_2_plink_gtcheck', 'ega_acc_2_wes_gtcheck'])
-        o.wrtie(header)
+        o.write(header)
         o.write("\n")
         for s in bristol_id_map.keys():
             outdata = [s, bristol_id_map[s]['alternative_id'], bristol_id_map[s]['alspac_id'], bristol_id_map[s]['in_plink'], bristol_id_map[s]['sent_to_sanger']]
