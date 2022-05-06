@@ -1,8 +1,35 @@
 # Create ped file for trios to use in variant QC
+import gzip
 from wes_qc.utils.utils import parse_config
 
 
-def parse_manifest(manifest_file):
+
+def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
+    '''
+    Get samples to exclude from trios file - those which fail sample QC or those where 
+    bcftools gtcheck has identified a mismatch
+    '''
+    to_exclude = {}
+    with gzip.open(sample_qc_fails,'rb') as q:
+        for line in q:
+            if line.startswith('EGAN'):
+                line = line.rstrip()
+                to_exclude[line] = 1
+
+    with open(gtcheck_mismatches, 'r') as m:
+        lines = m.readlines()
+        for l in lines:
+            if l.startswith('EGAN'):
+                ldata = l.split()
+                to_exclude[ldata[0]] = 1
+
+    print(to_exclude)
+    exit(0)
+    return to_exclude
+        
+
+
+def parse_manifest(manifest_file, samples_to_exclude):
     '''
     Parse manifest file and return a dict keyed by proband.
     We only want complete trios.
@@ -56,9 +83,13 @@ def write_ped(trios, pedfile):
 def main():
     inputs = parse_config()
     resourcedir = inputs['resource_dir_local']
+    annotdir = inputs['annotation_lustre_dir']
     manifest_file = resourcedir + "all_samples_with_proceed_and_seq_info_and_warehouse_info.txt"
+    sample_qc_fails = annotdir + "samples_failing_qc.tsv.bgz"
+    gtcheck_mismatches = resourcedir + "gtcheck_mismatches.txt"
 
-    trios = triodata = parse_manifest(manifest_file)
+    samples_to_exclude = get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches)
+    trios  = parse_manifest(manifest_file, samples_to_exclude)
     pedfile = resourcedir + "trios.ped"
     write_ped(trios, pedfile)
 
