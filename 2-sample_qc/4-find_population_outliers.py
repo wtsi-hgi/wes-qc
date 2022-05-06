@@ -34,7 +34,7 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     param str mt_qc_outfile: sample QC MT file
     param str ht_qccols_outfile: sample QC columns HT file
     param str qc_filter_file: output file for stratified sample QC HT
-    aram str annotdir: output directory for annotations
+    param str annotdir: output directory for annotations
     '''
     mt = hl.read_matrix_table(annotated_mt_file)
     # filter to autosomes only
