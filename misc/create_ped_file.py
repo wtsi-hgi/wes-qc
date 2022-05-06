@@ -34,6 +34,7 @@ def parse_manifest(manifest_file, samples_to_exclude):
     We only want complete trios.
     '''
     trios = {}
+    count = 0
     with open(manifest_file, 'r') as f:
         lines = f.readlines()
         for l in lines:
@@ -41,6 +42,8 @@ def parse_manifest(manifest_file, samples_to_exclude):
                 linedata = l.split("\t")
                 ega = linedata[25]
                 if ega in samples_to_exclude.keys():
+                    count += 1
+                    print('excl ' + count)
                     continue
                 persontype = linedata[4]
                 famid = linedata[8]
