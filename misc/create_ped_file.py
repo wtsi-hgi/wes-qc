@@ -12,7 +12,8 @@ def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
     to_exclude = {}
     with gzip.open(sample_qc_fails,'r') as q:
         for line in q:
-            if line.startswith('EGAN'):
+            l = line.decode("utf-8")
+            if l.startswith('EGAN'):
                 line = line.rstrip()
                 to_exclude[line] = 1
 
