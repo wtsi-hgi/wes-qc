@@ -83,7 +83,7 @@ def write_ped(trios, pedfile):
 def main():
     inputs = parse_config()
     resourcedir = inputs['resource_dir_local']
-    annotdir = inputs['annotation_lustre_dir']
+    annotdir = inputs['annotation_lustre_dir_local']
     manifest_file = resourcedir + "all_samples_with_proceed_and_seq_info_and_warehouse_info.txt"
     sample_qc_fails = annotdir + "samples_failing_qc.tsv.bgz"
     gtcheck_mismatches = resourcedir + "gtcheck_mismatches.txt"
