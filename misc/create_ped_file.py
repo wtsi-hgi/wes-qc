@@ -24,8 +24,6 @@ def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
                 ldata = l.split()
                 to_exclude[ldata[0]] = 1
 
-    print(to_exclude)
-    exit(0)
     return to_exclude
         
 
@@ -42,6 +40,8 @@ def parse_manifest(manifest_file, samples_to_exclude):
             if not l.startswith('sangersampleid'):
                 linedata = l.split("\t")
                 ega = linedata[25]
+                if ega in samples_to_exclude.keys():
+                    continue
                 persontype = linedata[4]
                 famid = linedata[8]
                 trio = linedata[6]
