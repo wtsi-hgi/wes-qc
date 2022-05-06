@@ -14,8 +14,8 @@ def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
         for line in q:
             l = line.decode("utf-8")
             if l.startswith('EGAN'):
-                line = line.rstrip()
-                to_exclude[line] = 1
+                l = l.rstrip()
+                to_exclude[l] = 1
 
     with open(gtcheck_mismatches, 'r') as m:
         lines = m.readlines()
