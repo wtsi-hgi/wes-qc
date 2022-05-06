@@ -10,7 +10,7 @@ def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
     bcftools gtcheck has identified a mismatch
     '''
     to_exclude = {}
-    with gzip.open(sample_qc_fails,'rb') as q:
+    with gzip.open(sample_qc_fails,'r') as q:
         for line in q:
             if line.startswith('EGAN'):
                 line = line.rstrip()
