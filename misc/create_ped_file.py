@@ -43,7 +43,7 @@ def parse_manifest(manifest_file, samples_to_exclude):
                 ega = linedata[25]
                 if ega in samples_to_exclude.keys():
                     count += 1
-                    print('excl ' + count)
+                    print('excl ' + str(count))
                     continue
                 persontype = linedata[4]
                 famid = linedata[8]
