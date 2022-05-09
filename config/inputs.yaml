@@ -16,3 +16,4 @@ matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/
 plots_lustre_dir: file:///lustre/scratch123/qc/plots/
 resource_dir: file:///lustre/scratch123/qc/resources/
 resource_dir_local: /lustre/scratch123/qc/resources/
+training_set_dir: file:///lustre/scratch123/qc/training_sets/

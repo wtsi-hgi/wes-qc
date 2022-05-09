@@ -232,7 +232,7 @@ def main():
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
-    training_sets_dir = resourcedir + "training_sets/"
+    training_sets_dir = inputs['training_set_dir']
 
     # get truth set ht
     truth_ht_file = resourcedir + "truthset_table.ht"
