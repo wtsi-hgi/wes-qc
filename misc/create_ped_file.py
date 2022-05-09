@@ -64,7 +64,7 @@ def parse_manifest(manifest_file, samples_to_exclude):
                         trios[famid] = {}
                     trios[famid][persontype] = {}
                     trios[famid][persontype]['ega'] = ega
-                    trios[famid][persontype]['sex'] = sex
+                    trios[famid][persontype]['sex'] = sexcode
 
     return trios
 
