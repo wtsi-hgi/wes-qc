@@ -14,7 +14,16 @@ def get_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("--truth",
         help="create truth set HT", action="store_true")
+    parser.add_argument("--trio",
+        help="create trio mt, family stats and dnm", action="store_true")
+    parser.add_argument("--inbreeding",
+        help="create inbreeding, allele data and qc_ac", action="store_true")
+    parser.add_argument("--all",
+        help="run all steps", action="store_true")
     args = parser.parse_args()
+    if not args.all or args.truth or args.trio or args.inbreeding:
+        print("No args specified, either --truth, --trio, --inbreeding or --all must be used")
+        exit(1)
 
     return args
 
@@ -227,7 +236,7 @@ def main():
 
     # get truth set ht
     truth_ht_file = resourcedir + "truthset_table.ht"
-    if args.truth:
+    if args.truth or args.all:
         omni = training_sets_dir + "1000G_omni2.5.hg38.ht"
         mills = training_sets_dir + "Mills_and_1000G_gold_standard.indels.hg38.ht"
         thousand_genomes = training_sets_dir + "1000G_phase1.snps.high_confidence.hg38.ht"
@@ -238,21 +247,23 @@ def main():
     mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
     varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
     split_multi_and_var_qc(mtfile, varqc_mtfile)
+    pedfile = resourcedir + "trios.ped"
 
     #get complete trios, family annotation, dnm annotation
-    pedfile = resourcedir + "trios.ped"
-    trio_mtfile = mtdir + "trios.mt"
-    fam_stats_htfile = mtdir + "family_stats.ht"
-    fam_stats_mtfile = mtdir + "family_stats.mt"
-    gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
-    dnm_htfile = mtdir + "denovo_table.ht"
-    trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, fam_stats_htfile, fam_stats_mtfile, gnomad_htfile, dnm_htfile)
+    if args.trio or args.all:
+        trio_mtfile = mtdir + "trios.mt"
+        fam_stats_htfile = mtdir + "family_stats.ht"
+        fam_stats_mtfile = mtdir + "family_stats.mt"
+        gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
+        dnm_htfile = mtdir + "denovo_table.ht"
+        trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, fam_stats_htfile, fam_stats_mtfile, gnomad_htfile, dnm_htfile)
 
     #create inbreeding ht
-    inbreeding_htfile = mtdir + "inbreeding.ht"
-    qc_ac_htfile = mtdir + "qc_ac.ht"
-    allele_data_htfile = mtdir + "allele_data.ht"
-    create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
+    if args.inbreeding or args.all:
+        inbreeding_htfile = mtdir + "inbreeding.ht"
+        qc_ac_htfile = mtdir + "qc_ac.ht"
+        allele_data_htfile = mtdir + "allele_data.ht"
+        create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
 
 if __name__ == '__main__':
     main()
