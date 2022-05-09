@@ -58,8 +58,9 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     '''
     mt = hl.read_matrix_table(mtfile)
     #mt = hl.split_multi_hts(mt)
-    mt = hl.variant_qc(mt)
+    #mt = hl.variant_qc(mt)
     mt.write(varqc_mtfile, overwrite=True)
+    exit(0)
 
 
 def read_fam(fam_file: str) -> hl.Table:
