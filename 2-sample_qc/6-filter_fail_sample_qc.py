@@ -5,25 +5,27 @@ import pyspark
 from wes_qc.utils.utils import parse_config
 
 
-def filter_to_sanger_only(annotated_mt_file: str) -> hl.MatrixTable:
+def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     '''
-    param str annotated_mt_file: File containing MatrixTable annotated with sequencing location, 
+    param str annotated_mt_file: File containing MatrixTable annotated with sequencing location
+    param str sanger_mt_file: File for sanger only MatrixTable
     population and run id but not filtered
     :return: MatrixTable containing only Sanger samples
     :rtype: hl.MatrixTable
     '''
     mt = hl.read_matrix_table(annotated_mt_file)
     mt = mt.filter_cols(mt.sequencing_location == 'Sanger')  # filter to Sanger only
-    return mt
+    mt.write(sanger_mt_file)
 
 
-def remove_sample_qc_fails(sangermt: hl.MatrixTable, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str):
+def remove_sample_qc_fails(sanger_mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str):
     '''
-    param hl.MatrixTable sangermt: MatrixTable containing Sanger only samples
+    param str sanger_mt_file: Input MatrixTable file
     param str qc_filter_ht_file: File contaning sample QC output
     param str samples_failing_qc_file: Output file for list of samples failing QC
     param str sample_qc_filtered_mt_file: Output file for MatrixTable with sample QC fails removed
     '''
+    sangermt = hl.read_matrix_table(sanger_mt_file)
     sample_qc_ht = hl.read_table(qc_filter_ht_file)
     # identify samples which have failed any of the metrics tested
     sample_qc_ht = sample_qc_ht.annotate(filter_fail_count=(hl.len(sample_qc_ht.qc_metrics_filters)))
@@ -60,9 +62,10 @@ def main():
     qc_filter_ht_file = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop.ht"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop_and_runid.mt"  # annotated but unfiltered mt
     sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
-    sangermt = filter_to_sanger_only(annotated_mt_file)
+    sanger_mt_file = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc_sanger_only.mt"
+    filter_to_sanger_only(annotated_mt_file, sanger_mt_file)
     samples_failing_qc_file = annotdir + "samples_failing_qc.tsv.bgz"
-    remove_sample_qc_fails(sangermt, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
+    remove_sample_qc_fails(sanger_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
 
 
 if __name__ == '__main__':
