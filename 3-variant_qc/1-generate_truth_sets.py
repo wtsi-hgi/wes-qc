@@ -14,15 +14,13 @@ def get_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("--truth",
         help="create truth set HT", action="store_true")
-    parser.add_argument("--trio",
-        help="create trio mt, family stats and dnm", action="store_true")
-    parser.add_argument("--inbreeding",
-        help="create inbreeding, allele data and qc_ac", action="store_true")
+    parser.add_argument("--annotation",
+        help="family, inbreeding, allele data and dnm annotation", action="store_true")
     parser.add_argument("--all",
         help="run all steps", action="store_true")
     args = parser.parse_args()
-    if not args.all or args.truth or args.trio or args.inbreeding:
-        print("No args specified, either --truth, --trio, --inbreeding or --all must be used")
+    if not args.all or args.truth or args.annotation:
+        print("No args specified, either --truth, --annotation or --all must be used")
         exit(1)
 
     return args
@@ -244,13 +242,13 @@ def main():
         get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file)
 
     #add hail variant QC
-    mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
-    varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    split_multi_and_var_qc(mtfile, varqc_mtfile)
-    pedfile = resourcedir + "trios.ped"
+    if args.annotation or args.all:
+        mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
+        split_multi_and_var_qc(mtfile, varqc_mtfile)
+        pedfile = resourcedir + "trios.ped"
 
-    #get complete trios, family annotation, dnm annotation
-    if args.trio or args.all:
+        #get complete trios, family annotation, dnm annotation
         trio_mtfile = mtdir + "trios.mt"
         fam_stats_htfile = mtdir + "family_stats.ht"
         fam_stats_mtfile = mtdir + "family_stats.mt"
@@ -258,8 +256,7 @@ def main():
         dnm_htfile = mtdir + "denovo_table.ht"
         trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, fam_stats_htfile, fam_stats_mtfile, gnomad_htfile, dnm_htfile)
 
-    #create inbreeding ht
-    if args.inbreeding or args.all:
+        #create inbreeding ht
         inbreeding_htfile = mtdir + "inbreeding.ht"
         qc_ac_htfile = mtdir + "qc_ac.ht"
         allele_data_htfile = mtdir + "allele_data.ht"
