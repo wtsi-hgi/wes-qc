@@ -92,7 +92,7 @@ def family_stats(mt: hl.MatrixTable, ped: hl.Pedigree, group_name: str) -> Tuple
 
 def generate_family_stats(mt: hl.MatrixTable, fam_file: str, calculate_adj: bool = False) -> Tuple[hl.Table, hl.Table]:
     """
-    Taken from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
+    Adapted from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     Writes bi-allelic sites MT with the following annotations:
      - family_stats (TDT, Mendel Errors, AC_unrelated_qc)
      - truth_data (presence in Omni, HapMap, 1KG/TGP high conf SNVs, Mills)
@@ -102,7 +102,7 @@ def generate_family_stats(mt: hl.MatrixTable, fam_file: str, calculate_adj: bool
     :return: Table with qc annotations
     :rtype: Table
     """
-    mt = mt.select_cols(high_quality=mt.meta.high_quality)
+    #mt = mt.select_cols(high_quality=mt.meta.high_quality)
     mt = mt.select_rows()
     mt = annotate_unrelated_sample(mt, fam_file)
 
