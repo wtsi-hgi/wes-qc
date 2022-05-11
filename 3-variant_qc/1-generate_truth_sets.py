@@ -212,14 +212,14 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str
     param str allele_data_htfile: Allele data htfile
     '''
     mt = hl.read_matrix_table(varqc_mtfile)
-    pedigree = hl.Pedigree.read(pedfile)
+    #pedigree = hl.Pedigree.read(pedfile)
     # inbreeding ht
     mt_inbreeding = mt.annotate_rows(InbreedingCoeff=bi_allelic_site_inbreeding_expr(mt.GT))
     mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
     ht_inbreeding = mt_inbreeding.rows()
     # allele data and qc_ac ht
     allele_data_ht = generate_allele_data(mt)
-    qc_ac_ht = generate_ac(mt, pedigree)
+    qc_ac_ht = generate_ac(mt, pedfile)
     # write to file
     ht_inbreeding.write(inbreeding_htfile , overwrite=True)
     qc_ac_ht.write(qc_ac_htfile , overwrite=True)
