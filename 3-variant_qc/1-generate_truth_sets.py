@@ -19,7 +19,7 @@ def get_options():
     parser.add_argument("--all",
         help="run all steps", action="store_true")
     args = parser.parse_args()
-    if not args.all or args.truth or args.annotation:
+    if not args.all or not args.truth or not args.annotation:
         print("No args specified, either --truth, --annotation or --all must be used")
         exit(1)
 
