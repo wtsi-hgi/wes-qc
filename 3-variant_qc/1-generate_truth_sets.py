@@ -59,6 +59,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     mt = hl.read_matrix_table(mtfile)
     mt = hl.split_multi_hts(mt)
     mt = hl.variant_qc(mt)
+    mt = annotate_adj(mt)
     mt.write(varqc_mtfile, overwrite=True)
 
 
@@ -175,7 +176,6 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     '''
     pedigree = hl.Pedigree.read(pedfile)
     mt = hl.read_matrix_table(varqc_mtfile)
-    mt = annotate_adj(mt)
     trio_dataset = hl.trio_matrix(mt, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
 
@@ -233,7 +233,6 @@ def generate_ac(mt: hl.MatrixTable, fam_file: str) -> hl.Table:
     fam_ht = hl.import_fam(fam_file, delimiter="\t")
     mt = mt.annotate_cols(unrelated_sample=hl.is_missing(fam_ht[mt.s]))
     mt = mt.filter_rows(hl.len(mt.alleles) > 1)
-    mt = annotate_adj(mt)
     mt = mt.annotate_rows(
         ac_qc_samples_raw=hl.agg.sum(mt.GT.n_alt_alleles()),
         ac_qc_samples_adj=hl.agg.filter(
