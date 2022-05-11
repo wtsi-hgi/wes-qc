@@ -1,11 +1,13 @@
-# generate trusth sets for variant QC random forest
+# generate truth sets for variant QC random forest
 import hail as hl
 import pyspark
 import argparse
 from typing import Tuple
 from wes_qc.utils.utils import parse_config
-from gnomad.utils.filtering import filter_to_adj
-from gnomad.utils.annotations import unphase_call_expr, bi_allelic_site_inbreeding_expr, add_variant_type, annotate_adj
+from gnomad.utils.filtering import filter_to_adj, filter_to_autosomes
+from gnomad.utils.annotations import unphase_call_expr, bi_allelic_site_inbreeding_expr, add_variant_type, annotate_adj, bi_allelic_expr
+from gnomad.sample_qc.relatedness import generate_trio_stats_expr
+
 
 def get_options():
     '''
@@ -124,12 +126,47 @@ def generate_family_stats(mt: hl.MatrixTable, fam_file: str, calculate_adj: bool
     return mt.rows(), family_stats_sample_ht
 
 
-def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, fam_stats_gnomad_mtfile: str, gnomad_htfile: str, dnm_htfile: str):
+def generate_trio_stats(
+    mt: hl.MatrixTable, autosomes_only: bool = True, bi_allelic_only: bool = True
+) -> hl.Table:
+    """
+    Adapted from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
+    Default function to run `generate_trio_stats_expr` to get trio stats stratified by raw and adj
+    .. note::
+        Expects that `mt` is it a trio matrix table that was annotated with adj and if dealing with
+        a sparse MT `hl.experimental.densify` must be run first.
+        By default this pipeline function will filter `mt` to only autosomes and bi-allelic sites.
+    :param mt: A Trio Matrix Table returned from `hl.trio_matrix`. Must be dense
+    :param autosomes_only: If set, only autosomal intervals are used.
+    :param bi_allelic_only: If set, only bi-allelic sites are used for the computation
+    :return: Table with trio stats
+    """
+    if autosomes_only:
+        mt = filter_to_autosomes(mt)
+    if bi_allelic_only:
+        mt = mt.filter_rows(bi_allelic_expr(mt))
+
+    trio_adj = mt.proband_entry.adj & mt.father_entry.adj & mt.mother_entry.adj
+
+    ht = mt.select_rows(
+        **generate_trio_stats_expr(
+            mt,
+            transmitted_strata={"raw": True, "adj": trio_adj},
+            de_novo_strata={"raw": True, "adj": trio_adj},
+            ac_strata={"raw": True, "adj": trio_adj},
+        )
+    ).rows()
+
+    return ht
+
+
+def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, trio_stats_htfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, fam_stats_gnomad_mtfile: str, gnomad_htfile: str, dnm_htfile: str):
     '''
     Create matrixtable of just trios, create family stats
     param str varqc_mtfile: Input matrixtable
     param str pedfile: Plink-format ped file
     param str trio_mtfile: Trio matrixtable file
+    param str trio_stats_htfile: Trio stats hail table file
     param str fam_stats_htfile: Family stats hail table file
     param str fam_stats_htfile: Family stats matrixtble file
     param str fam_stats_gnomad_mtfile: Family statts with gnomad annotation matrixtable file
@@ -140,6 +177,9 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt = hl.read_matrix_table(varqc_mtfile)
     trio_dataset = hl.trio_matrix(mt, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
+
+    trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=True)
+    trio_stats_ht.write(trio_stats_htfile, overwrite=True)
 
     print("Generating family stats")
     (ht1, famstats_ht) = generate_family_stats(mt, pedfile)
@@ -250,18 +290,20 @@ def main():
 
         #get complete trios, family annotation, dnm annotation
         trio_mtfile = mtdir + "trios.mt"
+        trio_stats_htfile = mtdir + "trio_stats.ht"
         fam_stats_htfile = mtdir + "family_stats.ht"
         fam_stats_mtfile = mtdir + "family_stats.mt"
         fam_stats_gnomad_mtfile = mtdir + "family_stats_gnomad.mt"
         gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
         dnm_htfile = mtdir + "denovo_table.ht"
-        trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, fam_stats_htfile, fam_stats_mtfile, fam_stats_gnomad_mtfile, gnomad_htfile, dnm_htfile)
+        trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, trio_stats_htfile, fam_stats_htfile, fam_stats_mtfile, fam_stats_gnomad_mtfile, gnomad_htfile, dnm_htfile)
 
         #create inbreeding ht
         inbreeding_htfile = mtdir + "inbreeding.ht"
         qc_ac_htfile = mtdir + "qc_ac.ht"
         allele_data_htfile = mtdir + "allele_data.ht"
         create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
+        
 
 if __name__ == '__main__':
     main()
