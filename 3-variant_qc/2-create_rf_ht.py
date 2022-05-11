@@ -105,7 +105,6 @@ def main():
     #set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
-    training_sets_dir = inputs['training_set_dir']
     resourcedir = inputs['resource_dir']
 
     truthset_file = resourcedir + "truthset_table.ht"
