@@ -142,7 +142,6 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     trio_dataset.write(trio_mtfile, overwrite=True)
 
     print("Generating family stats")
-    #(ht1, famstats_ht) = generate_family_stats(mt, pedigree)
     (ht1, famstats_ht) = generate_family_stats(mt, pedfile)
     ht1.write(fam_stats_htfile ,overwrite=True)
 
@@ -212,7 +211,6 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str
     param str allele_data_htfile: Allele data htfile
     '''
     mt = hl.read_matrix_table(varqc_mtfile)
-    #pedigree = hl.Pedigree.read(pedfile)
     # inbreeding ht
     mt_inbreeding = mt.annotate_rows(InbreedingCoeff=bi_allelic_site_inbreeding_expr(mt.GT))
     mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
@@ -247,7 +245,7 @@ def main():
     if args.annotation or args.all:
         mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
         varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
-        #split_multi_and_var_qc(mtfile, varqc_mtfile)
+        split_multi_and_var_qc(mtfile, varqc_mtfile)
         pedfile = resourcedir + "trios.ped"
 
         #get complete trios, family annotation, dnm annotation
