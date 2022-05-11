@@ -124,7 +124,7 @@ def generate_family_stats(mt: hl.MatrixTable, fam_file: str, calculate_adj: bool
     return mt.rows(), family_stats_sample_ht
 
 
-def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, gnomad_htfile: str, dnm_htfile: str):
+def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, fam_stats_gnomad_mtfile: str, gnomad_htfile: str, dnm_htfile: str):
     '''
     Create matrixtable of just trios, create family stats
     param str varqc_mtfile: Input matrixtable
@@ -132,6 +132,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     param str trio_mtfile: Trio matrixtable file
     param str fam_stats_htfile: Family stats hail table file
     param str fam_stats_htfile: Family stats matrixtble file
+    param str fam_stats_gnomad_mtfile: Family statts with gnomad annotation matrixtable file
     param str gnomad_htfile: Gnomad AF hail table
     param str dnm_htfile: De novo hail table file
     '''
@@ -150,7 +151,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     #add gnomad AFs
     priors = hl.read_table(gnomad_htfile)
     mt = mt.annotate_rows(gnomad_maf=priors[mt.row_key].maf)
-    mt = mt.checkpoint(fam_stats_mtfile, overwrite=True)
+    mt = mt.checkpoint(fam_stats_gnomad_mtfile, overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
@@ -253,9 +254,10 @@ def main():
         trio_mtfile = mtdir + "trios.mt"
         fam_stats_htfile = mtdir + "family_stats.ht"
         fam_stats_mtfile = mtdir + "family_stats.mt"
+        fam_stats_gnomad_mtfile = mtdir + "family_stats_gnomad.mt"
         gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
         dnm_htfile = mtdir + "denovo_table.ht"
-        trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, fam_stats_htfile, fam_stats_mtfile, gnomad_htfile, dnm_htfile)
+        trio_family_dnm_annotation(varqc_mtfile, pedfile, trio_mtfile, fam_stats_htfile, fam_stats_mtfile, fam_stats_gnomad_mtfile, gnomad_htfile, dnm_htfile)
 
         #create inbreeding ht
         inbreeding_htfile = mtdir + "inbreeding.ht"
