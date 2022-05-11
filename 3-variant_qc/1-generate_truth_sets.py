@@ -175,6 +175,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     '''
     pedigree = hl.Pedigree.read(pedfile)
     mt = hl.read_matrix_table(varqc_mtfile)
+    mt = annotate_adj(mt)
     trio_dataset = hl.trio_matrix(mt, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
 
@@ -303,7 +304,7 @@ def main():
         qc_ac_htfile = mtdir + "qc_ac.ht"
         allele_data_htfile = mtdir + "allele_data.ht"
         create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
-        
+
 
 if __name__ == '__main__':
     main()
