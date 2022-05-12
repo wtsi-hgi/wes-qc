@@ -142,8 +142,8 @@ def generate_trio_stats(
     :param bi_allelic_only: If set, only bi-allelic sites are used for the computation
     :return: Table with trio stats
     """
-    if autosomes_only:
-        mt = filter_to_autosomes(mt)
+    #if autosomes_only:
+    #    mt = filter_to_autosomes(mt)
     if bi_allelic_only:
         mt = mt.filter_rows(bi_allelic_expr(mt))
 
