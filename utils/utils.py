@@ -51,6 +51,7 @@ def expand_pd_array_col(
 
 
 def get_rf(
+    rf_dir: str,
     data: str = "rf_result",
     run_hash: Optional[str] = None,
 ) -> Union[str, TableResource]:
@@ -64,8 +65,10 @@ def get_rf(
     :param str run_hash: Hash of RF run to load
     :return: Path to desired RF data
     """
-
+    hashdir = rf_dir + run_hash + "/"
+    model_file = hashdir + ".model"
+    data_file = hashdir + data + ".ht"
     if data == "model":
-        return f"{lustre_dir}/variant_qc/models/{run_hash}/{data}.model"
+        return model_file
     else:
-        return TableResource(f"{lustre_dir}/variant_qc/models/{run_hash}/{data}.ht")
+        return TableResource(data_file)
