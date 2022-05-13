@@ -14,7 +14,6 @@ INFO_FEATURES = [
 ] 
 
 FEATURES = [
-    "InbreedingCoeff",
     "variant_type",
     "allele_type",
     "n_alt_alleles",

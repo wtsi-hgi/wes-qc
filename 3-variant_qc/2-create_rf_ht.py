@@ -1,38 +1,39 @@
 #create hail table for random forest
 import hail as hl
 import pyspark
+import wes_qc.utils.constants as constants
 from wes_qc.utils.utils import parse_config
 from gnomad.variant_qc.random_forest import median_impute_features
 
 
-INFO_FEATURES = [
-    "AS_QD",
-    "AS_ReadPosRankSum",
-    "AS_MQRankSum",
-    "AS_SOR",
-    "QD",
-    "MQRankSum",
-    "SOR",
-    "ReadPosRankSum",
-    "FS",
-    "DP"
-] 
+# INFO_FEATURES = [
+#     "AS_QD",
+#     "AS_ReadPosRankSum",
+#     "AS_MQRankSum",
+#     "AS_SOR",
+#     "QD",
+#     "MQRankSum",
+#     "SOR",
+#     "ReadPosRankSum",
+#     "FS",
+#     "DP"
+# ] 
 
-FEATURES = [
-    "InbreedingCoeff",
-    "variant_type",
-    "allele_type",
-    "n_alt_alleles",
-    "was_mixed",
-    "has_star",
-    "MQ",
-    "QD",
-    "MQRankSum",
-    "SOR",
-    "ReadPosRankSum",
-]
+# FEATURES = [
+#     "InbreedingCoeff",
+#     "variant_type",
+#     "allele_type",
+#     "n_alt_alleles",
+#     "was_mixed",
+#     "has_star",
+#     "MQ",
+#     "QD",
+#     "MQRankSum",
+#     "SOR",
+#     "ReadPosRankSum",
+# ]
 
-TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]
+# TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]
 
 
 def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_data_file: str, allele_counts_file: str, inbreeding_file: str, htfile_rf_all_cols: str, htfile_rf_var_type_all_cols: str):
@@ -67,7 +68,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 
     ht = mt.rows()
     ht = ht.transmute(**ht.info)
-    ht = ht.select( "MQ", "InbreedingCoeff", *INFO_FEATURES)
+    ht = ht.select( "MQ", "InbreedingCoeff", *constants.INFO_FEATURES)
     ht = ht.annotate(
         **inbreeding_ht[ht.key],
         **trio_stats_ht[ht.key],
@@ -85,8 +86,8 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     ht = ht.select(
         "a_index",
         "was_split",
-        *FEATURES,
-        *TRUTH_DATA,
+        *constants.FEATURES,
+        *constants.TRUTH_DATA,
         **{
             "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1)
             & (ht[f"ac_qc_samples_{group}"] == 2),
@@ -106,6 +107,12 @@ def main():
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
+
+    # initialise hail
+    tmp_dir = "hdfs://spark-master:9820/"
+    sc = pyspark.SparkContext()
+    hadoop_config = sc._jsc.hadoopConfiguration()
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     truthset_file = resourcedir + "truthset_table.ht"
     trio_stats_file = mtdir + "trio_stats.ht"

@@ -273,6 +273,12 @@ def main():
     resourcedir = inputs['resource_dir']
     training_sets_dir = inputs['training_set_dir']
 
+    # initialise hail
+    tmp_dir = "hdfs://spark-master:9820/"
+    sc = pyspark.SparkContext()
+    hadoop_config = sc._jsc.hadoopConfiguration()
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+
     # get truth set ht
     truth_ht_file = resourcedir + "truthset_table.ht"
     if args.truth or args.all:
