@@ -147,7 +147,7 @@ def main():
     runs_json = rf_dir + "rf_runs.json"
     ht_result, rf_model = train_rf(input_ht, test_interval)
     print("Writing out ht_training data")
-    ht_result = ht_result.checkpoint(get_rf(data="training", run_hash=run_hash).path, overwrite=True)
+    ht_result = ht_result.checkpoint(get_rf(rf_dir, data="training", run_hash=run_hash).path, overwrite=True)
 
     rf_runs[run_hash] = get_run_data(
         vqsr_training=False,
@@ -162,7 +162,7 @@ def main():
         json.dump(rf_runs, f)
         pretty_print_runs(rf_runs)
         save_model(
-            rf_model, get_rf(data="model", run_hash=run_hash), overwrite=True)
+            rf_model, get_rf(rf_dir, data="model", run_hash=run_hash), overwrite=True)
 
 
 if __name__ == '__main__':
