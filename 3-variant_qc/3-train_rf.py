@@ -1,7 +1,7 @@
 #make RF model for variant QC
 import hail as hl
 import pyspark
-import wes_qc.constants as constants
+import wes_qc.utils.constants as constants
 from wes_qc.utils.utils import parse_config, get_rf
 
 
