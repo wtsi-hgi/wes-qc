@@ -124,8 +124,6 @@ def get_run_data(
 def main():
     # set up
     inputs = parse_config()
-    print(inputs)
-    exit(0)
     rf_dir = inputs['var_qc_rf_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     test_interval = inputs['rf_test_interval']
