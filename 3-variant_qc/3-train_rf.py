@@ -3,6 +3,7 @@ import hail as hl
 import pyspark
 import uuid
 import json
+from pathlib import Path
 from typing import Dict, List, Tuple
 import wes_qc.utils.constants as constants
 from wes_qc.utils.utils import parse_config, get_rf
