@@ -3,6 +3,8 @@ import os
 import sys
 import yaml
 import pandas as pd
+from typing import Optional, Union
+from gnomad.resources.resource_utils import TableResource
 
 def get_script_path():
     #returns the path of the script that is being run
@@ -15,6 +17,7 @@ def parse_config():
         inputs = yaml.load(y, Loader=yaml.FullLoader)
 
     return inputs
+
 
 def expand_pd_array_col(
         df: pd.DataFrame,
@@ -45,3 +48,24 @@ def expand_pd_array_col(
     df[cols] = pd.DataFrame(df[array_col].values.tolist())[list(range(num_out_cols))]
 
     return df
+
+
+def get_rf(
+    data: str = "rf_result",
+    run_hash: Optional[str] = None,
+) -> Union[str, TableResource]:
+    """
+    Gets the path to the desired RF data.
+    Data can take the following values:
+        - 'training': path to the training data for a given run
+        - 'model': path to pyspark pipeline RF model
+        - 'rf_result' (default): path to HT containing result of RF filtering
+    :param str data: One of 'training', 'model' or 'rf_result' (default)
+    :param str run_hash: Hash of RF run to load
+    :return: Path to desired RF data
+    """
+
+    if data == "model":
+        return f"{lustre_dir}/variant_qc/models/{run_hash}/{data}.model"
+    else:
+        return TableResource(f"{lustre_dir}/variant_qc/models/{run_hash}/{data}.ht")
