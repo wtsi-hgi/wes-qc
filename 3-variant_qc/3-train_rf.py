@@ -142,7 +142,8 @@ def main():
     
 
     # train RF
-    input_ht = mtdir + "ht_for_RF_by_variant_type_all_cols.ht"
+    input_ht_file = mtdir + "ht_for_RF_by_variant_type_all_cols.ht"
+    input_ht = hl.read_table(input_ht_file)
     runs_json = rf_dir + "rf_runs.json"
     ht_result, rf_model = train_rf(input_ht, test_interval)
     print("Writing out ht_training data")
