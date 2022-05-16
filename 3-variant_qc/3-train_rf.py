@@ -161,8 +161,8 @@ def main():
 
     with hl.hadoop_open(runs_json, "w") as f:
         json.dump(rf_runs, f)
-        pretty_print_runs(rf_runs)
-        save_model(
+    pretty_print_runs(rf_runs)
+    save_model(
             rf_model, get_rf(rf_dir, data="model", run_hash=run_hash), overwrite=True)
 
 
