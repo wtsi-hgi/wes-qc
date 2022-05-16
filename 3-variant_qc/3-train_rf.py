@@ -155,11 +155,10 @@ def main():
         transmitted_singletons=True,
         test_intervals=test_interval,
         adj=True,
-        #features_importance=hl.eval(ht_result.features_importance),
-        #test_results=hl.eval(ht_result.test_results),
-        features_importance='',
-        test_results=''
+        features_importance=hl.eval(ht_result.features_importance),
+        test_results=hl.eval(ht_result.test_results),
     )
+    rf_runs[run_hash]['features_importance'] = dict(rf_runs[run_hash]['features_importance'])#convert featues importance frozendict to dict for dumping to json
 
     with hl.hadoop_open(runs_json, "w") as f:
         json.dump(rf_runs, f)
