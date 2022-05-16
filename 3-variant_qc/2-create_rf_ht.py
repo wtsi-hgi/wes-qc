@@ -5,37 +5,6 @@ import wes_qc.utils.constants as constants
 from wes_qc.utils.utils import parse_config
 from gnomad.variant_qc.random_forest import median_impute_features
 
-
-# INFO_FEATURES = [
-#     "AS_QD",
-#     "AS_ReadPosRankSum",
-#     "AS_MQRankSum",
-#     "AS_SOR",
-#     "QD",
-#     "MQRankSum",
-#     "SOR",
-#     "ReadPosRankSum",
-#     "FS",
-#     "DP"
-# ] 
-
-# FEATURES = [
-#     "InbreedingCoeff",
-#     "variant_type",
-#     "allele_type",
-#     "n_alt_alleles",
-#     "was_mixed",
-#     "has_star",
-#     "MQ",
-#     "QD",
-#     "MQRankSum",
-#     "SOR",
-#     "ReadPosRankSum",
-# ]
-
-# TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]
-
-
 def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_data_file: str, allele_counts_file: str, inbreeding_file: str, htfile_rf_all_cols: str, htfile_rf_var_type_all_cols: str):
     '''
     Load input mt and training data to create an input for random forest
