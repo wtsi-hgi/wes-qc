@@ -67,7 +67,7 @@ def get_rf(
     """
     hashdir = rf_dir + run_hash + "/"
     if not os.path.exists(hashdir):
-        os.mkdirs(hashdir)
+        os.makedirs(hashdir)
     model_file = hashdir + ".model"
     data_file = hashdir + data + ".ht"
     if data == "model":
