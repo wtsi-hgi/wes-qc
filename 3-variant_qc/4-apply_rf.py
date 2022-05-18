@@ -41,7 +41,7 @@ def main():
     features = hl.eval(ht.features)
     ht = apply_rf_model(ht, rf_model, features, label=constants.LABEL_COL)
     ht = ht.annotate_globals(rf_hash=run_hash)
-    ht = ht.checkpoint(get_rf(rf_dir, "rf_result_MegaWES_new", run_hash=run_hash).path, overwrite=True)
+    ht = ht.checkpoint(get_rf(rf_dir, "rf_result_", run_hash=run_hash).path, overwrite=True)
     ht_summary = ht.group_by("tp", "fp", constants.TRAIN_COL, constants.LABEL_COL, constants.PREDICTION_COL).aggregate(n=hl.agg.count())
     ht_summary.show(n=20)
     
