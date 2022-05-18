@@ -66,7 +66,7 @@ def get_rf(
     :return: Path to desired RF data
     """
     hashdir = rf_dir + run_hash + "/"
-    model_file = hashdir + ".model"
+    model_file = hashdir + "rf.model"
     data_file = hashdir + data + ".ht"
     if data == "model":
         return model_file
