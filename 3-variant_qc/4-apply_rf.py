@@ -36,7 +36,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     run_hash = args.runhash
-    rf_model = load_model(get_rf(data="model", run_hash=run_hash))
+    rf_model = load_model(get_rf(rf_dir, data="model", run_hash=run_hash))
     ht = get_rf(rf_dir, data="training", run_hash=run_hash).ht()
     features = hl.eval(ht.features)
     ht = apply_rf_model(ht, rf_model, features, label=constants.LABEL_COL)
