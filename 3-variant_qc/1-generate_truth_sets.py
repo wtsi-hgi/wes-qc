@@ -59,6 +59,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     mt = hl.read_matrix_table(mtfile)
     mt = hl.split_multi_hts(mt)
     mt = hl.variant_qc(mt)
+    mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
     mt = annotate_adj(mt)
     mt.write(varqc_mtfile, overwrite=True)
 
