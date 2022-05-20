@@ -89,7 +89,8 @@ def main():
     allele_counts_file = mtdir + "qc_ac.ht"
     inbreeding_file = mtdir + "inbreeding.ht"
 
-    mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+   #mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+    mtfile = mtdir + "mt_varqc_splitmulti.mt"
     htfile_rf_all_cols = mtdir + "ht_for_RF_all_cols.ht"
     htfile_rf_var_type_all_cols = mtdir + "ht_for_RF_by_variant_type_all_cols.ht"
 
