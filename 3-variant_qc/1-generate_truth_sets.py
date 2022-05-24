@@ -166,15 +166,15 @@ def generate_trio_stats(
 def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, trio_stats_htfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, fam_stats_gnomad_mtfile: str, gnomad_htfile: str, dnm_htfile: str):
     '''
     Create matrixtable of just trios, create family stats
-    param str varqc_mtfile: Input matrixtable
-    param str pedfile: Plink-format ped file
-    param str trio_mtfile: Trio matrixtable file
-    param str trio_stats_htfile: Trio stats hail table file
-    param str fam_stats_htfile: Family stats hail table file
-    param str fam_stats_htfile: Family stats matrixtble file
-    param str fam_stats_gnomad_mtfile: Family statts with gnomad annotation matrixtable file
-    param str gnomad_htfile: Gnomad AF hail table
-    param str dnm_htfile: De novo hail table file
+    :param str varqc_mtfile: Input matrixtable file
+    :param str pedfile: Plink-format ped file
+    :param str trio_mtfile: Trio matrixtable file
+    :param str trio_stats_htfile: Trio stats hail table file
+    :param str fam_stats_htfile: Family stats hail table file
+    :param str fam_stats_htfile: Family stats matrixtble file
+    :param str fam_stats_gnomad_mtfile: Family statts with gnomad annotation matrixtable file
+    :param str gnomad_htfile: Gnomad AF hail table
+    :param str dnm_htfile: De novo hail table file
     '''
     pedigree = hl.Pedigree.read(pedfile)
     mt = hl.read_matrix_table(varqc_mtfile)
@@ -246,11 +246,11 @@ def generate_ac(mt: hl.MatrixTable, fam_file: str) -> hl.Table:
 def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str, inbreeding_htfile: str, qc_ac_htfile: str, allele_data_htfile: str):
     '''
     Inbreeding, allele data and qc_ac annotations
-    param str pedfile: Plink-format ped file
-    param str varqc_mtfile: Input matrixtable
-    param str inbreeding_htfile: Inbreeding hail table file
-    param str qc_ac_htfile: qc_ac hail table file
-    param str allele_data_htfile: Allele data htfile
+    :param str pedfile: Plink-format ped file
+    :param str varqc_mtfile: Input matrixtable
+    :param str inbreeding_htfile: Inbreeding hail table file
+    :param str qc_ac_htfile: qc_ac hail table file
+    :param str allele_data_htfile: Allele data htfile
     '''
     mt = hl.read_matrix_table(varqc_mtfile)
     # inbreeding ht
