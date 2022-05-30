@@ -151,22 +151,22 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    htfile = rf_dir + args.runrunhash + "/rf_result.ht"
+    htfile = rf_dir + args.runhash + "/rf_result.ht"
     #annotate with synonymous CQs
     synonymous_file = resourcedir + "synonymous_variants.txt"
-    ht_cq_file = rf_dir + args.runrunhash + "/rf_result_with_synonymous.ht"
+    ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht"
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
     #annotate with family stats and DNMs
     dnm_htfile = mtdir + "denovo_table.ht"
     fam_stats_htfile = mtdir + "family_stats.ht"
     trio_stats_htfile = mtdir + "trio_stats.ht"
-    family_annot_htfile = rf_dir + args.runrunhash + "/rf_result_denovo_family_stats.ht"
+    family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht"
     dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
 
     #annotate with transmitted singletons
     trio_mtfile = mtdir + "trios.mt"
     trio_filtered_mtfile = mtdir + "trios_filtered_.mt"
-    final_htfile = rf_dir + args.runrunhash + "/rf_result_final_for_ranking.ht"
+    final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_filtered_mtfile, final_htfile)
 
 
