@@ -19,20 +19,40 @@ def get_options():
     return args
 
 
-def add_cq_annotation():
-    pass
+def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
+    '''
+    Add annotation for synonymous variants
+    ;param str htfile: Random forest hail table file
+    ;param str synonymous_file: text file containing synonymous variants
+    ;param str ht_cq_fle: Output hail table file annotated with synonymous variants
+    '''
+    synonymous_ht=hl.import_table(synonymous_file,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'}, no_header=True)
+    synonymous_ht=synonymous_ht.annotate(chr=synonymous_ht.f0)
+    synonymous_ht=synonymous_ht.annotate(pos=synonymous_ht.f1)
+    synonymous_ht=synonymous_ht.annotate(rs=synonymous_ht.f2)
+    synonymous_ht=synonymous_ht.annotate(ref=synonymous_ht.f3)
+    synonymous_ht=synonymous_ht.annotate(alt=synonymous_ht.f4)
+    synonymous_ht=synonymous_ht.annotate(consequence=synonymous_ht.f5)
+    synonymous_ht = synonymous_ht.key_by(
+    locus=hl.locus(synonymous_ht.chr, synonymous_ht.pos), alleles=[synonymous_ht.ref,synonymous_ht.alt])
+    synonymous_ht=synonymous_ht.drop(synonymous_ht.f0,synonymous_ht.f1,synonymous_ht.f2,synonymous_ht.f3,synonymous_ht.f4,synonymous_ht.chr,synonymous_ht.pos,synonymous_ht.ref,synonymous_ht.alt)
+    synonymous_ht = synonymous_ht.key_by(synonymous_ht.locus, synonymous_ht.alleles)
+
+    ht = hl.read_table(htfile)
+    ht=ht.annotate(consequence=synonymous_ht[ht.key].consequence)
+    ht.write(ht_cq_file, overwrite=True)
 
 
-def dnm_and_family_annotation(htfile: str, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, family_annot_htfile: str):
+def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, family_annot_htfile: str):
     '''
     Annotate RF result hail table with DNMs and family stats
-    transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_trans_sing_mtfile, final_htfile)
+    ;param str ht_cq_fle: Input hail table file annotated with synonymous variants
     :param str dnm_htfile: De novo hail table file
     :param str fam_stats_htfile: Family stats hail table file
     :param str trio_stats_htfile: Trio stats hail table file
     :param str family_annot_htfile: Output hail table annotated with DNMs and family stats file
     '''
-    ht = hl.read_table(htfile)
+    ht = hl.read_table(ht_cq_fle)
     dnm_ht = hl.read_table(dnm_htfile)
     fam_stats_ht = hl.read_table(fam_stats_htfile)
     trio_stats_ht = hl.read_table(trio_stats_htfile)
@@ -123,6 +143,7 @@ def main():
     inputs = parse_config()
     rf_dir = inputs['var_qc_rf_dir']
     mtdir = inputs['matrixtables_lustre_dir']
+    resourcedir = inputs['resource_dir']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -132,13 +153,15 @@ def main():
 
     htfile = rf_dir + args.runrunhash + "/rf_result.ht"
     #annotate with synonymous CQs
-    add_cq_annotation()
+    synonymous_file = resourcedir + "synonymous_variants.txt"
+    ht_cq_file = rf_dir + args.runrunhash + "/rf_result_with_synonymous.ht"
+    add_cq_annotation(htfile, synonymous_file, ht_cq_file)
     #annotate with family stats and DNMs
     dnm_htfile = mtdir + "denovo_table.ht"
     fam_stats_htfile = mtdir + "family_stats.ht"
     trio_stats_htfile = mtdir + "trio_stats.ht"
     family_annot_htfile = rf_dir + args.runrunhash + "/rf_result_denovo_family_stats.ht"
-    dnm_and_family_annotation(htfile, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
+    dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
 
     #annotate with transmitted singletons
     trio_mtfile = mtdir + "trios.mt"
