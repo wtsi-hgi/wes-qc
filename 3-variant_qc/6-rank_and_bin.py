@@ -46,18 +46,38 @@ def add_rank(
         **temp_expr, is_snv=hl.is_snp(ht.alleles[0], ht.alleles[1]))
 
     rank_ht = rank_ht.key_by("_score").persist()
+    # scan_expr = {
+    #     "rank": hl.cond(
+    #         rank_ht.is_snv,
+    #         hl.scan.count_where(rank_ht.is_snv),
+    #         hl.scan.count_where(~rank_ht.is_snv),
+    #     )
+    # }
     scan_expr = {
-        "rank": hl.cond(
+        "rank": hl.if_else(
             rank_ht.is_snv,
             hl.scan.count_where(rank_ht.is_snv),
             hl.scan.count_where(~rank_ht.is_snv),
         )
     }
+    # scan_expr.update(
+    #     {
+    #         name: hl.or_missing(
+    #             rank_ht[f"_{name}"],
+    #             hl.cond(
+    #                 rank_ht.is_snv,
+    #                 hl.scan.count_where(rank_ht.is_snv & rank_ht[f"_{name}"]),
+    #                 hl.scan.count_where(~rank_ht.is_snv & rank_ht[f"_{name}"]),
+    #             ),
+    #         )
+    #         for name in subrank_expr
+    #     }
+    # )
     scan_expr.update(
         {
             name: hl.or_missing(
                 rank_ht[f"_{name}"],
-                hl.cond(
+                hl.if_else(
                     rank_ht.is_snv,
                     hl.scan.count_where(rank_ht.is_snv & rank_ht[f"_{name}"]),
                     hl.scan.count_where(~rank_ht.is_snv & rank_ht[f"_{name}"]),
@@ -85,13 +105,32 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
     :return: Table with bins added
     '''
     # Count variants for ranking
-    count_expr = {x: hl.agg.filter(hl.is_defined(ht[x]), hl.agg.counter(hl.cond(hl.is_snp(
+    # count_expr = {x: hl.agg.filter(hl.is_defined(ht[x]), hl.agg.counter(hl.cond(hl.is_snp(
+    #     ht.alleles[0], ht.alleles[1]), 'snv', 'indel'))) for x in ht.row if x.endswith('rank')}
+    count_expr = {x: hl.agg.filter(hl.is_defined(ht[x]), hl.agg.counter(hl.if_else(hl.is_snp(
         ht.alleles[0], ht.alleles[1]), 'snv', 'indel'))) for x in ht.row if x.endswith('rank')}
     rank_variant_counts = ht.aggregate(hl.Struct(**count_expr))
     print(f"Found the following variant counts:\n {pformat(rank_variant_counts)}")
 
     ht_truth_data = hl.read_table(truth_htfile)
     ht = ht.annotate_globals(rank_variant_counts=rank_variant_counts)
+    # ht = ht.annotate(
+    #     **ht_truth_data[ht.key],
+    #     # **fam_ht[ht.key],
+    #     # **gnomad_ht[ht.key],
+    #     # **denovo_ht[ht.key],
+    #     # clinvar=hl.is_defined(clinvar_ht[ht.key]),
+    #     indel_length=hl.abs(ht.alleles[0].length()-ht.alleles[1].length()),
+    #     rank_bins=hl.array(
+    #         [hl.Struct(
+    #             rank_id=rank_name,
+    #             bin=hl.int(hl.ceil(hl.float(ht[rank_name] + 1) / hl.floor(ht.globals.rank_variant_counts[rank_name][hl.cond(
+    #                 hl.is_snp(ht.alleles[0], ht.alleles[1]), 'snv', 'indel')] / n_bins)))
+    #         )
+    #             for rank_name in rank_variant_counts]
+    #     ),
+    #     # lcr=hl.is_defined(lcr_intervals[ht.locus])
+    # )
     ht = ht.annotate(
         **ht_truth_data[ht.key],
         # **fam_ht[ht.key],
@@ -102,7 +141,7 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
         rank_bins=hl.array(
             [hl.Struct(
                 rank_id=rank_name,
-                bin=hl.int(hl.ceil(hl.float(ht[rank_name] + 1) / hl.floor(ht.globals.rank_variant_counts[rank_name][hl.cond(
+                bin=hl.int(hl.ceil(hl.float(ht[rank_name] + 1) / hl.floor(ht.globals.rank_variant_counts[rank_name][hl.if_else(
                     hl.is_snp(ht.alleles[0], ht.alleles[1]), 'snv', 'indel')] / n_bins)))
             )
                 for rank_name in rank_variant_counts]
