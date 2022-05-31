@@ -168,7 +168,7 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
                 ht.variant_transmitted_singletons ==1 ),
             n_untrans_singletons_synonymous_algorithm=hl.agg.count_where(
                 ht.variant_untransmitted_singletons ==1 ),
-            validated_de_novos=hl.agg.count_where(ht.validated_denovo_inheritance=="De novo constitutive"),
+            # validated_de_novos=hl.agg.count_where(ht.validated_denovo_inheritance=="De novo constitutive"),
             # n_de_novo_no_lcr=hl.agg.filter(~ht.lcr & (
             #    ht.family_stats.unrelated_qc_callstats.AC[1] == 0), hl.agg.sum(ht.family_stats.mendel.errors)),
             n_de_novo_sites=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] == 0, hl.agg.count_where(
