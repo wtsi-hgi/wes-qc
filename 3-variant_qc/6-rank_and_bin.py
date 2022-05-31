@@ -204,8 +204,8 @@ def main():
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
     # add rank
-    htfile = rf_dir + args.runrunhash + "/rf_result_final_for_ranking.ht"
-    htrankedfile = rf_dir + args.runrunhash + "/rf_result_ranked.ht"
+    htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
+    htrankedfile = rf_dir + args.runhash + "/rf_result_ranked.ht"
     ht = hl.read_table(htfile)
     ht_ranked = add_rank(ht,
                         score_expr=(1-ht.rf_probability["TP"]),
@@ -222,9 +222,9 @@ def main():
     ht_ranked.write(htrankedfile, overwrite=True)
     # add bins
     truth_htfile = resourcedir + "truthset_table.ht"
-    bin_tmp_htfile = rf_dir + args.runrunhash + "/_gnomad_score_binning_tmp.ht"
+    bin_tmp_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100)
-    bin_htfile = rf_dir + args.runrunhash + "/__rf_result_ranked_BINS.ht"
+    bin_htfile = rf_dir + args.runhash + "/__rf_result_ranked_BINS.ht"
     ht_bins.write(bin_htfile, overwrite=True)
 
 
