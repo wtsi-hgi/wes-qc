@@ -260,7 +260,6 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     colors = {model:'blue'}
     #plot transmitted singletons
     plotfile = plot_dir + "transmitted_singletons.html"
-    print(plotfile)
     tabs = plot_metric(snvs, 'n_trans_singletons', ['n_trans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
@@ -344,7 +343,7 @@ def main():
     'axis.axis_label_text_font_style': "normal",
     'axis.major_label_text_font_size': "14pt"
     }
-    plot_dir = root_plot_dir + args.runhash + "/"
+    plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/"
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
