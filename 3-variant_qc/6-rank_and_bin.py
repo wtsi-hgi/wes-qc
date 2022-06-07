@@ -242,6 +242,13 @@ def main():
     inputs = parse_config()
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
+
+    # initialise hail
+    tmp_dir = "hdfs://spark-master:9820/"
+    sc = pyspark.SparkContext()
+    hadoop_config = sc._jsc.hadoopConfiguration()
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+
     # add rank
     htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     htrankedfile = rf_dir + args.runhash + "/rf_result_ranked.ht"
@@ -263,7 +270,7 @@ def main():
     truth_htfile = resourcedir + "truthset_table.ht"
     bin_tmp_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100)
-    bin_htfile = rf_dir + args.runhash + "/__rf_result_ranked_BINS.ht"
+    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
     ht_bins.write(bin_htfile, overwrite=True)
 
 
