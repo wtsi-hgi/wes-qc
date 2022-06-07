@@ -340,12 +340,12 @@ def main():
     'axis.axis_label_text_font_style': "normal",
     'axis.major_label_text_font_size': "14pt"
     }
-    plot_dir = root_plot_dir + args.run_hash + "/"
+    plot_dir = root_plot_dir + args.runhash + "/"
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
-    bin_htfile = rf_dir + args.run_hash + "variant_qc/_rf_result_ranked_BINS.ht"
-    create_plots(bin_htfile, plot_dir, args.run_hash)
+    bin_htfile = rf_dir + args.runhash + "variant_qc/_rf_result_ranked_BINS.ht"
+    create_plots(bin_htfile, plot_dir, args.runhash)
 
 
 if __name__ == '__main__':
