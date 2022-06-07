@@ -260,6 +260,7 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     colors = {model:'blue'}
     #plot transmitted singletons
     plotfile = plot_dir + "transmitted_singletons.html"
+    print(plotfile)
     tabs = plot_metric(snvs, 'n_trans_singletons', ['n_trans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
