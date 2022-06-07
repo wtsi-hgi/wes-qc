@@ -26,7 +26,7 @@ def get_options():
     return args
 
 
-def set_plots_defaults(p: Plot) -> None:
+def set_plots_defaults(p: Plot, qc_plots_settings: dict) -> None:
     p.legend.label_text_font_size = qc_plots_settings['label_text_font_size']
     p.title.text_font_size = qc_plots_settings['title.text_font_size']
     p.axis.axis_label_text_font_size = qc_plots_settings['axis.axis_label_text_font_size']
@@ -34,7 +34,7 @@ def set_plots_defaults(p: Plot) -> None:
     p.axis.major_label_text_font_size = qc_plots_settings['axis.major_label_text_font_size']
 
     
-def get_point_size_col(data: pd.Series, size_prop: str) -> pd.Series:
+def get_point_size_col(data: pd.Series, size_prop: str, qc_plots_settings: dict) -> pd.Series:
     """
     Given a data Series, returns the corresponding point size either:
     - Constant to qc_plots_settings['mean_point_size'] if `size_prop` is None
@@ -63,6 +63,7 @@ def get_point_size_col(data: pd.Series, size_prop: str) -> pd.Series:
 def plot_metric(df: pd.DataFrame,
                 y_name: str,
                 cols: List[str],
+                qc_plots_settings: dict,
                 y_fun: Callable[[pd.Series], Union[float, int]] = lambda x: x,
                 cut: int = None,
                 plot_all: bool = True,
@@ -94,6 +95,7 @@ def plot_metric(df: pd.DataFrame,
     :param pd.DataFrame df: Input data
     :param str y_name: Name of the metric plotted on the y-axis
     :param list of str cols: Columns used to compute the metric plotted
+    :pararm dict qc_plots_settings: Plot settings
     :param callable y_fun: Function to apply to the columns to generate the metric
     :param int cut: Where to draw the bin cut
     :param bool plot_all: Whether to plot a tab with all variants
@@ -148,7 +150,7 @@ def plot_metric(df: pd.DataFrame,
                                                 ('max_score', '@max_score'),
                                                 ('n_data_points', '@_n')
                                                 ] + [(col, f'@{col}') for col in cols]
-            set_plots_defaults(p)
+            set_plots_defaults(p, qc_plots_settings)
 
             # Add legend above the plot area
             legend = Legend(items=circles, orientation='horizontal', location=(0, 0), click_policy="hide")
@@ -189,7 +191,7 @@ def plot_metric(df: pd.DataFrame,
         df = df.reset_index()
         df['_color'] = [colors.get(x, 'gray') for x in df['model']]
         df['_n'] = np.sum(df[cols], axis=1)
-        df['_size'] = get_point_size_col(df['_n'], size_prop)
+        df['_size'] = get_point_size_col(df['_n'], size_prop, qc_plots_settings)
         return df
 
     colors = colors if colors is not None else {}
@@ -227,12 +229,13 @@ def plot_metric(df: pd.DataFrame,
     return Tabs(tabs=tabs)
 
 
-def create_plots(bin_htfile: str, plot_dir: str, run_hash: str):
+def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_settings: dict):
     '''
     Create variant QC plots
     :param str bin_htfile: Hail table file containing binned ranfom forest output
     :param str plot_dir: Output plot directory
     :param str run_hash: hash of random forest run
+    :param dict qc_plots_settings: qc plots settings
     '''
     #convert ht to pandas df
     ht = hl.read_table(bin_htfile)
@@ -257,67 +260,67 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str):
     colors = {model:'blue'}
     #plot transmitted singletons
     plotfile = plot_dir + "transmitted_singletons.html"
-    tabs = plot_metric(snvs, 'n_trans_singletons', ['n_trans_singletons_synonymous_algorithm'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'n_trans_singletons', ['n_trans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot untransmitted singletons
     plotfile = plot_dir + "untransmitted_singletons.html"
-    tabs = plot_metric(snvs, 'n_untrans_singletons_synonymous_algorithm', ['n_untrans_singletons_synonymous_algorithm'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'n_untrans_singletons_synonymous_algorithm', ['n_untrans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot transmitted/untransmitted ratio
     plotfile = plot_dir + "transmitted_untransmitted.html"
-    tabs = plot_metric(snvs, 'trans_untrans_ratio', ['n_trans_singletons_synonymous_algorithm', 'n_untrans_singletons_synonymous_algorithm'], y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'trans_untrans_ratio', ['n_trans_singletons_synonymous_algorithm', 'n_untrans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot number of insertions
     plotfile = plot_dir + "n_insertions.html"
-    tabs = plot_metric(indels, 'n_ins', ['n_ins'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(indels, 'n_ins', ['n_ins'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot number of deletions
     plotfile = plot_dir + "n_deletions.html"
-    tabs = plot_metric(indels, 'n_del', ['n_del'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(indels, 'n_del', ['n_del'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot Ti/Tv ratio
     plotfile = plot_dir + "r_ti_tv.html"
-    tabs = plot_metric(snvs, 'Ti/Tv ratio', ['n_ti', 'n_tv'], y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'Ti/Tv ratio', ['n_ti', 'n_tv'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot 1kg high confidence SNVs
     plotfile = plot_dir + "kg_snv.html"
-    tabs = plot_metric(snvs, 'n_kgp_high_conf_snvs', ['n_kgp_high_conf_snvs'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'n_kgp_high_conf_snvs', ['n_kgp_high_conf_snvs'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot omni SNVs
     plotfile = plot_dir + "omni_snv.html"
-    tabs = plot_metric(snvs, 'n_omni', ['n_omni'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'n_omni', ['n_omni'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot mills indels
     plotfile = plot_dir + "mills_indels.html"
-    tabs = plot_metric(indels, 'n_mills', ['n_mills'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(indels, 'n_mills', ['n_mills'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot hapmap snvs
     plotfile = plot_dir + "hapmap_snvs.html"
-    tabs = plot_metric(snvs, 'n_hapmap_snvs', ['n_hapmap'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'n_hapmap_snvs', ['n_hapmap'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot hapmap indels
     plotfile = plot_dir + "hapmap_indels.html"
-    tabs = plot_metric(indels, 'n_hapmap_indels', ['n_hapmap'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(indels, 'n_hapmap_indels', ['n_hapmap'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot fail hard filters snvs
     plotfile = plot_dir + "fail_hard_filters_snvs.html"
-    tabs = plot_metric(snvs, 'fail_hard_filters_snvs', ['fail_hard_filters'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'fail_hard_filters_snvs', ['fail_hard_filters'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot fail hard filters indels
     plotfile = plot_dir + "fail_hard_filters_indels.html"
-    tabs = plot_metric(snvs, 'fail_hard_filters_indels', ['fail_hard_filters'], y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'fail_hard_filters_indels', ['fail_hard_filters'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
 
@@ -345,7 +348,7 @@ def main():
         os.makedirs(plot_dir)
 
     bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
-    create_plots(bin_htfile, plot_dir, args.runhash)
+    create_plots(bin_htfile, plot_dir, args.runhash, qc_plots_settings)
 
 
 if __name__ == '__main__':
