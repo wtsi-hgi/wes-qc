@@ -344,7 +344,7 @@ def main():
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
-    bin_htfile = rf_dir + args.runhash + "variant_qc/_rf_result_ranked_BINS.ht"
+    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
     create_plots(bin_htfile, plot_dir, args.runhash)
 
 
