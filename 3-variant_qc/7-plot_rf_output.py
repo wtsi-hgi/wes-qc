@@ -265,7 +265,7 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     save(tabs)
     #plot untransmitted singletons
     plotfile = plot_dir + "untransmitted_singletons.html"
-    tabs = plot_metric(snvs, 'n_untrans_singletons_synonymous_algorithm', ['n_untrans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'n_untrans_singletons', ['n_untrans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot transmitted/untransmitted ratio
