@@ -26,8 +26,6 @@ def main():
     args = get_options()
     inputs = parse_config()
     rf_dir = inputs['var_qc_rf_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-    test_interval = inputs['rf_test_interval']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
