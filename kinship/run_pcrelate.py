@@ -15,7 +15,7 @@ def filter_mt(mtfile: str, mtfile_for_pcrelate: str):
     # filter to autosomes only
     mt = mt.filter_rows(mt.locus.in_autosome())
     #split mutli
-    mt = split_multi_hts(mt)
+    mt = hl.split_multi_hts(mt)
     # filter MT 
     filter_condition = ((mt.info.QD < 2) | (mt.info.FS > 60) | (mt.info.MQ < 30))
     mt = mt.filter_rows(filter_condition, keep=False)
