@@ -68,7 +68,7 @@ def merge_with_1kg(pruned_mt_file: str, mtdir: str, merged_mt_file: str):
 def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file: str):
     '''
     Annotate with known pops for 1kg samples and filter to remove long range LD regions, 
-    common variants, palidromic variants, low call rate and HWE filtering
+    rare variants, palidromic variants, low call rate and HWE filtering
     :param str merged_mt_file: merged birth cohort wes and 1kg MT file
     :param str resourcedir: resources directory
     :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
@@ -81,7 +81,7 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     # cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Individual ID')
     # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
 
-    # The following us 1kg superpop
+    # The following is 1kg superpop
     pops_file = resourcedir + "/igsr_samples.tsv"
     cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
     mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])

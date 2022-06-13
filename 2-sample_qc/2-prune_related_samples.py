@@ -17,7 +17,7 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     mtin = mtin.filter_rows(mtin.locus.in_autosome())
     print("Splitting multiallelic sites")
     # mtin = hl.split_multi(mtin)
-    mtin = hl.split_multi_hts(mtin)#this shouldn;t do anything as only biallelic sites are used
+    mtin = hl.split_multi_hts(mtin)#this shouldn't do anything as only biallelic sites are used
     print("Performing LD pruning")
     pruned_ht = hl.ld_prune(mtin.GT, r2=0.2)
     pruned_mt = mtin.filter_rows(hl.is_defined(pruned_ht[mtin.row_key]))
