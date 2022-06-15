@@ -44,7 +44,7 @@ def plot_kinship(pcrelate_htfile: str, pedfile: str, annotfile: str, plot_dir: s
 
     #plot
     plotfile = plot_dir + "pc-relate.html"
-    p = hl.plot.scatter(ht.ibd0, ht.kin, label = ht.relationship, xlabel='IBD0', ylabel='kin', title = "PC-relate for samples in trios")
+    p = hl.plot.scatter(ht.ibd0, ht.kin, label = ht.relationship, xlabel='IBD0', ylabel='kin', title = "PC-relate for samples in trios", collect_all = True)
     output_file(filename=plotfile)
     save(p)
 
