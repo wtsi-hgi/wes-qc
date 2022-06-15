@@ -75,7 +75,8 @@ def write_ped(trios, pedfile):
         if 'M' in trios[famid].keys() and 'P' in trios[famid].keys():#both parents present
             for person in trios[famid].keys():
                 if person not in ['M', 'P']:
-                    pedline = ("\t").join([ famid, trios[famid][person]['ega'], trios[famid]['P']['ega'], trios[famid]['M']['ega'], trios[famid][person]['sex'], '0' ])
+                    fam = famid + person#this allows for families with >1 chils
+                    pedline = ("\t").join([ fam, trios[famid][person]['ega'], trios[famid]['P']['ega'], trios[famid]['M']['ega'], trios[famid][person]['sex'], '0' ])
                     peddata.append(pedline)
 
     with open(pedfile, 'w') as o:
