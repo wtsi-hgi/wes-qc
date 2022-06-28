@@ -3,6 +3,20 @@ import gzip
 from wes_qc.utils.utils import parse_config
 
 
+def get_trios_to_exclude(unrelated_parents_file):
+    '''
+    Get trios to exclude due to unrelated parents
+    '''
+    to_exclude = {}
+    with open(unrelated_parents_file, 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            if not l.startswith('family'):
+                ldata = l.splait()
+                to_exclude[ldata[0]] = 1
+
+    return to_exclude
+
 
 def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
     '''
@@ -27,11 +41,10 @@ def get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches):
     return to_exclude
         
 
-
-def parse_manifest(manifest_file, samples_to_exclude):
+def parse_manifest(manifest_file, samples_to_exclude, trios_to_exclude):
     '''
     Parse manifest file and return a dict keyed by proband.
-    We only want complete trios.
+    We only want complete trios and we exclude samples which fail QC
     '''
     trios = {}
     count = 0
@@ -48,6 +61,9 @@ def parse_manifest(manifest_file, samples_to_exclude):
                 trio = linedata[6]
                 sex = linedata[26]
                 sexcode = '1'
+                trio = famid + persontype
+                if trio in trios_to_exclude.keys():
+                    continue
                 if sex == 'Female':
                     sexcode = '2'
                 elif sex == 'Male':
@@ -75,7 +91,7 @@ def write_ped(trios, pedfile):
         if 'M' in trios[famid].keys() and 'P' in trios[famid].keys():#both parents present
             for person in trios[famid].keys():
                 if person not in ['M', 'P']:
-                    fam = famid + person#this allows for families with >1 chils
+                    fam = famid + person#this allows for families with >1 child
                     pedline = ("\t").join([ fam, trios[famid][person]['ega'], trios[famid]['P']['ega'], trios[famid]['M']['ega'], trios[famid][person]['sex'], '0' ])
                     peddata.append(pedline)
 
@@ -90,9 +106,11 @@ def main():
     manifest_file = resourcedir + "all_samples_with_proceed_and_seq_info_and_warehouse_info.txt"
     sample_qc_fails = annotdir + "samples_failing_qc.tsv.bgz"
     gtcheck_mismatches = resourcedir + "gtcheck_mismatches.txt"
+    unrelated_parents_file = annotdir + "unrelated_parents.txt"
 
+    trios_to_exclude = get_trios_to_exclude(unrelated_parents_file)
     samples_to_exclude = get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches)
-    trios  = parse_manifest(manifest_file, samples_to_exclude)
+    trios  = parse_manifest(manifest_file, samples_to_exclude, trios_to_exclude)
     pedfile = resourcedir + "trios.ped"
     write_ped(trios, pedfile)
 
