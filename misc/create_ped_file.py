@@ -61,8 +61,8 @@ def parse_manifest(manifest_file, samples_to_exclude, trios_to_exclude):
                 trio = linedata[6]
                 sex = linedata[26]
                 sexcode = '1'
-                trio = famid + persontype
-                if trio in trios_to_exclude.keys():
+                trioid = famid + persontype
+                if trioid in trios_to_exclude.keys():
                     continue
                 if sex == 'Female':
                     sexcode = '2'
