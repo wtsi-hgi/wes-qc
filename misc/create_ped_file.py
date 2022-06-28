@@ -12,7 +12,7 @@ def get_trios_to_exclude(unrelated_parents_file):
         lines = f.readlines()
         for l in lines:
             if not l.startswith('family'):
-                ldata = l.splait()
+                ldata = l.split()
                 to_exclude[ldata[0]] = 1
 
     return to_exclude
