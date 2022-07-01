@@ -39,6 +39,8 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     mt = hl.read_matrix_table(annotated_mt_file)
     # filter to autosomes only
     mt = mt.filter_rows(mt.locus.in_autosome())
+    print("Writing after filter rows")
+    mt.write(mt_qc_outfile, overwrite=True)
 
     # filter MT by depth/gq/vaf
     min_dp = 20
@@ -56,6 +58,8 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
         # print(
         #     f'Filtering {fraction_filtered * 100:.2f}% entries out of downstream analysis.')
         mt = mt.filter_entries(filter_condition)
+    print("Writing after filter entries")
+    mt.write(mt_qc_outfile, overwrite=True)
 
     # run sample QC
     mt_with_sampleqc = hl.sample_qc(mt, name='sample_qc')
