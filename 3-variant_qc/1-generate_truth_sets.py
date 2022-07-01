@@ -58,6 +58,8 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     '''
     mt = hl.read_matrix_table(mtfile)
     mt = hl.split_multi_hts(mt)
+    print("writing split mt")
+    mt.write(varqc_mtfile, overwrite=True)
 
     #remove entries with low depth/GQ or VAF. This is to try to correct for the number of spurious variants from samples with high C>A
     min_dp = 20
@@ -70,11 +72,13 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
         filter_condition = ((mt.GT.is_het() & (vaf > min_vaf) & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
                             (mt.GT.is_hom_ref() & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
                             (mt.GT.is_hom_var() & (mt.DP > min_dp) & (mt.GQ > min_gq)))
-        fraction_filtered = mt.aggregate_entries(
-            hl.agg.fraction(~filter_condition))
-        print(
-            f'Filtering {fraction_filtered * 100:.2f}% entries out of downstream analysis.')
+        # fraction_filtered = mt.aggregate_entries(
+        #     hl.agg.fraction(~filter_condition))
+        # print(
+        #     f'Filtering {fraction_filtered * 100:.2f}% entries out of downstream analysis.')
         mt = mt.filter_entries(filter_condition)
+    print("writing mt after filter entries")
+    mt.write(varqc_mtfile, overwrite=True)
 
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
