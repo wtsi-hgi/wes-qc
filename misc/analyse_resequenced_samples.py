@@ -52,7 +52,7 @@ def subset_mt_by_samples(mtinfile, sample_list, mtoutfile):
 def main():
     #set up input variables
     inputs = parse_config()
-    mtdir = inputs['load_matrixtables_lustre_dir']
+    mtdir = inputs['matrixtables_lustre_dir']
     plot_dir = inputs['plots_dir_local']
 
     #initialise hail
