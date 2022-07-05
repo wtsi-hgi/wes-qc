@@ -78,7 +78,7 @@ def main():
     mt_file_orig = mtdir +  "gatk_unprocessed.mt"
     mt_orig_subsetfile = mtdir + "resequenced_samples_original_data.mt"
     subset_mt_by_samples(mt_file_orig, sample_list, mt_orig_subsetfile)
-    spectrafile_orig = "file:///lustre/scratch123/qc/repeat_samples_mutation_spectra/plots/proportions_per_person.txt"
+    spectrafile_orig = "file:///lustre/scratch123/qc/mutation_spectra/plots/proportions_per_person.txt"
     plot_file_orig = plot_dir + "resequenced_samples_nSNP_rTiTv_original_data.html"
     run_sample_qc_and_annotate(mt_orig_subsetfile, spectrafile_orig, plot_file_orig)
 
