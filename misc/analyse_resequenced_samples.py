@@ -74,7 +74,7 @@ def main():
     run_sample_qc_and_annotate(mtoutfile, spectrafile, plot_file)
 
     #subset original mt to just the resequenced samples and repeat the run of sample qC, annotation with fraction CA in originals and plotting
-    sample_list = "file:///lustre/scratch123/qc/mutation_spectra/samples.txt"
+    sample_list = "file:///lustre/scratch123/qc/repeat_samples_mutation_spectra/samples.txt"
     mt_file_orig = mtdir +  "gatk_unprocessed.mt"
     mt_orig_subsetfile = mtdir + "resequenced_samples_original_data.mt"
     subset_mt_by_samples(mt_file_orig, sample_list, mt_orig_subsetfile)
