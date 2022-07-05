@@ -52,7 +52,6 @@ def subset_mt_by_samples(mtinfile, sample_list, mtoutfile):
 def main():
     #set up input variables
     inputs = parse_config()
-    vcf_header = inputs['gatk_vcf_header']
     mtdir = inputs['load_matrixtables_lustre_dir']
     plot_dir = inputs['plots_dir_local']
 
@@ -63,6 +62,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     import_vcf_dir = "file:///lustre/scratch123/qc/repeat_samples_gatk/"
+    vcf_header = "file:///lustre/scratch123/qc/repeat_samples_gatk/header.txt"
 
     #load VCFs into hail
     mtoutfile = mtdir + "gatk_unprocessed_repeat_samples.mt"
