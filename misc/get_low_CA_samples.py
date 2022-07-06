@@ -20,7 +20,7 @@ def main():
     spectra_ht = hl.Table.from_pandas(spec_df).key_by('sample')
     spectra_ht = spectra_ht.filter(spectra_ht.CA < 0.08)#filter to only low CA samples
     #load in full MT
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
+    mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
     mt = hl.read_matrix_table(mtfile)
     #filter by sample
     filteredmt = mt.filter_cols(hl.is_defined(spectra_ht[mt.s]), keep=True)
