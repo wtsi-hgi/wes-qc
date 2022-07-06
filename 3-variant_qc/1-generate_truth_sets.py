@@ -61,24 +61,24 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     print("writing split mt")
     mt.write(varqc_mtfile, overwrite=True)
 
-    #remove entries with low depth/GQ or VAF. This is to try to correct for the number of spurious variants from samples with high C>A
-    min_dp = 20
-    min_gq = 20
-    min_vaf = 0.25
-    if min_dp > 0 or min_gq > 0 or min_vaf > 0:
-        vaf = mt.AD[1] / hl.sum(mt.AD)
-        print("Filtering input MT by depth: DP=" + str(min_dp) +
-              ", genotype quality: GQ=" + str(min_gq) + ", VAF: VAF=" + str(min_vaf))
-        filter_condition = ((mt.GT.is_het() & (vaf > min_vaf) & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
-                            (mt.GT.is_hom_ref() & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
-                            (mt.GT.is_hom_var() & (mt.DP > min_dp) & (mt.GQ > min_gq)))
-        # fraction_filtered = mt.aggregate_entries(
-        #     hl.agg.fraction(~filter_condition))
-        # print(
-        #     f'Filtering {fraction_filtered * 100:.2f}% entries out of downstream analysis.')
-        mt = mt.filter_entries(filter_condition)
-    print("writing mt after filter entries")
-    mt.write(varqc_mtfile, overwrite=True)
+    # #remove entries with low depth/GQ or VAF. This is to try to correct for the number of spurious variants from samples with high C>A
+    # min_dp = 20
+    # min_gq = 20
+    # min_vaf = 0.25
+    # if min_dp > 0 or min_gq > 0 or min_vaf > 0:
+    #     vaf = mt.AD[1] / hl.sum(mt.AD)
+    #     print("Filtering input MT by depth: DP=" + str(min_dp) +
+    #           ", genotype quality: GQ=" + str(min_gq) + ", VAF: VAF=" + str(min_vaf))
+    #     filter_condition = ((mt.GT.is_het() & (vaf > min_vaf) & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
+    #                         (mt.GT.is_hom_ref() & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
+    #                         (mt.GT.is_hom_var() & (mt.DP > min_dp) & (mt.GQ > min_gq)))
+    #     # fraction_filtered = mt.aggregate_entries(
+    #     #     hl.agg.fraction(~filter_condition))
+    #     # print(
+    #     #     f'Filtering {fraction_filtered * 100:.2f}% entries out of downstream analysis.')
+    #     mt = mt.filter_entries(filter_condition)
+    # print("writing mt after filter entries")
+    # mt.write(varqc_mtfile, overwrite=True)
 
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
@@ -313,7 +313,8 @@ def main():
 
     #add hail variant QC
     if args.annotation or args.all:
-        mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        #mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        mtfile = mtdir + "mt_varqc_splitmulti_lowCA_samples.mt"
         varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
         split_multi_and_var_qc(mtfile, varqc_mtfile)
         pedfile = resourcedir + "trios.ped"
