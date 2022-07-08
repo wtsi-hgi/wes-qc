@@ -319,8 +319,8 @@ def main():
 
     #add hail variant QC
     if args.annotation or args.all:
-        #mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
-        mtfile = mtdir + "mt_varqc_splitmulti_lowCA_samples.mt"
+        mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        #mtfile = mtdir + "mt_varqc_splitmulti_lowCA_samples.mt"
         varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
         split_multi_and_var_qc(mtfile, varqc_mtfile)
         pedfile = resourcedir + "trios.ped"
