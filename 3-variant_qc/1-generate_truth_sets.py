@@ -80,6 +80,12 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     # print("writing mt after filter entries")
     # mt.write(varqc_mtfile, overwrite=True)
 
+    # remove all C>As
+    mt = mt.filter_rows((mt.alleles[0] == "C") & (mt.alleles[1] == "A"), keep=False)
+    mt = mt.filter_rows((mt.alleles[0] == "G") & (mt.alleles[1] == "T"), keep=False)
+    print("writing split mt after removal of C>A")
+    mt.write(varqc_mtfile, overwrite=True)
+
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
     mt = annotate_adj(mt)
