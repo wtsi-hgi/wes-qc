@@ -125,6 +125,7 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     :param str trio_filtered_mtfile: Trio filtered hail matrixtable file
     :param str trans_sing_htfile: Variant QC hail table file with transmitted singleton annotation
     '''
+    print("Annotating with transmitted singletons")
     ht = hl.read_table(family_annot_htfile)
     mt_trios = hl.read_matrix_table(trio_mtfile)
     mt_trios = mt_trios.annotate_rows(consequence=ht[mt_trios.row_key].consequence)
@@ -146,6 +147,7 @@ def run_tdt(mtfile: str, trans_sing_htfile: str, pedfile: str, tdt_htfile: str):
     :param str pedfile: Pedfile
     :param str tdt_htfile: Htfile with transmitted/untransmitted counts
     '''
+    print("Annotating with transmitted/unstransmitted counts")
     mt = hl.read_matrix_table(mtfile)
     pedigree = hl.Pedigree.read(pedfile)
     tdt_ht = hl.transmission_disequilibrium_test(mt, pedigree)
@@ -162,6 +164,7 @@ def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
     :param str gnomad_htfile: Gnomad annotation hail table file
     :param str final_htfile: Final RF htfile for ranking and binning
     '''
+    print("Annotating with gnomad AF")
     ht = hl.read_table(tdt_htfile)
     gnomad_ht = hl.read_table(gnomad_htfile)
     ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].maf)
@@ -210,7 +213,7 @@ def main():
     final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
     annotate_gnomad(tdt_htfile, gnomad_htfile, final_htfile)
-    
+
 
 if __name__ == '__main__':
     main()
