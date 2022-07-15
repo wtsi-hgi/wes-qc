@@ -138,23 +138,23 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     ht.write(trans_sing_htfile, overwrite=True)    
 
 
-def run_tdt(mtfile: str, trans_sing_htfile: str, pedfile: str, tdt_htfile: str):
-    '''
-    Run transmission disequilibrium test to get counts of number transmitted and number unstransmitted for each 
-    variant and annotate the RF output file with this
-    :param str mtfile: Mtfile used to create random forest input table
-    :param str trans_sing_htfile: Variant QC hail table file with transmitted singleton annotation
-    :param str pedfile: Pedfile
-    :param str tdt_htfile: Htfile with transmitted/untransmitted counts
-    '''
-    print("Annotating with transmitted/unstransmitted counts")
-    mt = hl.read_matrix_table(mtfile)
-    pedigree = hl.Pedigree.read(pedfile)
-    tdt_ht = hl.transmission_disequilibrium_test(mt, pedigree)
-    ht = hl.read_table(trans_sing_htfile)
-    ht=ht.annotate(n_transmitted=tdt_ht[ht.key].t)
-    ht=ht.annotate(n_untransmitted=tdt_ht[ht.key].u)
-    ht.write(tdt_htfile, overwrite = True)
+# def run_tdt(mtfile: str, trans_sing_htfile: str, pedfile: str, tdt_htfile: str):
+#     '''
+#     Run transmission disequilibrium test to get counts of number transmitted and number unstransmitted for each 
+#     variant and annotate the RF output file with this
+#     :param str mtfile: Mtfile used to create random forest input table
+#     :param str trans_sing_htfile: Variant QC hail table file with transmitted singleton annotation
+#     :param str pedfile: Pedfile
+#     :param str tdt_htfile: Htfile with transmitted/untransmitted counts
+#     '''
+#     print("Annotating with transmitted/unstransmitted counts")
+#     mt = hl.read_matrix_table(mtfile)
+#     pedigree = hl.Pedigree.read(pedfile)
+#     tdt_ht = hl.transmission_disequilibrium_test(mt, pedigree)
+#     ht = hl.read_table(trans_sing_htfile)
+#     ht=ht.annotate(n_transmitted=tdt_ht[ht.key].t)
+#     ht=ht.annotate(n_untransmitted=tdt_ht[ht.key].u)
+#     ht.write(tdt_htfile, overwrite = True)
 
 
 def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
@@ -204,15 +204,15 @@ def main():
     transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_filtered_mtfile, trans_sing_htfile)
 
     #annotate with number transmitted, number untransmitted (from transmission disequilibrium test)
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    pedfile = resourcedir + "trios.ped"
-    tdt_htfile = rf_dir + args.runhash + "/rf_result_tdt.ht"
-    run_tdt(mtfile, trans_sing_htfile, pedfile, tdt_htfile)
+    # mtfile = mtdir + "mt_varqc_splitmulti.mt"
+    # pedfile = resourcedir + "trios.ped"
+    # tdt_htfile = rf_dir + args.runhash + "/rf_result_tdt.ht"
+    # run_tdt(mtfile, trans_sing_htfile, pedfile, tdt_htfile)
 
     #annotate with gnomad AF
     final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
-    annotate_gnomad(tdt_htfile, gnomad_htfile, final_htfile)
+    annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
 
 
 if __name__ == '__main__':
