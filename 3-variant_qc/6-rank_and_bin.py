@@ -227,9 +227,11 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             #transmitted and untransmitted common variants
             n_trans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].t)),
             n_untrans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].u)),
-            #transmitted and untransmitted where unrelated individual allele count <10
-            n_trans_ac_lt_10=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10, hl.agg.sum(ht.family_stats.tdt[0].t)),
-            n_untrans_ac_lt_10=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10, hl.agg.sum(ht.family_stats.tdt[0].u)),
+            #transmitted and untransmitted synonymous variants where unrelated individual allele count <10
+            n_trans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
+                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
+            n_untrans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
+                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
 
             n_omni=hl.agg.count_where(ht.omni),
             n_mills=hl.agg.count_where(ht.mills),
