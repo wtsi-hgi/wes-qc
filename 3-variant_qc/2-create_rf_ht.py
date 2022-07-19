@@ -47,14 +47,14 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
         **allele_counts_ht[ht.key],
     )
 
+    #annotate with C>A or not
+    ht = ht.annotate(is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T")))
+
     ht = ht.annotate(fail_hard_filters=(ht.QD < 2)
                      | (ht.FS > 60) | (ht.MQ < 30))
     ht = ht.annotate(ac_raw=ht.ac_qc_samples_raw)
     ht = ht.annotate(transmitted_singleton=(
         ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
-
-    #annotate with C>A or not
-    ht = ht.annotate(is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T")))
 
     ht = ht.select(
         "a_index",
