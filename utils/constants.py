@@ -24,6 +24,7 @@ FEATURES = [
     "MQRankSum",
     "SOR",
     "ReadPosRankSum",
+    "is_CA",
 ]
 
 TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]
