@@ -53,6 +53,9 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     ht = ht.annotate(transmitted_singleton=(
         ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
 
+    #annotate with C>A or not
+    ht = ht.annotate(is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T")))
+
     ht = ht.select(
         "a_index",
         "was_split",
