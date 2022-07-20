@@ -328,7 +328,22 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_10', ['n_trans_ac_lt_10', 'n_untrans_ac_lt_10'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
-    #plot transmitted/untransmitted for synonymous vars with AC<10 in non-probands
+    #plot transmitted/untransmitted for synonymous vars with AC<7 in non-probands
+    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_7.html"
+    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_7', ['n_trans_ac_lt_7', 'n_untrans_ac_lt_7'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    output_file(filename=plotfile)
+    save(tabs)
+    #plot transmitted/untransmitted for synonymous vars with AC<5 in non-probands
+    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_5.html"
+    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_5', ['n_trans_ac_lt_5', 'n_untrans_ac_lt_5'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    output_file(filename=plotfile)
+    save(tabs)
+    #plot transmitted/untransmitted for synonymous vars with AC<3 in non-probands
+    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_3.html"
+    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_3', ['n_trans_ac_lt_3', 'n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    output_file(filename=plotfile)
+    save(tabs)  
+    #plot transmitted/untransmitted for common vars 
     plotfile = plot_dir + "transmitted_untransmitted_common.html"
     tabs = plot_metric(snvs, 'trans_untrans_ratio_common', ['n_trans_common', 'n_untrans_common'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
