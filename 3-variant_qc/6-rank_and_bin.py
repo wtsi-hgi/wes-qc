@@ -255,6 +255,8 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             n_kgp_high_conf_snvs=hl.agg.count_where(
                 ht.kgp_phase1_hc),
             fail_hard_filters=hl.agg.count_where(ht.fail_hard_filters),
+            fail_hard_filters_snvs=hl.agg.count_where((ht.fail_hard_filters) & (hl.is_snp(ht.alleles[0], ht.alleles[1]))),
+            fail_hard_filters_indels=hl.agg.count_where((ht.fail_hard_filters) & (hl.is_indel(ht.alleles[0], ht.alleles[1]))),
             # n_vqsr_pos_train=hl.agg.count_where(ht.vqsr_positive_train_site),
             # n_vqsr_neg_train=hl.agg.count_where(ht.vqsr_negative_train_site)
         )

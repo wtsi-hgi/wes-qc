@@ -315,12 +315,12 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     save(tabs)
     #plot fail hard filters snvs
     plotfile = plot_dir + "fail_hard_filters_snvs.html"
-    tabs = plot_metric(snvs, 'fail_hard_filters_snvs', ['fail_hard_filters'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(snvs, 'fail_hard_filters_snvs', ['fail_hard_filters_snvs'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot fail hard filters indels
     plotfile = plot_dir + "fail_hard_filters_indels.html"
-    tabs = plot_metric(indels, 'fail_hard_filters_indels', ['fail_hard_filters'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    tabs = plot_metric(indels, 'fail_hard_filters_indels', ['fail_hard_filters_indels'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot transmitted/untransmitted for synonymous vars with AC<10 in non-probands
