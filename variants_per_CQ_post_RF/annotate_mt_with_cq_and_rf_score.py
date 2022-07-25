@@ -84,7 +84,7 @@ def main():
     cq_annotated_mtfile = mtdir + "mt_varqc_splitmulti_with_cq.mt"
     annotate_mt_with_consequence(mtfile, cqfile, cq_annotated_mtfile)
 
-    rf_annotated_mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.run_hash + "".mt"
+    rf_annotated_mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.run_hash + ".mt"
     rf_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     annotate_mt_with_rf_score(cq_annotated_mtfile, rf_htfile, rf_annotated_mtfile)
 
