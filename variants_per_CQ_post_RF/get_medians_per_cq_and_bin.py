@@ -35,7 +35,7 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
             mt_tmp = hl.sample_qc(mt_tmp)
             sampleqc_ht = mt_tmp.cols()
             med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
-            median_variants_per_sample.append()
+            median_variants_per_sample.append(med_vars_per_sample)
 
     print(bins)
     print(median_variants_per_sample)
