@@ -2,6 +2,8 @@
 import hail as hl
 import pyspark
 import argparse
+import matplotlib.pyplot as plt
+import os
 from wes_qc.utils.utils import parse_config
 import datetime
 
@@ -20,12 +22,13 @@ def get_options():
     return args
 
 
-def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list):
+def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str):
     '''
     get median numbers of variants per sample for any given consequence and random forest bin
     :param str mtfile: random forest and consequence annotated mtfile
     :param list bins: list of maximum bin numbers
     :param list consequences: vep consequences
+    :param str plot_dir: output directory for plots
     '''
     mt = hl.read_matrix_table(mtfile)
     for consequence in consequences:
@@ -41,17 +44,20 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
         
         print(median_variants_per_sample)
         print(bins)
-        plot_median_vars_per_cq(median_variants_per_sample, bins, consequence)
+        plot_median_vars_per_cq(median_variants_per_sample, bins, consequence, plot_dir)
 
 
-def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, consequence: str):
+def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, consequence: str, plot_dir: str):
     '''
     plot median number of variants per sample for a specific consequence and range of bins
     :param list median_variants_per_sample: median variants per sample for this consequence
     :param list bins: list of maximum bin numbers
     :param list consequence: vep consequence
+    :param str plot_dir: output directory for plots
     '''
-    pass
+    plotfile = plot_dir + "/" + consequence + ".png"
+    plt.plot(bins, median_variants_per_sample)
+    plt.savefig(plotfile)
     
 
 
@@ -60,6 +66,7 @@ def main():
     args = get_options()
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
+    root_plot_dir = inputs['plots_dir_local']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -68,10 +75,14 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    bins = list(range(5,101,5))
+    bins = list(range(5,101,10))
     consequences = ['missense_variant']
+    plot_dir = root_plot_dir + "/variants_per_cq/" + args.runhash
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
+
     print(datetime.datetime.now())
-    get_median_vars_per_sample_per_bin_cq(mtfile, bins, consequences)
+    get_median_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir)
     print(datetime.datetime.now())
 
 
