@@ -20,21 +20,27 @@ def get_options():
     return args
 
 
-def get_median_vars_per_sample(mtfile: str, bin: int, consequence: str) -> float:
+def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list):
     '''
     get median numbers of variants per sample for any given consequence and random forest bin
     :param str mtfile: random forest and consequence annotated mtfile
-    :param int bin: maximum bin number
-    :param str consequence: vep consequence
-    :return: float median variants per sample with the specified consequence and maximum bin
+    :param list bins: list of maximum bin numbers
+    :param list consequences: vep consequences
     '''
     mt = hl.read_matrix_table(mtfile)
-    mt = mt.filter_rows((mt.info.consequence == consequence) & (mt.info.rf_bin <= bin))
-    mt = hl.sample_qc(mt)
-    sampleqc_ht = mt.cols()
-    med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
+    median_variants_per_sample = []
+    for consequence in consequences:
+        for bin in bins:
+            mt_tmp = mt.filter_rows((mt.info.consequence == consequence) & (mt.info.rf_bin <= bin))
+            mt_tmp = hl.sample_qc(mt_tmp)
+            sampleqc_ht = mt_tmp.cols()
+            med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
+            median_variants_per_sample.append()
 
-    return med_vars_per_sample
+    print(bins)
+    print(median_variants_per_sample)
+
+    
 
 
 def main():
@@ -50,13 +56,12 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    bin = 40
-    consequence = 'missense_variant'
+    bins = list(range(1,101,5))
+    consequences = ['missense_variant']
     print(datetime.datetime.now())
-    median_bin_cq = get_median_vars_per_sample(mtfile, bin, consequence)
-    print(isinstance(median_bin_cq, float))
-    print(median_bin_cq)
+    get_median_vars_per_sample_per_bin_cq(mtfile, bins, consequences)
     print(datetime.datetime.now())
+
 
 if __name__ == '__main__':
     main()
