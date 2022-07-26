@@ -5,7 +5,6 @@ import argparse
 import matplotlib.pyplot as plt
 import os
 from wes_qc.utils.utils import parse_config
-import datetime
 
 
 def get_options():
@@ -32,18 +31,16 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
     '''
     mt = hl.read_matrix_table(mtfile)
     for consequence in consequences:
+        print("Plotting consequence " + consequence)
         median_variants_per_sample = []
         mt_cq = mt.filter_rows(mt.info.consequence == consequence)
         for bin in bins:
-            #mt_tmp = mt.filter_rows((mt.info.consequence == consequence) & (mt.info.rf_bin <= bin))
             mt_tmp = mt_cq.filter_rows(mt_cq.info.rf_bin <= bin)
             mt_tmp = hl.sample_qc(mt_tmp)
             sampleqc_ht = mt_tmp.cols()
             med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
             median_variants_per_sample.append(med_vars_per_sample)
         
-        print(median_variants_per_sample)
-        print(bins)
         plot_median_vars_per_cq(median_variants_per_sample, bins, consequence, plot_dir)
 
 
@@ -78,15 +75,16 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    bins = list(range(5,101,10))
-    consequences = ['missense_variant']
+    bins = list(range(1,102))
+    consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
+    'inframe_insertion', 'non_coding_transcript_exon_variant', 'splice_acceptor_variant', 
+    'splice_donor_variant', 'stop_gained', 'stop_lost', 'intron_variant', '3_prime_UTR_variant', 
+    '5_prime_UTR_variant']
     plot_dir = root_plot_dir + "/variants_per_cq/" + args.runhash
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
-    print(datetime.datetime.now())
     get_median_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir)
-    print(datetime.datetime.now())
 
 
 if __name__ == '__main__':
