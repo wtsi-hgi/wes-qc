@@ -33,7 +33,7 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
         mt_cq = mt.filter_rows(mt.info.consequence == consequence)
         for bin in bins:
             #mt_tmp = mt.filter_rows((mt.info.consequence == consequence) & (mt.info.rf_bin <= bin))
-            mt_tmp = mt_cq.filter_rows(mt.info.rf_bin <= bin)
+            mt_tmp = mt_cq.filter_rows(mt_cq.info.rf_bin <= bin)
             mt_tmp = hl.sample_qc(mt_tmp)
             sampleqc_ht = mt_tmp.cols()
             med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
