@@ -28,18 +28,29 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
     :param list consequences: vep consequences
     '''
     mt = hl.read_matrix_table(mtfile)
-    median_variants_per_sample = []
     for consequence in consequences:
+        median_variants_per_sample = []
+        mt_cq = mt.filter_rows(mt.info.consequence == consequence)
         for bin in bins:
-            mt_tmp = mt.filter_rows((mt.info.consequence == consequence) & (mt.info.rf_bin <= bin))
+            #mt_tmp = mt.filter_rows((mt.info.consequence == consequence) & (mt.info.rf_bin <= bin))
+            mt_tmp = mt_cq.filter_rows(mt.info.rf_bin <= bin)
             mt_tmp = hl.sample_qc(mt_tmp)
             sampleqc_ht = mt_tmp.cols()
             med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
             median_variants_per_sample.append(med_vars_per_sample)
+        
+        print(median_variants_per_sample)
+        plot_median_vars_per_cq(median_variants_per_sample, bins, consequence)
 
-    print(bins)
-    print(median_variants_per_sample)
 
+def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, consequence: str):
+    '''
+    plot median number of variants per sample for a specific consequence and range of bins
+    :param list median_variants_per_sample: median variants per sample for this consequence
+    :param list bins: list of maximum bin numbers
+    :param list consequence: vep consequence
+    '''
+    pass
     
 
 
@@ -56,7 +67,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    bins = list(range(1,101,5))
+    bins = list(range(5,101,5))
     consequences = ['missense_variant']
     print(datetime.datetime.now())
     get_median_vars_per_sample_per_bin_cq(mtfile, bins, consequences)
