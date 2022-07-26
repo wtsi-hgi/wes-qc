@@ -57,6 +57,9 @@ def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, conseq
     '''
     plotfile = plot_dir + "/" + consequence + ".png"
     plt.plot(bins, median_variants_per_sample)
+    plt.title('Median number of ' + consequence + ' variants per sample in each RF bin')
+    plt.xlabel('Bin')
+    plt.ylabel('Median variants per sample')
     plt.savefig(plotfile)
     
 
