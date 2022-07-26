@@ -40,6 +40,7 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
             median_variants_per_sample.append(med_vars_per_sample)
         
         print(median_variants_per_sample)
+        print(bins)
         plot_median_vars_per_cq(median_variants_per_sample, bins, consequence)
 
 
