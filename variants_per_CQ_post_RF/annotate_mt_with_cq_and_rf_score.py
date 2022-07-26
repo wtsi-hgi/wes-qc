@@ -47,7 +47,7 @@ def annotate_mt_with_consequence(mtfile: str, cqfile: str, cq_annotated_mtfile: 
     mt.write(cq_annotated_mtfile, overwrite = True)
 
 
-def annotate_mt_with_rf_score(cq_annotated_mtfile: str, rf_htfile: str, rf_annotated_mtfile: str):
+def annotate_mt_with_rf_score_and_bin(cq_annotated_mtfile: str, rf_htfile: str, rf_annotated_mtfile: str):
     '''
     Annotate matrixtable with RF score and bin
     :param str cq_annotated_mtfile: consequence annotated mtfile
@@ -59,7 +59,11 @@ def annotate_mt_with_rf_score(cq_annotated_mtfile: str, rf_htfile: str, rf_annot
 
     mt = mt.annotate_rows(
         info=mt.info.annotate(
-            rf_probability=rf_ht[mt.row_key].rf_probability['TP'])
+            rf_score=rf_ht[mt.row_key].score)
+    )
+    mt = mt.annotate_rows(
+        info=mt.info.annotate(
+            rf_bin=rf_ht[mt.row_key].bin)
     )
     
     mt.write(rf_annotated_mtfile, overwrite=True)
@@ -85,8 +89,9 @@ def main():
     annotate_mt_with_consequence(mtfile, cqfile, cq_annotated_mtfile)
 
     rf_annotated_mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    rf_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    annotate_mt_with_rf_score(cq_annotated_mtfile, rf_htfile, rf_annotated_mtfile)
+    #rf_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
+    rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht" 
+    annotate_mt_with_rf_score_and_bin(cq_annotated_mtfile, rf_htfile, rf_annotated_mtfile)
 
 
 if __name__ == '__main__':
