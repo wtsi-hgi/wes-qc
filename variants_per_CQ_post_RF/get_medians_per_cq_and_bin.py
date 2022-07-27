@@ -34,6 +34,8 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
     mt_tmp = mt.filter_cols(mt.assigned_pop == 'EUR')
     sample_list = mt_tmp.cols().s.collect()
     samples = dict.fromkeys(sample_list)
+    for s in samples:
+        samples[s] = {}
     #create mts for indels and snps
     mt_snp = mt_tmp.filter_rows(hl.is_snp(mt_tmp.alleles[0], mt_tmp.alleles[1]))
     mt_indel = mt_tmp.filter_rows(hl.is_indel(mt_tmp.alleles[0], mt_tmp.alleles[1]))
