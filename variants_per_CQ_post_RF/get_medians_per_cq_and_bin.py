@@ -42,12 +42,12 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
 
     for consequence in consequences:
         print("Processing consequence " + consequence)
-        mt_cq_snp = mt_snp.filter_rows(mt_snp.info.consequence == consequence)
-        mt_cq_indel = mt_indel.filter_rows(mt_indel.info.consequence == consequence)
+        mt_cq_snp_all = mt_snp.filter_rows(mt_snp.info.consequence == consequence)
+        mt_cq_indel_all = mt_indel.filter_rows(mt_indel.info.consequence == consequence)
 
         for bin in bins:
-            mt_cq_snp = mt_cq_snp.filter_rows(mt_cq_snp.info.rf_bin <= bin)
-            mt_cq_indel = mt_cq_indel.filter_rows(mt_cq_indel.info.rf_bin <= bin)
+            mt_cq_snp = mt_cq_snp_all.filter_rows(mt_cq_snp_all.info.rf_bin <= bin)
+            mt_cq_indel = mt_cq_indel_all.filter_rows(mt_cq_indel_all.info.rf_bin <= bin)
             #run sample qc
             mt_cq_snp = hl.sample_qc(mt_cq_snp)
             mt_cq_indel = hl.sample_qc(mt_cq_indel)
