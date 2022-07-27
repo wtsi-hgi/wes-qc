@@ -30,34 +30,96 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
     :param str plot_dir: output directory for plots
     '''
     mt = hl.read_matrix_table(mtfile)
+    #filter to european samples
+    mt_tmp = mt.filter_cols(mt.assigned_pop == 'EUR')
+    sample_list = mt_tmp.cols().s.collect()
+    samples = dict.fromkeys(sample_list)
+    #create mts for indels and snps
+    mt_snp = mt_tmp.filter_rows(hl.is_snp(mt_tmp.alleles[0], mt_tmp.alleles[1]))
+    mt_indel = mt_tmp.filter_rows(hl.is_indel(mt_tmp.alleles[0], mt_tmp.alleles[1]))
+
     for consequence in consequences:
-        print("Plotting consequence " + consequence)
-        median_variants_per_sample = []
-        mt_cq = mt.filter_rows(mt.info.consequence == consequence)
+        print("Processing consequence " + consequence)
+        mt_cq_snp = mt_snp.filter_rows(mt_snp.info.consequence == consequence)
+        mt_cq_indel = mt_indel.filter_rows(mt_indel.info.consequence == consequence)
+
         for bin in bins:
-            mt_tmp = mt_cq.filter_rows(mt_cq.info.rf_bin <= bin)
-            mt_tmp = hl.sample_qc(mt_tmp)
-            sampleqc_ht = mt_tmp.cols()
-            med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
-            median_variants_per_sample.append(med_vars_per_sample)
+            mt_cq_snp = mt_cq_snp.filter_rows(mt_cq_snp.info.rf_bin <= bin)
+            mt_cq_indel = mt_cq_indel.filter_rows(mt_cq_indel.info.rf_bin <= bin)
+            #run sample qc
+            mt_cq_snp = hl.sample_qc(mt_cq_snp)
+            mt_cq_indel = hl.sample_qc(mt_cq_indel)
+            #extract into table
+            sampleqc_ht_snp = mt_cq_snp.cols()
+            sampleqc_ht_indel = mt_cq_indel.cols()
+            #extract n_non_ref and sample ids - sample ids are extracted as we can't be sure that the sample qc 
+            #table order will be the same each time
+            non_ref_snp = sampleqc_ht_snp.sample_qc.n_non_ref.collect()
+            non_ref_indel = sampleqc_ht_indel.sample_qc.n_non_ref.collect()
+            samples_snp = sampleqc_ht_snp.s.collect()
+            samples_indel = sampleqc_ht_indel.s.collect()
+            snp_sample_counts = {samples_snp[i]: non_ref_snp[i] for i in range(len(samples_snp))}
+            indel_sample_counts = {samples_indel[i]: non_ref_indel[i] for i in range(len(samples_indel))}
+
+            for s_s in snp_sample_counts.keys():
+                if not consequence in samples[s_s].keys():
+                    samples[s_s][consequence] = {}
+                if not bin in samples[s_s][consequence].keys():
+                    samples[s_s][consequence][bin] = {}
+                samples[s_s][consequence][bin]['snp'] = snp_sample_counts[s_s]
+
+            for s_i in indel_sample_counts.keys():
+                if not consequence in samples[s_i].keys():
+                    samples[s_i][consequence] = {}
+                if not bin in samples[s_i][consequence].keys():
+                    samples[s_i][consequence][bin] = {}
+                samples[s_i][consequence][bin]['indel'] = indel_sample_counts[s_s]
+
+    print(samples)
+    #print to putput file
+    outfile = plot_dir + "/counts_per_sample.txt"
+    header = ['sample']
+    for cq in consequences:
+        for bin in bins:
+            header.append(cq + '_bin' + bin + '_snp')
+            header.append(cq + '_bin' + bin + '_indel')
+    with open(outfile, 'w') as o:
+        o.write(('\t').join(header))
+        o.write('\n')
+        for s in samples.keys():
+            outdata = []
+            outdata.append[s]
+            for cq in consequences:
+                for bin in bins:
+                    snp_count = samples[s][cq][bin]['snp']
+                    indel_count = samples[s][cq][bin]['indel']
+                    outdata.append(snp_count)
+                    outdata.append(indel_count)
+            o.write(("\t").join(outdata))
+            o.write("\n")
+
+
+
+            # med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
+            # median_variants_per_sample.append(med_vars_per_sample)
         
-        plot_median_vars_per_cq(median_variants_per_sample, bins, consequence, plot_dir)
+#         plot_median_vars_per_cq(median_variants_per_sample, bins, consequence, plot_dir)
 
 
-def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, consequence: str, plot_dir: str):
-    '''
-    plot median number of variants per sample for a specific consequence and range of bins
-    :param list median_variants_per_sample: median variants per sample for this consequence
-    :param list bins: list of maximum bin numbers
-    :param list consequence: vep consequence
-    :param str plot_dir: output directory for plots
-    '''
-    plotfile = plot_dir + "/" + consequence + ".png"
-    plt.plot(bins, median_variants_per_sample)
-    plt.title('Median number of ' + consequence + ' variants per sample in each RF bin')
-    plt.xlabel('Bin')
-    plt.ylabel('Median variants per sample')
-    plt.savefig(plotfile)
+# def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, consequence: str, plot_dir: str):
+#     '''
+#     plot median number of variants per sample for a specific consequence and range of bins
+#     :param list median_variants_per_sample: median variants per sample for this consequence
+#     :param list bins: list of maximum bin numbers
+#     :param list consequence: vep consequence
+#     :param str plot_dir: output directory for plots
+#     '''
+#     plotfile = plot_dir + "/" + consequence + ".png"
+#     plt.plot(bins, median_variants_per_sample)
+#     plt.title('Median number of ' + consequence + ' variants per sample in each RF bin')
+#     plt.xlabel('Bin')
+#     plt.ylabel('Median variants per sample')
+#     plt.savefig(plotfile)
     
 
 
@@ -75,11 +137,14 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    bins = list(range(1,102))
-    consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
-    'inframe_insertion', 'non_coding_transcript_exon_variant', 'splice_acceptor_variant', 
-    'splice_donor_variant', 'stop_gained', 'stop_lost', 'intron_variant', '3_prime_UTR_variant', 
-    '5_prime_UTR_variant']
+    # bins = list(range(1,102))
+    # consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
+    # 'inframe_insertion', 'non_coding_transcript_exon_variant', 'splice_acceptor_variant', 
+    # 'splice_donor_variant', 'stop_gained', 'stop_lost', 'intron_variant', '3_prime_UTR_variant', 
+    # '5_prime_UTR_variant']
+    bins = list(range(1,102,20))
+    consequences = ['missense_variant']
+
     plot_dir = root_plot_dir + "/variants_per_cq/" + args.runhash
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
