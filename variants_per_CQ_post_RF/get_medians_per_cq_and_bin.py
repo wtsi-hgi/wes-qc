@@ -83,8 +83,8 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
     header = ['sample']
     for cq in consequences:
         for bin in bins:
-            header.append(cq + '_bin' + bin + '_snp')
-            header.append(cq + '_bin' + bin + '_indel')
+            header.append(cq + '_bin' + str(bin) + '_snp')
+            header.append(cq + '_bin' + str(bin) + '_indel')
     with open(outfile, 'w') as o:
         o.write(('\t').join(header))
         o.write('\n')
