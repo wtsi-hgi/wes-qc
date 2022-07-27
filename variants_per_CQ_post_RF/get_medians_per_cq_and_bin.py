@@ -90,7 +90,7 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
         o.write('\n')
         for s in samples.keys():
             outdata = []
-            outdata.append[s]
+            outdata.append(s)
             for cq in consequences:
                 for bin in bins:
                     snp_count = samples[s][cq][bin]['snp']
