@@ -95,8 +95,8 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
                 for bin in bins:
                     snp_count = samples[s][cq][bin]['snp']
                     indel_count = samples[s][cq][bin]['indel']
-                    outdata.append(snp_count)
-                    outdata.append(indel_count)
+                    outdata.append(str(snp_count))
+                    outdata.append(str(indel_count))
             o.write(("\t").join(outdata))
             o.write("\n")
 
@@ -141,9 +141,8 @@ def main():
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
     # bins = list(range(1,102))
     # consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
-    # 'inframe_insertion', 'non_coding_transcript_exon_variant', 'splice_acceptor_variant', 
-    # 'splice_donor_variant', 'stop_gained', 'stop_lost', 'intron_variant', '3_prime_UTR_variant', 
-    # '5_prime_UTR_variant']
+    # 'inframe_insertion', 'splice_acceptor_variant', 
+    # 'splice_donor_variant', 'stop_gained']
     bins = list(range(1,102,20))
     consequences = ['missense_variant']
 
