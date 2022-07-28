@@ -21,7 +21,7 @@ def get_options():
     return args
 
 
-def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str):
+def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str):
     '''
     get median numbers of variants per sample for any given consequence and random forest bin
     :param str mtfile: random forest and consequence annotated mtfile
@@ -78,13 +78,13 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
                 samples[s_i][consequence][bin]['indel'] = indel_sample_counts[s_s]
 
     print(samples)
-    #print to putput file
+    #print to output file
     outfile = plot_dir + "/counts_per_sample.txt"
     header = ['sample']
     for cq in consequences:
         for bin in bins:
-            header.append(cq + '_bin' + str(bin) + '_snp')
-            header.append(cq + '_bin' + str(bin) + '_indel')
+            header.append(cq + '_bin_' + str(bin) + '_snp')
+            header.append(cq + '_bin_' + str(bin) + '_indel')
     with open(outfile, 'w') as o:
         o.write(('\t').join(header))
         o.write('\n')
@@ -101,30 +101,6 @@ def get_median_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences:
             o.write("\n")
 
 
-
-            # med_vars_per_sample = sampleqc_ht.aggregate(hl.agg.approx_quantiles(sampleqc_ht.sample_qc.n_non_ref, 0.5))
-            # median_variants_per_sample.append(med_vars_per_sample)
-        
-#         plot_median_vars_per_cq(median_variants_per_sample, bins, consequence, plot_dir)
-
-
-# def plot_median_vars_per_cq(median_variants_per_sample: list, bins: list, consequence: str, plot_dir: str):
-#     '''
-#     plot median number of variants per sample for a specific consequence and range of bins
-#     :param list median_variants_per_sample: median variants per sample for this consequence
-#     :param list bins: list of maximum bin numbers
-#     :param list consequence: vep consequence
-#     :param str plot_dir: output directory for plots
-#     '''
-#     plotfile = plot_dir + "/" + consequence + ".png"
-#     plt.plot(bins, median_variants_per_sample)
-#     plt.title('Median number of ' + consequence + ' variants per sample in each RF bin')
-#     plt.xlabel('Bin')
-#     plt.ylabel('Median variants per sample')
-#     plt.savefig(plotfile)
-    
-
-
 def main():
     # set up
     args = get_options()
@@ -139,18 +115,15 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
-    # bins = list(range(1,102))
-    # consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
-    # 'inframe_insertion', 'splice_acceptor_variant', 
-    # 'splice_donor_variant', 'stop_gained']
-    bins = list(range(1,102,20))
-    consequences = ['missense_variant']
+    bins = list(range(1,101))
+    consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
+    'inframe_insertion', 'splice_acceptor_variant', 'splice_donor_variant', 'stop_gained']
 
     plot_dir = root_plot_dir + "/variants_per_cq/" + args.runhash
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
-    get_median_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir)
+    get_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir)
 
 
 if __name__ == '__main__':
