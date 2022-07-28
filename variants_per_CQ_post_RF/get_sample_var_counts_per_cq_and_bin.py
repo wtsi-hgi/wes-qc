@@ -22,7 +22,7 @@ def get_options():
     return args
 
 
-def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str, tmp_dir: str):
+def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str):
     '''
     get median numbers of variants per sample for any given consequence and random forest bin
     :param str mtfile: random forest and consequence annotated mtfile
@@ -65,7 +65,7 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
             indel_sample_counts = {samples_indel[i]: non_ref_indel[i] for i in range(len(samples_indel))}
 
             #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
-            aggdir = tmp_dir + "/aggregate_intermediates/"
+            aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
             shutil.rmtree(aggdir)
 
             for s_s in snp_sample_counts.keys():
@@ -129,7 +129,7 @@ def main():
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
-    get_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir, tmp_dir)
+    get_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir)
 
 
 if __name__ == '__main__':
