@@ -4,6 +4,7 @@ import pyspark
 import argparse
 import matplotlib.pyplot as plt
 import os
+import shutil
 from wes_qc.utils.utils import parse_config
 
 
@@ -21,7 +22,7 @@ def get_options():
     return args
 
 
-def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str):
+def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, plot_dir: str, tmp_dir: str):
     '''
     get median numbers of variants per sample for any given consequence and random forest bin
     :param str mtfile: random forest and consequence annotated mtfile
@@ -63,6 +64,10 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
             snp_sample_counts = {samples_snp[i]: non_ref_snp[i] for i in range(len(samples_snp))}
             indel_sample_counts = {samples_indel[i]: non_ref_indel[i] for i in range(len(samples_indel))}
 
+            #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+            aggdir = tmp_dir + "/aggregate_intermediates/"
+            shutil.rmtree(aggdir)
+
             for s_s in snp_sample_counts.keys():
                 if not consequence in samples[s_s].keys():
                     samples[s_s][consequence] = {}
@@ -76,6 +81,7 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
                 if not bin in samples[s_i][consequence].keys():
                     samples[s_i][consequence][bin] = {}
                 samples[s_i][consequence][bin]['indel'] = indel_sample_counts[s_s]
+                
 
     #print to output file
     outfile = plot_dir + "/counts_per_sample.txt"
@@ -108,8 +114,8 @@ def main():
     root_plot_dir = inputs['plots_dir_local']
 
     # initialise hail
-    #tmp_dir = "hdfs://spark-master:9820/"
-    tmp_dir = "file:///lustre/scratch123/qc/tmp"
+    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "file:///lustre/scratch123/qc/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -123,7 +129,7 @@ def main():
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
-    get_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir)
+    get_vars_per_sample_per_bin_cq(mtfile, bins, consequences, plot_dir, tmp_dir)
 
 
 if __name__ == '__main__':
