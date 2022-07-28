@@ -114,8 +114,8 @@ def main():
     root_plot_dir = inputs['plots_dir_local']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    #tmp_dir = "file:///lustre/scratch123/qc/tmp"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch123/qc/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
