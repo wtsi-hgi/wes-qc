@@ -77,7 +77,6 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
                     samples[s_i][consequence][bin] = {}
                 samples[s_i][consequence][bin]['indel'] = indel_sample_counts[s_s]
 
-    print(samples)
     #print to output file
     outfile = plot_dir + "/counts_per_sample.txt"
     header = ['sample']
