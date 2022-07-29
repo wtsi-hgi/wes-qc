@@ -66,7 +66,12 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
 
             #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
             aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
-            shutil.rmtree(aggdir)
+            aggfiles = os.listdir(aggdir)
+            for af in aggfiles:
+                aggpath = aggdir + af
+                os.remove(aggpath)
+
+            # shutil.rmtree(aggdir)
 
             for s_s in snp_sample_counts.keys():
                 if not consequence in samples[s_s].keys():
