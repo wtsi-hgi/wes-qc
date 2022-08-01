@@ -84,7 +84,7 @@ def create_plots(plot_dir: str, bins: list, consequences: dict, snv_bin: str, in
     '''
     datafile = plot_dir + "/counts_per_sample.txt_test"
     df = pd.read_table(datafile)
-    df.head()
+    print(df.head())
     exit(0)
     #add additional fields to df  
     for b in bins:
