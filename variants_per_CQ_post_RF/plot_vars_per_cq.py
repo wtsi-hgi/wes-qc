@@ -1,6 +1,4 @@
 #plots of variants per consequence or group of consequences
-import hail as hl
-import pyspark
 import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -86,6 +84,8 @@ def create_plots(plot_dir: str, bins: list, consequences: dict, snv_bin: str, in
     '''
     datafile = plot_dir + "/counts_per_sample.txt_test"
     df = pd.read_table(datafile)
+    df.head()
+    exit(0)
     #add additional fields to df  
     for b in bins:
         b = str(b)
@@ -111,15 +111,7 @@ def main():
     # set up
     args = get_options()
     inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
     root_plot_dir = inputs['plots_dir_local']
-
-    # initialise hail
-    #tmp_dir = "hdfs://spark-master:9820/"
-    tmp_dir = "file:///lustre/scratch123/qc/tmp"
-    sc = pyspark.SparkContext()
-    hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     plot_dir = root_plot_dir + "/variants_per_cq/" + args.runhash + "/"
 
