@@ -36,30 +36,30 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
     for s in samples:
         samples[s] = {}
     #create mts for indels and snps
-    mt_snp = mt_tmp.filter_rows(hl.is_snp(mt_tmp.alleles[0], mt_tmp.alleles[1]))
+    #mt_snp = mt_tmp.filter_rows(hl.is_snp(mt_tmp.alleles[0], mt_tmp.alleles[1]))
     mt_indel = mt_tmp.filter_rows(hl.is_indel(mt_tmp.alleles[0], mt_tmp.alleles[1]))
 
     for consequence in consequences:
         print("Processing consequence " + consequence)
-        mt_cq_snp_all = mt_snp.filter_rows(mt_snp.info.consequence == consequence)
+        #mt_cq_snp_all = mt_snp.filter_rows(mt_snp.info.consequence == consequence)
         mt_cq_indel_all = mt_indel.filter_rows(mt_indel.info.consequence == consequence)
 
         for bin in bins:
-            mt_cq_snp = mt_cq_snp_all.filter_rows(mt_cq_snp_all.info.rf_bin <= bin)
+            #mt_cq_snp = mt_cq_snp_all.filter_rows(mt_cq_snp_all.info.rf_bin <= bin)
             mt_cq_indel = mt_cq_indel_all.filter_rows(mt_cq_indel_all.info.rf_bin <= bin)
             #run sample qc
-            mt_cq_snp = hl.sample_qc(mt_cq_snp)
+            #mt_cq_snp = hl.sample_qc(mt_cq_snp)
             mt_cq_indel = hl.sample_qc(mt_cq_indel)
             #extract into table
-            sampleqc_ht_snp = mt_cq_snp.cols()
+            #sampleqc_ht_snp = mt_cq_snp.cols()
             sampleqc_ht_indel = mt_cq_indel.cols()
             #extract n_non_ref and sample ids - sample ids are extracted as we can't be sure that the sample qc 
             #table order will be the same each time
-            non_ref_snp = sampleqc_ht_snp.sample_qc.n_non_ref.collect()
+            #non_ref_snp = sampleqc_ht_snp.sample_qc.n_non_ref.collect()
             non_ref_indel = sampleqc_ht_indel.sample_qc.n_non_ref.collect()
-            samples_snp = sampleqc_ht_snp.s.collect()
+            #samples_snp = sampleqc_ht_snp.s.collect()
             samples_indel = sampleqc_ht_indel.s.collect()
-            snp_sample_counts = {samples_snp[i]: non_ref_snp[i] for i in range(len(samples_snp))}
+            #snp_sample_counts = {samples_snp[i]: non_ref_snp[i] for i in range(len(samples_snp))}
             indel_sample_counts = {samples_indel[i]: non_ref_indel[i] for i in range(len(samples_indel))}
 
             #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
@@ -71,28 +71,28 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
 
             # shutil.rmtree(aggdir)
 
-            for s_s in snp_sample_counts.keys():
-                if not consequence in samples[s_s].keys():
-                    samples[s_s][consequence] = {}
-                if not bin in samples[s_s][consequence].keys():
-                    samples[s_s][consequence][bin] = {}
-                samples[s_s][consequence][bin]['snp'] = snp_sample_counts[s_s]
+            # for s_s in snp_sample_counts.keys():
+            #     if not consequence in samples[s_s].keys():
+            #         samples[s_s][consequence] = {}
+            #     if not bin in samples[s_s][consequence].keys():
+            #         samples[s_s][consequence][bin] = {}
+            #     samples[s_s][consequence][bin]['snp'] = snp_sample_counts[s_s]
 
             for s_i in indel_sample_counts.keys():
                 if not consequence in samples[s_i].keys():
                     samples[s_i][consequence] = {}
                 if not bin in samples[s_i][consequence].keys():
                     samples[s_i][consequence][bin] = {}
-                samples[s_i][consequence][bin]['indel'] = indel_sample_counts[s_s]
+                samples[s_i][consequence][bin]['indel'] = indel_sample_counts[s_i]
                 
 
     #print to output file
-    outfile = plot_dir + "/counts_per_sample.txt"
+    outfile = plot_dir + "/counts_per_sample_indels.txt"
     header = ['sample']
     for cq in consequences:
         for bin in bins:
             header.append(cq + '_bin_' + str(bin) + '_snp')
-            header.append(cq + '_bin_' + str(bin) + '_indel')
+            #header.append(cq + '_bin_' + str(bin) + '_indel')
     with open(outfile, 'w') as o:
         o.write(('\t').join(header))
         o.write('\n')
@@ -102,9 +102,9 @@ def get_vars_per_sample_per_bin_cq(mtfile: str, bins: list, consequences: list, 
             for cq in consequences:
                 for bin in bins:
                     snp_count = samples[s][cq][bin]['snp']
-                    indel_count = samples[s][cq][bin]['indel']
+                    #indel_count = samples[s][cq][bin]['indel']
                     outdata.append(str(snp_count))
-                    outdata.append(str(indel_count))
+                    #outdata.append(str(indel_count))
             o.write(("\t").join(outdata))
             o.write("\n")
 
@@ -125,8 +125,10 @@ def main():
 
     mtfile = mtdir + "mt_varqc_splitmulti_with_cq_and_rf_scores_" + args.runhash + ".mt"
     bins = list(range(1,101))
-    consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
-    'inframe_insertion', 'splice_acceptor_variant', 'splice_donor_variant', 'stop_gained']
+    # consequences = ['missense_variant', 'synonymous_variant', 'frameshift_variant', 'inframe_deletion', 
+    # 'inframe_insertion', 'splice_acceptor_variant', 'splice_donor_variant', 'stop_gained']
+    consequences = ['frameshift_variant', 'inframe_deletion', 
+    'inframe_insertion']
 
     plot_dir = root_plot_dir + "/variants_per_cq/" + args.runhash
     if not os.path.exists(plot_dir):
