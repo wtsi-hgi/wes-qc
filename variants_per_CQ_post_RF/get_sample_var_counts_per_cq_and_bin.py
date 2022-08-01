@@ -2,9 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-import matplotlib.pyplot as plt
 import os
-import shutil
 from wes_qc.utils.utils import parse_config
 
 
