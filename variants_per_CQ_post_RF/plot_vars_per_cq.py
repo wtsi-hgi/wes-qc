@@ -82,10 +82,8 @@ def create_plots(plot_dir: str, bins: list, consequences: dict, snv_bin: str, in
     :param str snv_bin: SNV bin cut off
     :param str indel_bin: indel bin cut off
     '''
-    datafile = plot_dir + "/counts_per_sample.txt_test"
+    datafile = plot_dir + "/counts_per_sample.txt"
     df = pd.read_table(datafile)
-    print(df.head())
-    exit(0)
     #add additional fields to df  
     for b in bins:
         b = str(b)
