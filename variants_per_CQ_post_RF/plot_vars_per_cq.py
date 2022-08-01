@@ -42,6 +42,7 @@ def create_line_plots(plot_dir: str, medians_all: pd.Series, bins: list, consequ
         plt.ylabel('Median variants per sample')
         plotfile = plot_dir + cq + "_cumulative_per_bin.png"
         plt.savefig(plotfile)
+        plt.close()
 
 
 def create_violin_plots(plot_dir: str, df: pd.DataFrame, consequences: dict, snv_bin: str, indel_bin: str):
@@ -71,6 +72,7 @@ def create_violin_plots(plot_dir: str, df: pd.DataFrame, consequences: dict, snv
 
         plotfile = plot_dir + cq + "_violin.png"
         plt.savefig(plotfile)
+        plt.close()
 
 
 def create_plots(plot_dir: str, bins: list, consequences: dict, snv_bin: str, indel_bin: str):
