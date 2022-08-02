@@ -43,8 +43,10 @@ def main():
     #extract variants in sanger but not broad
     #convert sanger and broad mt rows into ht with select_rows (will this be ht or mt?)
     broad_vars = broad_mt.rows()
+    sanger_vars = sanger_mt.rows()
     #select rows in sanger which are not in broad (can do this with select those in sanger that are in broad and keep=false) try anti_join_rows https://hail.is/docs/0.2/hail.MatrixTable.html#hail.MatrixTable.anti_join_rows
     sanger_only_mt = sanger_mt.anti_join_rows(broad_vars)
+    broad_only_mt = sanger_mt.anti_join_rows(sanger_vars)
     #save sanger and broad mts and unique to sanger ht
     broad_filtered_mtfile = mtdir + "gatk_calls_from_broad_samples_in_sanger.mt"
     broad_mt.write(broad_filtered_mtfile, overwrite = True)
@@ -52,6 +54,8 @@ def main():
     sanger_mt.write(sanger_filtered_mtfile, overwrite = True)
     sanger_only_mtfile = mtdir + "sanger_variants_not_in_broad.mt"
     sanger_only_mt.write(sanger_only_mtfile, overwrite = True)
+    broad_only_mtfile = mtdir + "broad_variants_not_in_sanger.mt"
+    broad_only_mt.write(broad_only_mtfile, overwrite = True)
 
 
 if __name__ == '__main__':
