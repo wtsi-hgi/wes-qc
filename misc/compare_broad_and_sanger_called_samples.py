@@ -5,11 +5,8 @@ import pyspark
 from wes_qc.utils.utils import parse_config
 
 
-
-
 def main():
     # set up
-    args = get_options()
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
 
