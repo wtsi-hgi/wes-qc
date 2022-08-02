@@ -20,7 +20,7 @@ def main():
     broad_vcf = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger.vcf.gz"
 
     #load broad vcfs into mtfile and save mtfile
-    broad_mt = hl.import_vcf(broad_vcf)
+    broad_mt = hl.import_vcf(broad_vcf, force_bgz = True)
     broad_mt.write(broad_mtfile, overwrite = True)
     #open sanger mtfile
     samger_mtfile = mtdir + 'gatk_unprocessed.mt'
