@@ -17,7 +17,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     broad_mtfile = mtdir + "gatk_calls_from_broad.mt"
-    broad_vcf = "file:///lustre/scratch123/hgi/projects/birth_cohort_wes/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger.vcf.gz"
+    broad_vcf = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger.vcf.gz"
 
     #load broad vcfs into mtfile and save mtfile
     broad_mt = hl.import_vcf(broad_vcf)
@@ -26,8 +26,8 @@ def main():
     samger_mtfile = mtdir + 'gatk_unprocessed.mt'
     sanger_mt = hl.read_matrix_table(samger_mtfile)
     #filter both to only the samples we want
-    sanger_samples_file = "file:///lustre/scratch123/hgi/projects/birth_cohort_wes/qc/compare_broad_sanger_vcfs/sanger_ids_s.txt"
-    broad_samples_file = "file:///lustre/scratch123/hgi/projects/birth_cohort_wes/qc/compare_broad_sanger_vcfs/broad_ids_s.txt"
+    sanger_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/sanger_ids_s.txt"
+    broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_ids_s.txt"
     sanger_sample_ht = hl.import_table(sanger_samples_file, delimiter="\t").key_by('s')
     broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
     sanger_mt = sanger_mt.filter_cols(hl.is_defined(sanger_sample_ht[sanger_mt.s]))
