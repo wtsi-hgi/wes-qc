@@ -26,8 +26,8 @@ def main():
     samger_mtfile = mtdir + 'gatk_unprocessed.mt'
     sanger_mt = hl.read_matrix_table(samger_mtfile)
     #filter both to only the samples we want
-    sanger_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/sanger_ids_s.txt"
-    broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_ids_s.txt"
+    sanger_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/sanger_accs_to_analyse_s.txt"
+    broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_accs_to_analyse_s.txt"
     sanger_sample_ht = hl.import_table(sanger_samples_file, delimiter="\t").key_by('s')
     broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
     sanger_mt = sanger_mt.filter_cols(hl.is_defined(sanger_sample_ht[sanger_mt.s]))
