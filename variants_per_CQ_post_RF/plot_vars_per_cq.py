@@ -62,6 +62,7 @@ def create_violin_plots(plot_dir: str, df: pd.DataFrame, consequences: dict, snv
             plot_bin = indel_bin
 
         field_to_plot = cq + "_bin_" + plot_bin + "_" + var_type
+        plt.xticks([])
         fig, ax = plt.subplots()
         ax.set_title("Variants per sample: " + cq + " at bin " + plot_bin)
         ax.set_ylabel("Variants per sample")
