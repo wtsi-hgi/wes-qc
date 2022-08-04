@@ -9,6 +9,7 @@ def main():
     # set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
+    rf_dir = inputs['var_qc_rf_dir']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -56,7 +57,30 @@ def main():
     sanger_only_mt.write(sanger_only_mtfile, overwrite = True)
     broad_only_mtfile = mtdir + "broad_variants_not_in_sanger.mt"
     broad_only_mt.write(broad_only_mtfile, overwrite = True)
+    
+    #now repeat for after variant QC
+    rf_htfile = rf_dir +  "/1ed4bbbc/_gnomad_score_binning_tmp.ht"
+    rf_ht = hl.read_table(rf_htfile)
+    sanger_mt = sanger_mt.annotate_rows(
+        info=sanger_mt.info.annotate(
+        rf_bin=rf_ht[sanger_mt.row_key].bin)
+    )
+    #filter using a pass of bin 37 for SNPs and bin 80 for indels
+    sanger_mt_rf_pass = sanger_mt.filter_rows( ( (hl.is_snp(sanger_mt.alleles[0], sanger_mt.alleles[1]) & (sanger_mt.info.rf_bin <= 37) )
+                                             | (( hl.is_indel(sanger_mt.alleles[0], sanger_mt.alleles[1]) ) &  (sanger_mt.info.rf_bin <= 80)) ) )
 
+
+    sanger_vars_rf_pass = sanger_mt_rf_pass.rows()
+    sanger_only_mt_post_rf = sanger_mt_rf_pass.anti_join_rows(broad_vars)
+    broad_only_mt_post_rf = broad_mt.anti_join_rows(sanger_vars_rf_pass)
+
+    sanger_filtered_mtfile_rf_pass = mtdir + "gatk_calls_from_sanger_samples_in_broad_after_rf.mt"
+    sanger_mt_rf_pass.write(sanger_filtered_mtfile_rf_pass, overwrite = True)
+    sanger_only_mtfile_rf_pass = mtdir + "sanger_variants_not_in_broad_after_rf.mt"
+    sanger_only_mt_post_rf.write(sanger_only_mtfile_rf_pass, overwrite = True)
+    broad_only_mtfile_rf_pass = mtdir + "broad_variants_not_in_sanger_after_rf.mt"
+    broad_only_mt_post_rf.write(broad_only_mtfile_rf_pass, overwrite = True)
+    
 
 if __name__ == '__main__':
     main()
