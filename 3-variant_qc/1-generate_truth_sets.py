@@ -206,6 +206,8 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     '''
     pedigree = hl.Pedigree.read(pedfile)
     mt = hl.read_matrix_table(varqc_mtfile)
+    mt = hl.split_multi_hts(mt)
+
     trio_dataset = hl.trio_matrix(mt, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
 
@@ -321,7 +323,7 @@ def main():
     if args.annotation or args.all:
         mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
         #mtfile = mtdir + "mt_varqc_splitmulti_lowCA_samples.mt"
-        #varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
+        # varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
         varqc_mtfile = mtdir + "mt_varqc.mt"
         split_multi_and_var_qc(mtfile, varqc_mtfile)
         pedfile = resourcedir + "trios.ped"
