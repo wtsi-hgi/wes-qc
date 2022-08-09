@@ -34,13 +34,13 @@ def main():
     sanger_mt = sanger_mt.filter_cols(hl.is_defined(sanger_sample_ht[sanger_mt.s]))
     broad_mt = broad_mt.filter_cols(hl.is_defined(broad_sample_ht[broad_mt.s]))
     #split multi
-    sanger_mt = hl.split_multi_hts(sanger_mt)
-    broad_mt = hl.split_multi_hts(broad_mt)
+    sanger_mt_split = hl.split_multi_hts(sanger_mt)
+    broad_mt_split = hl.split_multi_hts(broad_mt)
     #save split multi and reload
     broad_split_multi_mtfile = mtdir + "gatk_calls_from_broad_split_multi.mt"
     sanger_split_multi_mtfile = mtdir + "gatk_unprocessed_split_multi.mt"
-    broad_mt.write(broad_split_multi_mtfile)
-    sanger_mt.write(sanger_split_multi_mtfile)
+    broad_mt_split.write(broad_split_multi_mtfile)
+    sanger_mt_split.write(sanger_split_multi_mtfile)
     sanger_mt = hl.read_matrix_table(sanger_split_multi_mtfile)
     broad_mt = hl.read_matrix_table(broad_split_multi_mtfile)
     #remove any that are only ref alleles
