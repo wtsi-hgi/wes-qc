@@ -57,9 +57,9 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str):
     :param str varqc_mtfile: Output mt with variant QC annotation and split multiallelics
     '''
     mt = hl.read_matrix_table(mtfile)
-    mt = hl.split_multi_hts(mt)
-    print("writing split mt")
-    mt.write(varqc_mtfile, overwrite=True)
+    # mt = hl.split_multi_hts(mt)
+    # print("writing split mt")
+    # mt.write(varqc_mtfile, overwrite=True)
 
     # #remove entries with low depth/GQ or VAF. This is to try to correct for the number of spurious variants from samples with high C>A
     # min_dp = 20
@@ -321,7 +321,8 @@ def main():
     if args.annotation or args.all:
         mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
         #mtfile = mtdir + "mt_varqc_splitmulti_lowCA_samples.mt"
-        varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
+        #varqc_mtfile = mtdir + "mt_varqc_splitmulti.mt"
+        varqc_mtfile = mtdir + "mt_varqc.mt"
         split_multi_and_var_qc(mtfile, varqc_mtfile)
         pedfile = resourcedir + "trios.ped"
 
