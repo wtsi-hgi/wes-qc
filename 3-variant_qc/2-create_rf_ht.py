@@ -64,7 +64,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 
     ht = ht.select(
         "a_index",
-        "was_split",
+        # "was_split",
         *constants.FEATURES,
         *constants.TRUTH_DATA,
         **{
