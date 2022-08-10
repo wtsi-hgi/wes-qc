@@ -18,6 +18,7 @@ FEATURES = [
     "allele_type",
     "n_alt_alleles",
     "was_mixed",
+    "was_split",
     "has_star",
     "MQ",
     "QD",
