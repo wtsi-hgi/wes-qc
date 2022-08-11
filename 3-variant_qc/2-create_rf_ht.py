@@ -32,7 +32,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
         f"n_transmitted_{group}", f"ac_children_{group}"
     )
 
-    mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
+    # mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
     mt = mt.select_entries(GT=hl.unphased_diploid_gt_index_call(mt.GT.n_alt_alleles()))
     mt = mt.annotate_rows(InbreedingCoeff=hl.or_missing(~hl.is_nan(mt.info.InbreedingCoeff), mt.info.InbreedingCoeff))
 
