@@ -212,7 +212,8 @@ def main():
     #annotate with gnomad AF
     final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
-    annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
+    #annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
+    annotate_gnomad(family_annot_htfile, gnomad_htfile, final_htfile)
 
 
 if __name__ == '__main__':
