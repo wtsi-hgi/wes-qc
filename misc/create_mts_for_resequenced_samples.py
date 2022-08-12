@@ -52,7 +52,7 @@ def main():
 
     #subset original mt to just the resequenced samples
     original_mtfile = mtdir + "gatk_unprocessed.mt"
-    samplefile = annot_dir + "high_snp_samples.txt"
+    samplefile = import_resequenced_vcf_dir + "resequenced_samples.txt"
     high_snp_samples_mtfile = mtdir + "gatk_unprocessed_high_snp_samples.mt"
     subset_mt_by_sample(original_mtfile, samplefile, high_snp_samples_mtfile)
 
