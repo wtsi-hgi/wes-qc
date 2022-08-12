@@ -72,9 +72,9 @@ def main():
     broad_not_sanger_orig_mt = broad_mt.anti_join_rows(sanger_orig_vars)
 
     #save sanger and broad mts and mts unique to each set
-    broad_mt.write(broad_split_multi_mtfile, overwrite = True)
-    sanger_reseq_mt.write(sanger_reseq_split_multi_mtfile, overwrite = True)
-    sanger_orig_mt.write(sanger_orig_split_multi_mtfile, overwrite = True)
+    broad_mt.checkpoint(broad_split_multi_mtfile, overwrite = True)
+    sanger_reseq_mt.checkpoint(sanger_reseq_split_multi_mtfile, overwrite = True)
+    sanger_orig_mt.checkpoint(sanger_orig_split_multi_mtfile, overwrite = True)
     sanger_reseq_only_mtfile = mtdir + "sanger_reseq_variants_not_in_broad.mt"
     sanger_reseq_not_broad_mt.write(sanger_reseq_only_mtfile, overwrite = True)
     sanger_orig_only_mtfile = mtdir + "sanger_orig_variants_not_in_broad.mt"
