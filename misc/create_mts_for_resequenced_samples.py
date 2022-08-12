@@ -14,7 +14,7 @@ def import_resequenced_vcfs(import_resequenced_vcf_dir: str, vcf_header: str, re
     objects = hl.utils.hadoop_ls(import_resequenced_vcf_dir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading resequenced VCFs")
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = vcf_header)
     print("Saving as hail mt")
     mt.write(resequenced_mt_file, overwrite=True)
 
