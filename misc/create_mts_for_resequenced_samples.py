@@ -34,8 +34,9 @@ def subset_mt_by_sample(original_mtfile: str, samplefile: str, output_mtfile: st
 def main():
     #set up input variables
     inputs = parse_config()
-    mtdir = inputs['load_matrixtables_lustre_dir']
+    # mtdir = inputs['load_matrixtables_lustre_dir']
     annot_dir = inputs['annotation_lustre_dir']
+    mtdir = inputs['matrixtables_lustre_dir']
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
