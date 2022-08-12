@@ -322,8 +322,8 @@ def main():
 
     #add hail variant QC
     if args.annotation or args.all:
-        mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
-        #mtfile = mtdir + "mt_varqc_splitmulti_lowCA_samples.mt"
+        #mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        mtfile = mtdir + 'resequenced_samples_gatk_unprocessed.mt'
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
