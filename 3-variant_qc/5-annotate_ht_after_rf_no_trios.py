@@ -191,11 +191,11 @@ def main():
     ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht"
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
     #annotate with family stats and DNMs
-    dnm_htfile = mtdir + "denovo_table.ht"
-    fam_stats_htfile = mtdir + "family_stats.ht"
-    trio_stats_htfile = mtdir + "trio_stats.ht"
-    family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht"
-    dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
+    # dnm_htfile = mtdir + "denovo_table.ht"
+    # fam_stats_htfile = mtdir + "family_stats.ht"
+    # trio_stats_htfile = mtdir + "trio_stats.ht"
+    # family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht"
+    # dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
 
     #annotate with transmitted singletons
     # trio_mtfile = mtdir + "trios.mt"
@@ -213,7 +213,7 @@ def main():
     final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
     gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
     #annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
-    annotate_gnomad(family_annot_htfile, gnomad_htfile, final_htfile)
+    annotate_gnomad(ht_cq_file, gnomad_htfile, final_htfile)
 
 
 if __name__ == '__main__':
