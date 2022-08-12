@@ -26,7 +26,7 @@ def subset_mt_by_sample(original_mtfile: str, samplefile: str, output_mtfile: st
     :param str output_mtfile: file for output matrixtable
     '''
     mt = hl.read_matrix_table(original_mtfile)
-    sample_ht = hl.read_table(samplefile)
+    sample_ht = hl.import_table(samplefile, delimiter="\t").key_by('s')
     mt = mt.filter_cols(hl.is_defined(sample_ht[mt.s]))
     mt.write(output_mtfile, overwrite = True)
 
