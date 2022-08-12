@@ -240,8 +240,9 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     #convert ht to pandas df
     ht = hl.read_table(bin_htfile)
     #drop de_novo_high_quality as this field is sometimes NA and messes with conversion to pands
-    ht = ht.key_by('rank_id', 'contig', 'snv', 'bi_allelic', 'singleton', 'trans_singletons', 'de_novo_medium_quality', 'de_novo_synonymous', 'bin')
-    ht = ht.drop('de_novo_high_quality')
+    #ht = ht.key_by('rank_id', 'contig', 'snv', 'bi_allelic', 'singleton', 'trans_singletons', 'de_novo_medium_quality', 'de_novo_synonymous', 'bin')
+    ht = ht.key_by('rank_id', 'contig', 'snv', 'bi_allelic', 'bin')
+   # ht = ht.drop('de_novo_high_quality')
 
     ht = ht.group_by(
             *[k for k in ht.key if k != 'contig']
