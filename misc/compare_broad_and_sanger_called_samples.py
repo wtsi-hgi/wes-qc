@@ -5,6 +5,15 @@ import pyspark
 from wes_qc.utils.utils import parse_config
 
 
+def import_vcfs(broadvcfdir, headerfile, broad_mtfile):
+    objects = hl.utils.hadoop_ls(broadvcfdir)
+    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
+    print("Loading broad VCFs")
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = headerfile)
+    print("Saving as hail mt")
+    mt.write(broad_mtfile, overwrite=True)
+
+
 def main():
     # set up
     inputs = parse_config()
@@ -17,12 +26,13 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
+    broadvcfdir = 'file:///lustre/scratch123/qc/ccompare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait'
+    headerfile = broadvcfdir + "header.txt"
     broad_mtfile = mtdir + "gatk_calls_from_broad.mt"
-    broad_vcf = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger.vcf.gz"
+    import_vcfs(broadvcfdir, headerfile, broad_mtfile)
 
     #load broad vcfs into mtfile and save mtfile
-    broad_mt = hl.import_vcf(broad_vcf, force_bgz = True)
-    broad_mt.write(broad_mtfile, overwrite = True)
+    broad_mt = hl.read_matrix_table(broad_mtfile)
     #open sanger mtfile
     samger_mtfile = mtdir + 'gatk_unprocessed.mt'
     sanger_mt = hl.read_matrix_table(samger_mtfile)
@@ -66,15 +76,15 @@ def main():
     broad_only_mt.write(broad_only_mtfile, overwrite = True)
     
     #now repeat for after variant QC
-    rf_htfile = rf_dir +  "/1ed4bbbc/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir +  "/5a416943/_gnomad_score_binning_tmp.ht"
     rf_ht = hl.read_table(rf_htfile)
     sanger_mt = sanger_mt.annotate_rows(
         info=sanger_mt.info.annotate(
         rf_bin=rf_ht[sanger_mt.row_key].bin)
     )
     #filter using a pass of bin 37 for SNPs and bin 80 for indels
-    sanger_mt_rf_pass = sanger_mt.filter_rows( ( (hl.is_snp(sanger_mt.alleles[0], sanger_mt.alleles[1]) & (sanger_mt.info.rf_bin <= 37) )
-                                             | (( hl.is_indel(sanger_mt.alleles[0], sanger_mt.alleles[1]) ) &  (sanger_mt.info.rf_bin <= 80)) ) )
+    sanger_mt_rf_pass = sanger_mt.filter_rows( ( (hl.is_snp(sanger_mt.alleles[0], sanger_mt.alleles[1]) & (sanger_mt.info.rf_bin <= 40) )
+                                             | (( hl.is_indel(sanger_mt.alleles[0], sanger_mt.alleles[1]) ) &  (sanger_mt.info.rf_bin <= 65)) ) )
 
 
     sanger_vars_rf_pass = sanger_mt_rf_pass.rows()
