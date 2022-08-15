@@ -26,7 +26,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    broadvcfdir = 'file:///lustre/scratch123/qc/ccompare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait'
+    broadvcfdir = 'file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/'
     headerfile = broadvcfdir + "header.txt"
     broad_mtfile = mtdir + "gatk_calls_from_broad.mt"
     import_vcfs(broadvcfdir, headerfile, broad_mtfile)
