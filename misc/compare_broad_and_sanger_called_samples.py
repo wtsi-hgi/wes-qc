@@ -7,7 +7,7 @@ from wes_qc.utils.utils import parse_config
 
 def import_vcfs(broadvcfdir, headerfile, broad_mtfile):
     objects = hl.utils.hadoop_ls(broadvcfdir)
-    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
+    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("bcf.gz"))]
     print("Loading broad VCFs")
     mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = headerfile)
     print("Saving as hail mt")
