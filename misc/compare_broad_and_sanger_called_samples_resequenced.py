@@ -7,6 +7,15 @@ import pyspark
 from wes_qc.utils.utils import parse_config
 
 
+def import_vcfs(broadvcfdir, headerfile, broad_mtfile):
+    objects = hl.utils.hadoop_ls(broadvcfdir)
+    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("bcf.gz"))]
+    print("Loading broad VCFs")
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = headerfile)
+    print("Saving as hail mt")
+    mt.write(broad_mtfile, overwrite=True)
+
+
 def main():
     # set up
     inputs = parse_config()
@@ -20,7 +29,10 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     #load mts
-    broad_mtfile = mtdir + "gatk_calls_from_broad.mt"
+    broadvcfdir = 'file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/high_snp_samples/broad_vcfs_filtered_by_bait_high_snp_samples/'
+    headerfile = broadvcfdir + "header.txt"
+    broad_mtfile = mtdir + "gatk_calls_from_broad_high_snp_samples.mt"
+    import_vcfs(broadvcfdir, headerfile, broad_mtfile)
     sanger_resequenced_mt_file = mtdir + 'resequenced_samples_gatk_unprocessed.mt'
     sanger_high_snp_samples_mtfile = mtdir + "gatk_unprocessed_high_snp_samples.mt"
     broad_mt = hl.read_matrix_table(broad_mtfile)
