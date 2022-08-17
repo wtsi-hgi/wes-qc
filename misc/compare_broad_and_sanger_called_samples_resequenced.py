@@ -117,7 +117,7 @@ def main():
     broad_not_sanger_orig_post_rf = broad_mt.anti_join_rows(sanger_orig_vars_rf_pass)
 
     sanger_orig_filtered_mtfile_rf_pass = mtdir + "gatk_calls_from_sanger_orig_samples_in_broad_after_rf.mt"
-    sanger_orig_only_mt_post_rf.write(sanger_orig_filtered_mtfile_rf_pass, overwrite = True)
+    sanger_orig_vars_rf_pass.write(sanger_orig_filtered_mtfile_rf_pass, overwrite = True)
     sanger_orig_only_mtfile_rf_pass = mtdir + "sanger_orig_variants_not_in_broad_after_rf.mt"
     sanger_orig_only_mt_post_rf.write(sanger_orig_only_mtfile_rf_pass, overwrite = True)
     broad_not_sanger_orig_mtfile_rf_pass = mtdir + "broad_variants_not_in_sanger_orig_after_rf.mt"
@@ -138,7 +138,7 @@ def main():
     broad_not_sanger_reseq_post_rf = broad_mt.anti_join_rows(sanger_reseq_vars_rf_pass)
 
     sanger_reseq_filtered_mtfile_rf_pass = mtdir + "gatk_calls_from_sanger_reseq_samples_in_broad_after_rf.mt"
-    sanger_reseq_only_mt_post_rf.write(sanger_reseq_filtered_mtfile_rf_pass, overwrite = True)
+    sanger_reseq_vars_rf_pass.write(sanger_reseq_filtered_mtfile_rf_pass, overwrite = True)
     sanger_reseq_only_mtfile_rf_pass = mtdir + "sanger_reseq_variants_not_in_broad_after_rf.mt"
     sanger_reseq_only_mt_post_rf.write(sanger_reseq_only_mtfile_rf_pass, overwrite = True)
     broad_not_sanger_reseq_mtfile_rf_pass = mtdir + "broad_variants_not_in_sanger_reseq_after_rf.mt"
