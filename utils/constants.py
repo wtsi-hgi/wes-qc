@@ -26,6 +26,7 @@ FEATURES = [
     "SOR",
     "ReadPosRankSum",
     "is_CA",
+    "meanHetAB",
     # "is_AC",
     # "is_AG",
     # "is_AT",
