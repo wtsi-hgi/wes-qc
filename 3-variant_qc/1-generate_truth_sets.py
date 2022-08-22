@@ -94,7 +94,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     mt = mt.annotate_entries(
         HetAB = hl.case().when(
             mt.GT.is_het(),
-            hl.min(mt.AD[0]) / hl.sum(mt.AD)
+            hl.min(mt.AD[1]) / hl.sum(mt.AD)
         ).or_missing()
     )
 
