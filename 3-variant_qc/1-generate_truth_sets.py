@@ -51,41 +51,35 @@ def get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file):
 
 def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str):
     '''
-    Taken from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
+    Adapted from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     Run split_multi_hts and variant QC on inout mt after sample QC
     :param str mtfile: Input mtfile, raw variants with sample QC fails removed
     :param str varqc_mtfile: Output mt with variant QC annotation 
     :param str varqc_mtfile_split: Output mt with variant QC annotation and split multiallelics
     '''
     mt = hl.read_matrix_table(mtfile)
-
-    # #remove entries with low depth/GQ or VAF. This is to try to correct for the number of spurious variants from samples with high C>A
-    # min_dp = 20
-    # min_gq = 20
-    # min_vaf = 0.25
-    # if min_dp > 0 or min_gq > 0 or min_vaf > 0:
-    #     vaf = mt.AD[1] / hl.sum(mt.AD)
-    #     print("Filtering input MT by depth: DP=" + str(min_dp) +
-    #           ", genotype quality: GQ=" + str(min_gq) + ", VAF: VAF=" + str(min_vaf))
-    #     filter_condition = ((mt.GT.is_het() & (vaf > min_vaf) & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
-    #                         (mt.GT.is_hom_ref() & (mt.DP > min_dp) & (mt.GQ > min_gq)) |
-    #                         (mt.GT.is_hom_var() & (mt.DP > min_dp) & (mt.GQ > min_gq)))
-    #     # fraction_filtered = mt.aggregate_entries(
-    #     #     hl.agg.fraction(~filter_condition))
-    #     # print(
-    #     #     f'Filtering {fraction_filtered * 100:.2f}% entries out of downstream analysis.')
-    #     mt = mt.filter_entries(filter_condition)
-    # print("writing mt after filter entries")
-    # mt.write(varqc_mtfile, overwrite=True)
-
-    # remove all C>As
-    # mt = mt.filter_rows((mt.alleles[0] == "C") & (mt.alleles[1] == "A"), keep=False)
-    # mt = mt.filter_rows((mt.alleles[0] == "G") & (mt.alleles[1] == "T"), keep=False)
-    # print("writing split mt after removal of C>A")
-    # mt.write(varqc_mtfile, overwrite=True)
-
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
+    #add mean het allele balance
+    print("Annotating entries with allele balance")
+    GT_AD = hl.enumerate(
+    mt.GT.one_hot_alleles(hl.len(mt.alleles))
+    ).filter(
+        lambda _: _[1] > 0
+    ).map(
+        lambda _: mt.AD[_[0]]
+    )
+    mt = mt.annotate_entries(
+        HetAB = hl.case().when(
+            mt.GT.is_het(),
+            hl.min(mt.GT_AD) / hl.sum(mt.GT_AD)
+        ).or_missing()
+    )
+    print("Annotating variants with mean allale balance")
+    mt = mt.annotate_rows(
+        meanHetAB = hl.agg.mean(mt.HetAB),
+    )
+
     mt = annotate_adj(mt)
     mt.write(varqc_mtfile, overwrite=True)
 
