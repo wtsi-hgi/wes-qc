@@ -62,7 +62,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
     #add mean het allele balance
     print("Annotating entries with allele balance")
-    mt.GT_AD = hl.enumerate(
+    GT_AD = hl.enumerate(
         mt.GT.one_hot_alleles(hl.len(mt.alleles))
         ).filter(
             lambda _: _[1] > 0
@@ -72,7 +72,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     mt = mt.annotate_entries(
         HetAB = hl.case().when(
             mt.GT.is_het(),
-            hl.min(mt.GT_AD) / hl.sum(mt.GT_AD)
+            hl.min(GT_AD) / hl.sum(GT_AD)
         ).or_missing()
     )
     print("Annotating variants with mean allale balance")
