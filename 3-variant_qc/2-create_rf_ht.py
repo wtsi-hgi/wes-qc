@@ -38,7 +38,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 
     ht = mt.rows()
     ht = ht.transmute(**ht.info)
-    ht = ht.select( "MQ", "InbreedingCoeff", "a_index", "was_split", *constants.INFO_FEATURES)
+    ht = ht.select( "MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
     ht = ht.annotate(
         **inbreeding_ht[ht.key],
         **trio_stats_ht[ht.key],
