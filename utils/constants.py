@@ -18,6 +18,7 @@ FEATURES = [
     "allele_type",
     "n_alt_alleles",
     "was_mixed",
+    "was_split",
     "has_star",
     "MQ",
     "QD",
@@ -25,6 +26,12 @@ FEATURES = [
     "SOR",
     "ReadPosRankSum",
     "is_CA",
+    "meanHetAB",
+    # "is_AC",
+    # "is_AG",
+    # "is_AT",
+    # "is_CG",
+    # "is_CT",
 ]
 
 TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]

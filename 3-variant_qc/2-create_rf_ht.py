@@ -32,13 +32,13 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
         f"n_transmitted_{group}", f"ac_children_{group}"
     )
 
-    mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
+    # mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
     mt = mt.select_entries(GT=hl.unphased_diploid_gt_index_call(mt.GT.n_alt_alleles()))
     mt = mt.annotate_rows(InbreedingCoeff=hl.or_missing(~hl.is_nan(mt.info.InbreedingCoeff), mt.info.InbreedingCoeff))
 
     ht = mt.rows()
     ht = ht.transmute(**ht.info)
-    ht = ht.select( "MQ", "InbreedingCoeff", *constants.INFO_FEATURES)
+    ht = ht.select( "MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
     ht = ht.annotate(
         **inbreeding_ht[ht.key],
         **trio_stats_ht[ht.key],
@@ -49,6 +49,12 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 
     #annotate with C>A or not
     ht = ht.annotate(is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T")))
+    #annotate with all other possible SNPs
+    # ht = ht.annotate(is_AC=((ht.alleles[0] == "A") & (ht.alleles[1] == "C")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "G")))
+    # ht = ht.annotate(is_AG=((ht.alleles[0] == "A") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "C")))
+    # ht = ht.annotate(is_AT=((ht.alleles[0] == "A") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "A")))
+    # ht = ht.annotate(is_CG=((ht.alleles[0] == "C") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "C")))
+    # ht = ht.annotate(is_CT=((ht.alleles[0] == "C") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "A")))
 
     ht = ht.annotate(fail_hard_filters=(ht.QD < 2)
                      | (ht.FS > 60) | (ht.MQ < 30))
@@ -58,7 +64,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 
     ht = ht.select(
         "a_index",
-        "was_split",
+        # "was_split",
         *constants.FEATURES,
         *constants.TRUTH_DATA,
         **{
