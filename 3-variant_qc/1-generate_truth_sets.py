@@ -98,7 +98,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
         ).or_missing()
     )
 
-    print("Annotating variants with mean allale balance")
+    print("Annotating variants with mean allele balance")
     mt = mt.annotate_rows(
         meanHetAB = hl.agg.mean(mt.HetAB),
     )

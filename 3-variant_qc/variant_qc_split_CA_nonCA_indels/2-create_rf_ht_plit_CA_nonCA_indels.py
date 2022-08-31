@@ -7,7 +7,7 @@ from wes_qc.utils.utils import parse_config
 from gnomad.variant_qc.random_forest import median_impute_features
 
 
-def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_data_file: str, allele_counts_file: str, inbreeding_file: str, htfile_rf_all_cols: str, , htfile_rf_var_type_all_cols_CA: str, htfile_rf_var_type_all_cols_nonCA: str, htfile_rf_var_type_all_cols_indels: str):
+def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_data_file: str, allele_counts_file: str, inbreeding_file: str, htfile_rf_all_cols: str, htfile_rf_var_type_all_cols_CA: str, htfile_rf_var_type_all_cols_nonCA: str, htfile_rf_var_type_all_cols_indels: str):
     '''
     Load input mt and training data to create an input for random forest
     param str mtfile: Input matrixtable file
