@@ -170,8 +170,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    #run_hashes = [args.runhash_CA, args.runhash_nonCA, args.runhash_indels]
-    run_hashes = [args.runhash_indels]
+    run_hashes = [args.runhash_CA, args.runhash_nonCA, args.runhash_indels]
     for run_hash in run_hashes:
         htfile = rf_dir + run_hash + "/rf_result.ht"
         #annotate with synonymous CQs
