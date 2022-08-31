@@ -81,9 +81,10 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     ht = ht.repartition(n_partitions, shuffle=False)
     ht = ht.checkpoint(htfile_rf_all_cols, overwrite=True)
     ht = median_impute_features(ht, strata={"variant_type": ht.variant_type})
-    ht_indels = ht.filter(ht.variant_type == 'indel')
-    ht_CA = ht.filter(ht.is_CA == True)
-    ht_nonCA = ht.filter((ht.variant_type == 'snp') & (ht.is_CA == False))
+
+    ht_indels = ht.filter(hl.is_indel(ht.alleles[0], ht.alleles[1]))
+    ht_CA = ht.filter( (ht.is_CA == True) & (hl.is_snp(ht.alleles[0], ht.alleles[1])) )
+    ht_nonCA = ht.filter( (ht.is_CA == False) & (hl.is_snp(ht.alleles[0], ht.alleles[1])) )
 
     ht_CA.write(htfile_rf_var_type_all_cols_CA, overwrite = True)
     ht_nonCA.write(htfile_rf_var_type_all_cols_nonCA, overwrite = True)
