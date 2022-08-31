@@ -171,10 +171,10 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             bi_allelic=hl.is_defined(ht.biallelic_rank),
             singleton=ht.transmitted_singleton,
             trans_singletons=hl.is_defined(ht.singleton_rank),
-            de_novo_high_quality=ht.de_novo_high_quality_rank,
-            de_novo_medium_quality=hl.is_defined(
-                ht.de_novo_medium_quality_rank),
-            de_novo_synonymous=hl.is_defined(ht.de_novo_synonymous_rank),
+            # de_novo_high_quality=ht.de_novo_high_quality_rank,
+            # de_novo_medium_quality=hl.is_defined(
+            #     ht.de_novo_medium_quality_rank),
+            # de_novo_synonymous=hl.is_defined(ht.de_novo_synonymous_rank),
             # release_adj=ht.ac > 0,
             bin=ht.bin
         )._set_buffer_size(20000)
@@ -194,18 +194,18 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             n_mod3bp_indel=hl.agg.count_where((ht.indel_length % 3) == 0),
             # n_clinvar=hl.agg.count_where(ht.clinvar),
             n_singleton=hl.agg.count_where(ht.transmitted_singleton),
-            n_high_quality_de_novos=hl.agg.count_where(
-                ht.de_novo_data.p_de_novo[0] > 0.99),
+            # n_high_quality_de_novos=hl.agg.count_where(
+            #     ht.de_novo_data.p_de_novo[0] > 0.99),
             #n_validated_DDD_denovos=hl.agg.count_where(
             #    ht.inheritance.contains("De novo")),
-            n_medium_quality_de_novos=hl.agg.count_where(
-                ht.de_novo_data.p_de_novo[0] > 0.5),
-            n_high_confidence_de_novos=hl.agg.count_where(
-                ht.de_novo_data.confidence[0] == 'HIGH'),
-            n_de_novo=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] == 0, hl.agg.sum(
-                ht.family_stats.mendel[0].errors)),
-            n_high_quality_de_novos_synonymous=hl.agg.count_where(
-                (ht.de_novo_data.p_de_novo[0] > 0.99) & (ht.consequence == "synonymous_variant")),
+            # n_medium_quality_de_novos=hl.agg.count_where(
+            #     ht.de_novo_data.p_de_novo[0] > 0.5),
+            # n_high_confidence_de_novos=hl.agg.count_where(
+            #     ht.de_novo_data.confidence[0] == 'HIGH'),
+            # n_de_novo=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] == 0, hl.agg.sum(
+            #     ht.family_stats.mendel[0].errors)),
+            # n_high_quality_de_novos_synonymous=hl.agg.count_where(
+            #     (ht.de_novo_data.p_de_novo[0] > 0.99) & (ht.consequence == "synonymous_variant")),
             n_trans_singletons_synonymous_algorithm=hl.agg.count_where(
                 ht.variant_transmitted_singletons ==1 ),
             n_untrans_singletons_synonymous_algorithm=hl.agg.count_where(
@@ -213,8 +213,8 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             # validated_de_novos=hl.agg.count_where(ht.validated_denovo_inheritance=="De novo constitutive"),
             # n_de_novo_no_lcr=hl.agg.filter(~ht.lcr & (
             #    ht.family_stats.unrelated_qc_callstats.AC[1] == 0), hl.agg.sum(ht.family_stats.mendel.errors)),
-            n_de_novo_sites=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] == 0, hl.agg.count_where(
-                ht.family_stats.mendel[0].errors > 0)),
+            # n_de_novo_sites=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] == 0, hl.agg.count_where(
+            #     ht.family_stats.mendel[0].errors > 0)),
             # n_de_novo_sites_no_lcr=hl.agg.filter(~ht.lcr & (
             #    ht.family_stats.unrelated_qc_callstats.AC[1] == 0), hl.agg.count_where(ht.family_stats.mendel.errors > 0)),
             n_trans_singletons=hl.agg.filter((ht.ac_raw < 3) & (
