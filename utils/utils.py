@@ -13,6 +13,8 @@ def get_script_path():
 def parse_config():
     script_dir = get_script_path()
     input_yaml = script_dir + '/../config/inputs.yaml'
+    if not os.path.exists(input_yaml):
+        input_yaml = script_dir + '/../../config/inputs.yaml'
     with open(input_yaml, 'r') as y:
         inputs = yaml.load(y, Loader=yaml.FullLoader)
 
