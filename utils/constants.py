@@ -14,7 +14,7 @@ INFO_FEATURES = [
 ] 
 
 FEATURES = [
-    "variant_type",
+    #"variant_type",
     "allele_type",
     "n_alt_alleles",
     "was_mixed",
@@ -25,13 +25,7 @@ FEATURES = [
     "MQRankSum",
     "SOR",
     "ReadPosRankSum",
-    "is_CA",
-    "meanHetAB",
-    # "is_AC",
-    # "is_AG",
-    # "is_AT",
-    # "is_CG",
-    # "is_CT",
+    "meanHetAB"
 ]
 
 TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]
