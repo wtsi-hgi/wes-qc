@@ -14,7 +14,7 @@ INFO_FEATURES = [
 ] 
 
 FEATURES = [
-    #"variant_type",
+    "variant_type",
     "allele_type",
     "n_alt_alleles",
     "was_mixed",
@@ -25,6 +25,7 @@ FEATURES = [
     "MQRankSum",
     "SOR",
     "ReadPosRankSum",
+    "is_CA",
     "meanHetAB"
 ]
 
