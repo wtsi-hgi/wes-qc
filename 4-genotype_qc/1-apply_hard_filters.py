@@ -11,7 +11,7 @@ def get_options():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dp", type = int, help="DP cut off")
     parser.add_argument("--gq", type = int, help="GQ cut off")
-    parser.add_argument("--ab", tyep = float, help="Heterozygous allele balance cut off")
+    parser.add_argument("--ab", type = float, help="Heterozygous allele balance cut off")
     args = parser.parse_args()
     if not args.dp and args.gq and args.ab:
         print("--dp, --gq and --ab must be specified")
