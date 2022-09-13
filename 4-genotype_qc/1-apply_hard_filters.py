@@ -33,11 +33,22 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
     prev_count = mt.entries().count()
     var_count = mt.count_rows()
 
-    mt = mt.filter_entries(
-        (mt.GT.is_het() & (mt.HetAB >= ab)) | 
-        (mt.DP > dp) | 
-        (mt.GQ > gq)
+    filter_condition = (
+        (mt.GT.is_het() & (mt.HetAB < ab)) | 
+        (mt.DP < dp) |
+        (mt.GQ < gq)
     )
+    mt_split = mt_split.annotate_entries(
+        hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    )
+    mt.filter_entries(mt.hard_filters == 'Pass')
+
+    
+    # mt = mt.filter_entries(
+    #     (mt.GT.is_het() & (mt.HetAB >= ab)) | 
+    #     (mt.DP > dp) | 
+    #     (mt.GQ > gq)
+    # )
     #remove unused rows
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
