@@ -68,8 +68,8 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     )
 
     # filter by SNV and indel thresholds
-    mt_filtered = mt.filter_rows(((hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.rf_bin <= snv_threshold)) | (
-        (hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.rf_bin <= indel_threshold)))
+    mt_filtered = mt.filter_rows(((hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.info.rf_bin <= snv_threshold)) | (
+        (hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.info.rf_bin <= indel_threshold)))
 
     mt_filtered.write(filtered_mtfile, overwrite = True)
 
