@@ -35,8 +35,8 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
 
     mt = mt.filter_entries(
         (mt.GT.is_het() & (mt.HetAB >= ab)) | 
-        (mt.DP < dp) | 
-        (mt.GQ < gq)
+        (mt.DP > dp) | 
+        (mt.GQ > gq)
     )
     #remove unused rows
     mt = hl.variant_qc(mt)
