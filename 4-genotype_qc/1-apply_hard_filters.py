@@ -57,7 +57,7 @@ def main():
 
     mtfile = mtdir + "mt_after_var_qc.mt"
     mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
-    filter_mt(mtfile, args.dp, args.gq, args.vaf, mtfile_filtered)
+    filter_mt(mtfile, args.dp, args.gq, args.ab, mtfile_filtered)
 
 
 if __name__ == '__main__':
