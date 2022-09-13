@@ -11,14 +11,12 @@ def get_options():
     '''
     parser = argparse.ArgumentParser()
     parser.add_argument("--runhash", help="RF run hash")
-    parser.add_argument("--snv", help="SNV threshold")
-    parser.add_argument("--indel", help="Indel threshold")
+    parser.add_argument("--snv", type = int, help="SNV threshold")
+    parser.add_argument("--indel", type = int, help="Indel threshold")
     args = parser.parse_args()
     if not args.runhash and args.snv and args.indel:
         print("--runhash, --snv and --indel must be specified")
         exit(1)
-    args.snv = int(args.snv)
-    args.indel = int(args.indel)
 
     return args
 
