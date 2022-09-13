@@ -78,7 +78,7 @@ def get_vars_kept(ht: hl.Table, t_list: list):
         ht_tp_pass = ht_TP.filter(ht_TP.bin <= t)
         tp_pass = ht_tp_pass.count()
         results[t]['tp_pc'] = 100*(tp_pass/tp_total)
-        ht_fp_pass = ht_TP.filter(ht_FP.bin <= t)
+        ht_fp_pass = ht_FP.filter(ht_FP.bin <= t)
         fp_pass = ht_fp_pass.count()
         results[t]['fp_pc'] = 100*(fp_pass/fp_total)
 
