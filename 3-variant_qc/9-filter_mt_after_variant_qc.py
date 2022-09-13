@@ -23,7 +23,7 @@ def get_options():
     return args
 
 
-def annotate_mt_with_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_threshold: int, indel_threshold: int, cqfile: str, filtered_mtfile: str):
+def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_threshold: int, indel_threshold: int, cqfile: str, filtered_mtfile: str):
     '''
     Annotate matrixtable with RF score and bin then filter SNVs and indels according to threshold
     :param str mtfile: Inputmtfile
