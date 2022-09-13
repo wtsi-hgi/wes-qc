@@ -38,7 +38,7 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
         (mt.DP < dp) |
         (mt.GQ < gq)
     )
-    mt_split = mt_split.annotate_entries(
+    mt = mt.annotate_entries(
         hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
     )
     mt.filter_entries(mt.hard_filters == 'Pass')
