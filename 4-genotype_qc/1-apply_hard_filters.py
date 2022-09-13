@@ -31,16 +31,22 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
     '''
     mt = hl.read_matrix_table(mtfile)
     prev_count = mt.entries().count()
+    var_count = mt.count_rows()
 
     mt = mt.filter_entries(
         (mt.GT.is_het() & (mt.HetAB >= ab)) | 
         (mt.DP < dp) | 
         (mt.GQ < gq)
     )
+    #remove unused rows
+    mt = hl.variant_qc(mt)
+    mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
     new_count = mt.entries().count()
+    new_var_count = mt.count_rows()
 
     mt.write(mtfile_filtered, overwrite = True)
     print(str(prev_count) + " entries prior to filtering, " + str(new_count) + " entries after filtering")
+    print(str(var_count) + " variants prior to filtering, " + str(new_var_count) + " variants after filtering")
 
 
 def main():
