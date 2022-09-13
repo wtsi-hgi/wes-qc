@@ -37,7 +37,7 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     rf_ht = hl.read_table(rf_htfile)
 
     # keep only vars with rank_id = rank
-    ht = ht.filter(ht.rank_id == 'rank')
+    rf_ht = rf_ht.filter(rf_ht.rank_id == 'rank')
 
     # annotate mt with score and bin
     mt = mt.annotate_rows(
