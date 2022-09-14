@@ -73,14 +73,16 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
     '''
    # mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
     mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
-    mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
+    x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
+    x = dict(x)
+    print(x)
     mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
     mt = hl.sample_qc(mt)
     mt_rare = hl.sample_qc(mt_rare)
     sampleqc_ht = mt.cols()
     sampleqc_rare_ht = mt_rare.cols()
-    print(hl.eval(hl.median(sampleqc_ht.n_non_ref)))
-    print(hl.eval(hl.median(sampleqc_rare_ht.n_non_ref)))
+    print(hl.eval(hl.median(sampleqc_ht.sample_qc.n_non_ref)))
+    print(hl.eval(hl.median(sampleqc_rare_ht.sample_qc.n_non_ref)))
 
 
 
