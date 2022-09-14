@@ -43,6 +43,47 @@ def get_trans_untrans_synon_singleton_counts(mt_in: hl.MatrixTable, pedfile: str
     print("The ratio of transmitted/unstransmitted singletons is " +'{0:.4f}'.format(ratio) )
 
 
+def get_counts_per_cq(mt_in: hl.MatrixTable):
+    '''
+    Get median counts of each consequence per sample
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    '''
+    #split mt by snvs and indels
+    snv_mt = mt_in(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
+    indel_mt = mt_in(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
+    #split by consequence
+    median_count_for_cq(snv_mt, ['synonymous_variant', 'misense_variant'])
+    # synonymous_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'synonymous_variant')
+    # missense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'missense_variant')
+    # nonsense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'stop_gained')
+    # splice_acc_donor_mt = snv_mt.filter_rows((snv_mt.info.consequence == 'splice_acceptor_variant') | (snv_mt.info.consequence == 'splice_donor_variant') )
+    # frameshift_mt = indel_mt.filter_rows(indel_mt.info.consequence == 'frameshift_variant')
+    # inframe_mt = indel_mt.filter_rows((indel_mt.info.consequence == 'inframe_deletion') | (indel_mt.info.consequence == 'inframe_insertion') )
+
+    # coding_snvs = ['synonymous_variant', 'missense_variant', 'stop_gained','splice_acceptor_variant', 'splice_donor_variant', 'sart_lost', 'stop_lost']
+    # coding_indels = ['frameshift_variant', 'inframe_deletion', 'inframe_insertion']
+    # coding_snv_mt = snv_mt.filter_rows(snv_mt.info.consequence in coding_snvs)
+    # coding_indel_mt = indel_mt.filter_rows(indel_mt.info.consequence in coding_indels)
+
+def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
+    '''
+    Get median counts per sample for a list of consequences
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    :param list cqs: List fof consequences
+    '''
+    mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
+    mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
+    mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
+    mt = hl.sample_qc(mt)
+    mt_rare = hl.sample_qc(mt_rare)
+    sampleqc_ht = mt.cols()
+    sampleqc_rare_ht = mt_rare.cols()
+    print(hl.eval(hl.median(sampleqc_ht.n_non_ref)))
+    print(hl.eval(hl.median(sampleqc_rare_ht.n_non_ref)))
+
+
+
+
 def main():
     # set up
     inputs = parse_config()
@@ -63,6 +104,8 @@ def main():
 
     pedfile = resourcedir + "trios.ped"
     get_trans_untrans_synon_singleton_counts(mt, pedfile)
+
+    get_counts_per_cq(mt)
 
 
 
