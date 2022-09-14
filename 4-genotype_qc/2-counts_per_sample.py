@@ -49,8 +49,8 @@ def get_counts_per_cq(mt_in: hl.MatrixTable):
     :param hl.MatrixTable mt_in: Input MatrixTable
     '''
     #split mt by snvs and indels
-    snv_mt = mt_in(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
-    indel_mt = mt_in(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
+    snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
+    indel_mt = mt_in.filter_rows(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
     #split by consequence
     median_count_for_cq(snv_mt, ['synonymous_variant', 'misense_variant'])
     # synonymous_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'synonymous_variant')
