@@ -72,7 +72,7 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
     :param list cqs: List fof consequences
     '''
    # mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
-    mt = mt_in.filter_rows(hl.literal(mt_in.info.consequence).contains(cqs))
+    mt = mt_in.filter_rows(hl.set(cqs).contains(mt_in.info.consequence))
     x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
     x = dict(x)
     print(x)
