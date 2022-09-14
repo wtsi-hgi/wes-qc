@@ -41,7 +41,7 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
     mt = mt.annotate_entries(
         hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
     )
-    mt.filter_entries(mt.hard_filters == 'Pass')
+    mt = mt.filter_entries(mt.hard_filters == 'Pass')
 
     
     # mt = mt.filter_entries(
