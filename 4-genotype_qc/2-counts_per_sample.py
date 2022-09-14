@@ -72,7 +72,7 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
     :param list cqs: List fof consequences
     '''
    # mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
-    mt = mt_in.filter_rows(hl.literal(cqs).contains(mt.info.consequence))
+    mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
     mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
     mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
     mt = hl.sample_qc(mt)
