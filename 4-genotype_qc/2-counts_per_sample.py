@@ -29,7 +29,7 @@ def get_trans_untrans_synon_singleton_counts(mt_in: hl.MatrixTable, pedfile: str
     :param str pedfile: Path to pedfile
     '''
     pedigree = hl.Pedigree.read(pedfile)
-    synon_mt = mt_in.filter_rows(mt_in.info.consequence == 'synonymous_variant')
+    synon_mt = mt_in.filter_rows(synon_mt.info.consequence == 'synonymous_variant')
     tdt_ht = hl.transmission_disequilibrium_test(mt_in, pedigree)
 
     trans_sing = tdt_ht.filter((tdt_ht.t == 1) & (tdt_ht.u == 0))
