@@ -84,10 +84,9 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
 
     filtercond = "(" + filterstring + ")"
     print(filtercond)
-    exit(0)
 
 
-    mt = mt_in.filter_rows(filterstring)
+    mt = mt_in.filter_rows(filtercond)
     x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
     x = dict(x)
     print(x)
