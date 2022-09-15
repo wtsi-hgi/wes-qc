@@ -76,7 +76,7 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
     #mt = mt_in.filter_rows(hl.set(cqs).any(lambda item: item == mt_in.info.consequence))
 
     cqdf = pd.DataFrame(cqs)
-    cqht = hl.Table.from_pandas(cqdf, names = 'cqs') 
+    cqht = hl.Table.from_pandas(cqdf, columns = ['cqs']) 
     mt = mt_in.filter_rows(hl.literal(cqht).contains(mt_in.info.consequence))
 
     x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
