@@ -72,19 +72,10 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
     :param hl.MatrixTable mt_in: Input MatrixTable
     :param list cqs: List fof consequences
     '''
-   # mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
-    #mt = mt_in.filter_rows(hl.set(cqs).any(lambda item: item == mt_in.info.consequence))
 
-    # cqdf = pd.DataFrame(cqs, columns = ['cqs'])
-    # cqht = hl.Table.from_pandas(cqdf) 
-    # consequences = cqht.cqs.collect()
     mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
-
-    x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
-    x = dict(x)
-    print(x)
-    exit(0)
     mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
+    
     mt = hl.sample_qc(mt)
     mt_rare = hl.sample_qc(mt_rare)
     sampleqc_ht = mt.cols()
