@@ -74,7 +74,15 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
    # mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
     #mt = mt_in.filter_rows(hl.set(cqs).any(lambda item: item == mt_in.info.consequence))
 
-    mt = mt_in.filter_rows((mt_in.info.consequence == 'splice_acceptor_variant') | (mt_in.info.consequence == 'splice_donor_variant') )
+    filters = []
+    for c in cqs:
+        filters.append("(mt_in.info.consequence == '" + c + "')")
+
+    filterstring = (' | ').join(filters)
+    print(filterstring)
+
+
+    mt = mt_in.filter_rows(filterstring)
     x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
     x = dict(x)
     print(x)
