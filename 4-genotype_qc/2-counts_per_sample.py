@@ -53,7 +53,7 @@ def get_counts_per_cq(mt_in: hl.MatrixTable):
     snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
     indel_mt = mt_in.filter_rows(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
     #split by consequence
-    median_count_for_cq(snv_mt, ['synonymous_variant', 'misense_variant'])
+    median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant'])
     # synonymous_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'synonymous_variant')
     # missense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'missense_variant')
     # nonsense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'stop_gained')
