@@ -3,6 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
+import pandas as pd
 from wes_qc.utils.utils import parse_config
 
 
@@ -74,19 +75,10 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
    # mt = mt_in.filter_rows(mt_in.info.consequence in cqs)
     #mt = mt_in.filter_rows(hl.set(cqs).any(lambda item: item == mt_in.info.consequence))
 
-    filters = []
-    for c in cqs:
-        print(c)
-        filters.append("(mt_in.info.consequence == '" + c + "')")
+    cqdf = pd.DataFrame(cqs)
+    cqht = hl.Table.from_pandas(cqdf, names = 'cqs') 
+    mt = mt_in.filter_rows(hl.literal(cqht).contains(mt_in.info.consequence))
 
-    filterstring = (' | ').join(filters)
-    print(filterstring)
-
-    filtercond = "(" + filterstring + ")"
-    print(filtercond)
-
-
-    mt = mt_in.filter_rows(filtercond)
     x = mt.aggregate_rows(hl.agg.counter(mt.info.consequence))
     x = dict(x)
     print(x)
