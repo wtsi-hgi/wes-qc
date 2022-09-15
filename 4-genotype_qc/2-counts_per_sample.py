@@ -52,22 +52,28 @@ def get_counts_per_cq(mt_in: hl.MatrixTable):
     #split mt by snvs and indels
     snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
     indel_mt = mt_in.filter_rows(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
-    #split by consequence
-    x = median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant'])
-    print(x[0])
-    print(x[1])
-    exit(0)
-    # synonymous_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'synonymous_variant')
-    # missense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'missense_variant')
-    # nonsense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'stop_gained')
-    # splice_acc_donor_mt = snv_mt.filter_rows((snv_mt.info.consequence == 'splice_acceptor_variant') | (snv_mt.info.consequence == 'splice_donor_variant') )
-    # frameshift_mt = indel_mt.filter_rows(indel_mt.info.consequence == 'frameshift_variant')
-    # inframe_mt = indel_mt.filter_rows((indel_mt.info.consequence == 'inframe_deletion') | (indel_mt.info.consequence == 'inframe_insertion') )
 
-    # coding_snvs = ['synonymous_variant', 'missense_variant', 'stop_gained','splice_acceptor_variant', 'splice_donor_variant', 'sart_lost', 'stop_lost']
-    # coding_indels = ['frameshift_variant', 'inframe_deletion', 'inframe_insertion']
-    # coding_snv_mt = snv_mt.filter_rows(snv_mt.info.consequence in coding_snvs)
-    # coding_indel_mt = indel_mt.filter_rows(indel_mt.info.consequence in coding_indels)
+    #get median numbers of variants by consequence
+    synonymous_counts =  median_count_for_cq(snv_mt, ['synonymous_variant'])
+    missense_counts =  median_count_for_cq(snv_mt, ['missense_variant'])
+    nonsense_counts =  median_count_for_cq(snv_mt, ['stop_gained'])
+    splice_acc_don_counts = median_count_for_cq(snv_mt, ['splice_acceptor_variant', 'splice_donor_variant'])
+
+    frameshift_counts =  median_count_for_cq(indel_mt, ['frameshift_variant'])
+    inframe_indel_counts = median_count_for_cq(indel_mt, ['inframe_deletion', 'inframe_insertion'])
+
+    coding_snv_counts = median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant', 'stop_gained','splice_acceptor_variant', 'splice_donor_variant', 'sart_lost', 'stop_lost'])
+    coding_indel_counts = median_count_for_cq(indel_mt, ['frameshift_variant', 'inframe_deletion', 'inframe_insertion'])
+
+    print("Synonymous: Total " + str(synonymous_counts[0]) + " rare " + str(synonymous_counts[1]))
+    print("Missense: Total " + str(missense_counts[0]) + " rare " + str(missense_counts[1]))
+    print("Nonsense: Total " + str(nonsense_counts[0]) + " rare " + str(nonsense_counts[1]))
+    print("Splicing: Total " + str(splice_acc_don_counts[0]) + " rare " + str(splice_acc_don_counts[1]))
+    print("Frameshift: Total " + str(frameshift_counts[0]) + " rare " + str(frameshift_counts[1]))
+    print("In-frame indel: Total " + str(inframe_indel_counts[0]) + " rare " + str(inframe_indel_counts[1]))
+    print("Coding SNV: Total " + str(coding_snv_counts[0]) + " rare " + str(coding_snv_counts[1]))
+    print("Coding indel: Total " + str(coding_indel_counts[0]) + " rare " + str(coding_indel_counts[1]))
+
 
 def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     '''
