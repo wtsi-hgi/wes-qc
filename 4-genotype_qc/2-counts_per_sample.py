@@ -53,7 +53,10 @@ def get_counts_per_cq(mt_in: hl.MatrixTable):
     snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
     indel_mt = mt_in.filter_rows(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
     #split by consequence
-    median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant'])
+    x = median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant'])
+    print(x[0])
+    print(x[1])
+    exit(0)
     # synonymous_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'synonymous_variant')
     # missense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'missense_variant')
     # nonsense_mt = snv_mt.filter_rows(snv_mt.info.consequence == 'stop_gained')
@@ -66,11 +69,12 @@ def get_counts_per_cq(mt_in: hl.MatrixTable):
     # coding_snv_mt = snv_mt.filter_rows(snv_mt.info.consequence in coding_snvs)
     # coding_indel_mt = indel_mt.filter_rows(indel_mt.info.consequence in coding_indels)
 
-def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
+def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     '''
     Get median counts per sample for a list of consequences
     :param hl.MatrixTable mt_in: Input MatrixTable
     :param list cqs: List fof consequences
+    :return: tuple
     '''
 
     mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
@@ -80,11 +84,10 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list):
     mt_rare = hl.sample_qc(mt_rare)
     sampleqc_ht = mt.cols()
     sampleqc_rare_ht = mt_rare.cols()
-    print(hl.median(sampleqc_ht.sample_qc.n_non_ref.collect()).collect())
-    #print(hl.median(sampleqc_rare_ht.sample_qc.n_non_ref))
-
-
-
+    total_median = hl.median(sampleqc_ht.sample_qc.n_non_ref.collect()).collect()[0]
+    rare_median = hl.median(sampleqc_rare_ht.sample_qc.n_non_ref.collect()).collect()[0]
+    
+    return total_median, rare_median
 
 def main():
     # set up
