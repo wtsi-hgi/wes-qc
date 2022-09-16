@@ -69,10 +69,10 @@ def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Tab
     :param hl.Table ht: Output hail table
     '''
     
-    # mt_trans = mt_filtered.filter_entries(mt_filtered.info.AC[0] == 2)
-    # mt_untrans = mt_filtered.filter_entries(mt_filtered.info.AC[0] == 1)
-    mt_trans = mt_filtered.filter_entries(mt_filtered.trioAC == 2)
-    mt_untrans = mt_filtered.filter_entries(mt_filtered.trioAC == 1)
+    mt_trans = mt_filtered.filter_entries(mt_filtered.info.AC[0] == 2)
+    mt_untrans = mt_filtered.filter_entries(mt_filtered.info.AC[0] == 1)
+    # mt_trans = mt_filtered.filter_entries(mt_filtered.trioAC == 2)
+    # mt_untrans = mt_filtered.filter_entries(mt_filtered.trioAC == 1)
     
     mt_trans_count=mt_trans.group_cols_by(mt_trans.id).aggregate(transmitted_singletons_count=hl.agg.count_where(
                                # (mt_trans.info.AC[0] == 2) &
