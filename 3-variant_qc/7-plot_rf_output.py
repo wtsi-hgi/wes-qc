@@ -343,9 +343,14 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_3', ['n_trans_ac_lt_3', 'n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)  
-    #plot transmitted/untransmitted for common vars 
-    plotfile = plot_dir + "transmitted_untransmitted_common.html"
-    tabs = plot_metric(snvs, 'trans_untrans_ratio_common', ['n_trans_common', 'n_untrans_common'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    #plot transmitted AC < 3
+    plotfile = plot_dir + "transmitted_ac_lt_3.html"
+    tabs = plot_metric(snvs, 'n_trans_ac_lt_3', ['n_trans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    output_file(filename=plotfile)
+    save(tabs)
+    #plot untransmitted AC < 3
+    plotfile = plot_dir + "untransmitted_ac_lt_3.html"
+    tabs = plot_metric(snvs, 'n_untrans_ac_lt_3', ['n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
 
