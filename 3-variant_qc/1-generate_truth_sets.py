@@ -63,7 +63,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
 
         #restrict to samples in trios
     samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
-    sampleht = hl.read_table(samplefile)
+    sampleht = hl.import_table(samplefile)
     mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
 
     mt = annotate_adj(mt)
