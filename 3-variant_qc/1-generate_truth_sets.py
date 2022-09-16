@@ -61,6 +61,11 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
 
+        #restrict to samples in trios
+    samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
+    sampleht = hl.read_table(samplefile)
+    mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
+
     mt = annotate_adj(mt)
     #before splitting annotate with sum_ad
     mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
@@ -71,10 +76,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     print("writing split mt")
     mt.write(tmp_mt, overwrite=True)
 
-    #restrict to samples in trios
-    samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.mt"
-    sampleht = hl.read_table(samplefile)
-    mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
+    #add AC for trtios only
     mt = mt.annotate_rows(trioAC = hl.agg.sum(mt.AD[1]))
 
     #min(GT_AD) used here - but could change this to cover just those with few alts - moved to after split
