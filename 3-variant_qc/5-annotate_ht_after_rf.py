@@ -131,7 +131,7 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     mt_trios = mt_trios.annotate_rows(consequence=ht[mt_trios.row_key].consequence)
     #there is a save step here in Pavlos file, is it needed?
     mt_filtered = mt_trios.filter_rows((mt_trios.info.AC[0] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    mt_filtered = mt_trios.filter_entries((mt_trios.info.AC[0] <= 2) & (mt_trios.consequence == "synonymous_variant"))
+    #mt_filtered = mt_trios.filter_entries((mt_trios.info.AC[0] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered.write(trio_filtered_mtfile, overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
