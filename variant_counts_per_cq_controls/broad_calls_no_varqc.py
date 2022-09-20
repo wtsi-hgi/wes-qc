@@ -25,7 +25,7 @@ def main():
     broad_mt_split.write(broad_split_multi_mtfile, overwrite = True)
     broad_mt = hl.read_matrix_table(broad_split_multi_mtfile)
 
-    cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt.all_consequences.txt"
+    cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt/all_consequences.txt"
     mtcq = annotate_cq(broad_mt, cqfile)
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     mtgnomad = annotate_gnomad(mtcq, gnomad_htfile)
