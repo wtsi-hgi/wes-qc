@@ -58,6 +58,12 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     :param str varqc_mtfile_split: Output mt with variant QC annotation and split multiallelics
     '''
     mt = hl.read_matrix_table(mtfile)
+    mt = hl.split_multi_hts(mt)
+    
+    tmp_mt = varqc_mtfile_split + "_tmp"
+    print("writing split mt")
+    mt.write(tmp_mt, overwrite=True)
+
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
 
@@ -72,10 +78,10 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
     mt.write(varqc_mtfile, overwrite=True)
 
-    mt = hl.split_multi_hts(mt)
-    tmp_mt = varqc_mtfile_split + "_tmp"
-    print("writing split mt")
-    mt.write(tmp_mt, overwrite=True)
+    # mt = hl.split_multi_hts(mt)
+    # tmp_mt = varqc_mtfile_split + "_tmp"
+    # print("writing split mt")
+    # mt.write(tmp_mt, overwrite=True)
 
     # #add AC for trtios only
     # mt = mt.annotate_rows(trioAC = hl.agg.sum(mt.AD[1]))
