@@ -78,7 +78,7 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     :return: tuple
     '''
 
-    mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
+    mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.consequence))
     mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
 
     mt = hl.sample_qc(mt)
