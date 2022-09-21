@@ -58,6 +58,13 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     :param str varqc_mtfile_split: Output mt with variant QC annotation and split multiallelics
     '''
     mt = hl.read_matrix_table(mtfile)
+
+           # restrict to samples in trios
+    samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
+    sampleht = hl.import_table(samplefile)
+    sampleht = sampleht.key_by('s')
+    mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
+    
     mt = hl.split_multi_hts(mt)
     
     tmp_mt = varqc_mtfile_split + "_tmp"
@@ -66,12 +73,6 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
 
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
-
-        #restrict to samples in trios
-    # samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
-    # sampleht = hl.import_table(samplefile)
-    # sampleht = sampleht.key_by('s')
-    # mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
 
     mt = annotate_adj(mt)
     #before splitting annotate with sum_ad
