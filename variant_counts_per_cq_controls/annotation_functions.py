@@ -19,7 +19,7 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     ht=ht.drop(ht.f0,ht.f1,ht.f2,ht.f3,ht.f4,ht.chr,ht.pos,ht.ref,ht.alt)
     ht = ht.key_by(ht.locus, ht.alleles)
 
-    mt=mt.annotate_rows(consequence=ht[mt.key].consequence)
+    mt=mt.annotate_rows(consequence=ht[mt.row_key].consequence)
     return mt
 
 

@@ -3,7 +3,6 @@ import os
 import sys
 import yaml
 import pandas as pd
-import hail as hl
 from typing import Optional, Union
 from gnomad.resources.resource_utils import TableResource
 
@@ -75,25 +74,3 @@ def get_rf(
         return model_file
     else:
         return TableResource(data_file)
-
-
-def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
-    '''
-    Annotate a hail MatrixTable from a tsv file of consequence annotations
-    :param hl.MatrixTable mt: input MatrixTable
-    :param str cqfile: path to tsv file containing consequence annotation
-    '''
-    ht=hl.import_table(cqfile,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'}, no_header=True)
-    ht=ht.annotate(chr=ht.f0)
-    ht=ht.annotate(pos=ht.f1)
-    ht=ht.annotate(rs=ht.f2)
-    ht=ht.annotate(ref=ht.f3)
-    ht=ht.annotate(alt=ht.f4)
-    ht=ht.annotate(consequence=ht.f5)
-    ht = ht.key_by(
-    locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref,ht.alt])
-    ht=ht.drop(ht.f0,ht.f1,ht.f2,ht.f3,ht.f4,ht.chr,ht.pos,ht.ref,ht.alt)
-    ht = ht.key_by(ht.locus, ht.alleles)
-
-    mt=mt.annotate_rows(consequence=ht[mt.key].consequence)
-    return mt
