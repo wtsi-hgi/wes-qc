@@ -213,7 +213,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     :param str trio_mtfile: Trio matrixtable file
     :param str trio_stats_htfile: Trio stats hail table file
     :param str fam_stats_htfile: Family stats hail table file
-    :param str fam_stats_htfile: Family stats matrixtble file
+    :param str fam_stats_mtfile: Family stats matrixtble file
     :param str fam_stats_gnomad_mtfile: Family statts with gnomad annotation matrixtable file
     :param str gnomad_htfile: Gnomad AF hail table
     :param str dnm_htfile: De novo hail table file
@@ -232,11 +232,11 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     ht1.write(fam_stats_htfile ,overwrite=True)
 
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
-    mt=mt.checkpoint(fam_stats_mtfile , overwrite=True)
+    mt=mt.write(fam_stats_mtfile , overwrite=True)
     #add gnomad AFs
     priors = hl.read_table(gnomad_htfile)
     mt = mt.annotate_rows(gnomad_maf=priors[mt.row_key].maf)
-    mt = mt.checkpoint(fam_stats_gnomad_mtfile, overwrite=True)
+    mt = mt.write(fam_stats_gnomad_mtfile, overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
