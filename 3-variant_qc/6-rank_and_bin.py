@@ -227,26 +227,32 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             #transmitted and untransmitted common variants
             n_trans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].t)),
             n_untrans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].u)),
+            #transmitted/untransmitted with Hail's TDT test
+            n_trans_singletons_synonymous_tdt=hl.agg.filter((ht.consequence == "synonymous_variant") & (
+                ht.family_stats.tdt[0].t == 1), hl.agg.sum(ht.family_stats.tdt[0].t)),
+            n_untrans_singletons_synonymous_tdt=hl.agg.filter((ht.consequence == "synonymous_variant") & (
+                ht.family_stats.tdt[0].u == 1), hl.agg.sum(ht.family_stats.tdt[0].u)),
+
             #transmitted and untransmitted synonymous variants where unrelated individual allele count <10
-            n_trans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
-            n_untrans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
-            #transmitted and untransmitted synonymous variants where unrelated individual allele count <7
-            n_trans_ac_lt_7=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 7) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
-            n_untrans_ac_lt_7=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 7) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
-            #transmitted and untransmitted synonymous variants where unrelated individual allele count <5
-            n_trans_ac_lt_5=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 5) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
-            n_untrans_ac_lt_5=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 5) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
-            #transmitted and untransmitted synonymous variants where unrelated individual allele count <3
-            n_trans_ac_lt_3=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 3) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
-            n_untrans_ac_lt_3=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 3) & (
-                ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
+            # n_trans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
+            # n_untrans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
+            # #transmitted and untransmitted synonymous variants where unrelated individual allele count <7
+            # n_trans_ac_lt_7=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 7) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
+            # n_untrans_ac_lt_7=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 7) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
+            # #transmitted and untransmitted synonymous variants where unrelated individual allele count <5
+            # n_trans_ac_lt_5=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 5) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
+            # n_untrans_ac_lt_5=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 5) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
+            # #transmitted and untransmitted synonymous variants where unrelated individual allele count <3
+            # n_trans_ac_lt_3=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 3) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].t)),
+            # n_untrans_ac_lt_3=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 3) & (
+            #     ht.consequence == "synonymous_variant"), hl.agg.sum(ht.family_stats.tdt[0].u)),
             
 
             n_omni=hl.agg.count_where(ht.omni),
