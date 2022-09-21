@@ -323,36 +323,52 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     tabs = plot_metric(indels, 'fail_hard_filters_indels', ['fail_hard_filters_indels'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
-    #plot transmitted/untransmitted for synonymous vars with AC<10 in non-probands
-    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_10.html"
-    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_10', ['n_trans_ac_lt_10', 'n_untrans_ac_lt_10'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    #plot transmitted/untransmitted from Hail's tdt test
+    #plot transmitted singletons
+    plotfile = plot_dir + "transmitted_singletons_tdt.html"
+    tabs = plot_metric(snvs, 'n_trans_singletons_tdt', ['n_trans_singletons_synonymous_tdt'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
-    #plot transmitted/untransmitted for synonymous vars with AC<7 in non-probands
-    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_7.html"
-    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_7', ['n_trans_ac_lt_7', 'n_untrans_ac_lt_7'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    #plot untransmitted singletons
+    plotfile = plot_dir + "untransmitted_singletons_tdt.html"
+    tabs = plot_metric(snvs, 'n_untrans_singletons_tdt', ['n_untrans_singletons_synonymous_tdt'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
-    #plot transmitted/untransmitted for synonymous vars with AC<5 in non-probands
-    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_5.html"
-    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_5', ['n_trans_ac_lt_5', 'n_untrans_ac_lt_5'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    #ratio
+    plotfile = plot_dir + "transmitted_untransmitted_tdt.html"
+    tabs = plot_metric(snvs, 'trans_untrans_ratio_tdt', ['n_trans_singletons_synonymous_tdt', 'n_untrans_singletons_synonymous_tdt'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
-    #plot transmitted/untransmitted for synonymous vars with AC<3 in non-probands
-    plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_3.html"
-    tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_3', ['n_trans_ac_lt_3', 'n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    output_file(filename=plotfile)
-    save(tabs)  
-    #plot transmitted AC < 3
-    plotfile = plot_dir + "transmitted_ac_lt_3.html"
-    tabs = plot_metric(snvs, 'n_trans_ac_lt_3', ['n_trans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    output_file(filename=plotfile)
-    save(tabs)
-    #plot untransmitted AC < 3
-    plotfile = plot_dir + "untransmitted_ac_lt_3.html"
-    tabs = plot_metric(snvs, 'n_untrans_ac_lt_3', ['n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    output_file(filename=plotfile)
-    save(tabs)
+    # #plot transmitted/untransmitted for synonymous vars with AC<10 in non-probands
+    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_10.html"
+    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_10', ['n_trans_ac_lt_10', 'n_untrans_ac_lt_10'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    # output_file(filename=plotfile)
+    # save(tabs)
+    # #plot transmitted/untransmitted for synonymous vars with AC<7 in non-probands
+    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_7.html"
+    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_7', ['n_trans_ac_lt_7', 'n_untrans_ac_lt_7'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    # output_file(filename=plotfile)
+    # save(tabs)
+    # #plot transmitted/untransmitted for synonymous vars with AC<5 in non-probands
+    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_5.html"
+    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_5', ['n_trans_ac_lt_5', 'n_untrans_ac_lt_5'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    # output_file(filename=plotfile)
+    # save(tabs)
+    # #plot transmitted/untransmitted for synonymous vars with AC<3 in non-probands
+    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_3.html"
+    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_3', ['n_trans_ac_lt_3', 'n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    # output_file(filename=plotfile)
+    # save(tabs)  
+    # #plot transmitted AC < 3
+    # plotfile = plot_dir + "transmitted_ac_lt_3.html"
+    # tabs = plot_metric(snvs, 'n_trans_ac_lt_3', ['n_trans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    # output_file(filename=plotfile)
+    # save(tabs)
+    # #plot untransmitted AC < 3
+    # plotfile = plot_dir + "untransmitted_ac_lt_3.html"
+    # tabs = plot_metric(snvs, 'n_untrans_ac_lt_3', ['n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
+    # output_file(filename=plotfile)
+    # save(tabs)
 
 
 def main():
