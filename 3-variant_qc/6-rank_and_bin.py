@@ -229,9 +229,9 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             n_untrans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].u)),
             #transmitted/untransmitted with Hail's TDT test
             n_trans_singletons_synonymous_tdt=hl.agg.filter((ht.consequence == "synonymous_variant") & (
-                ht.family_stats.tdt[0].t == 1), hl.agg.sum(ht.family_stats.tdt[0].t)),
+                ht.family_stats.tdt[0].t == 1) & (ht.family_stats.tdt[0].u == 0), hl.agg.sum(ht.family_stats.tdt[0].t)),
             n_untrans_singletons_synonymous_tdt=hl.agg.filter((ht.consequence == "synonymous_variant") & (
-                ht.family_stats.tdt[0].u == 1), hl.agg.sum(ht.family_stats.tdt[0].u)),
+                ht.family_stats.tdt[0].u == 1) & (ht.family_stats.tdt[0].t == 0), hl.agg.sum(ht.family_stats.tdt[0].u)),
 
             #transmitted and untransmitted synonymous variants where unrelated individual allele count <10
             # n_trans_ac_lt_10=hl.agg.filter((ht.family_stats.unrelated_qc_callstats.AC[0][1] <= 10) & (
