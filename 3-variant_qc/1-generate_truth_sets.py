@@ -221,6 +221,12 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     pedigree = hl.Pedigree.read(pedfile)
     mt = hl.read_matrix_table(varqc_mtfile)
 
+    #filter mt to samples that are in trios only and re-run varqc
+    trio_sample_ht = hl.import_fam(pedfile)
+    sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
+    mt = mt.filter_cols(hl.set(sample_list).contains(mt.s))
+    mt = hl.variant_qc(mt, name = 'varqc_trios')
+
     trio_dataset = hl.trio_matrix(mt, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
 
