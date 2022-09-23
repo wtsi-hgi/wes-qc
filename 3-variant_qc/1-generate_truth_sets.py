@@ -344,7 +344,7 @@ def main():
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
-        #split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
+        split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
         pedfile = resourcedir + "trios.ped"
 
         #get complete trios, family annotation, dnm annotation
