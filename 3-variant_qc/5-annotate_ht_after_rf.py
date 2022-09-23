@@ -172,7 +172,7 @@ def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
     print("Annotating with gnomad AF")
     ht = hl.read_table(tdt_htfile)
     gnomad_ht = hl.read_table(gnomad_htfile)
-    ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].maf)
+    ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].freq[0].AF)
     ht.write(final_htfile, overwrite = True)
 
 
@@ -216,7 +216,7 @@ def main():
 
     #annotate with gnomad AF
     final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
+    gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
 
 
