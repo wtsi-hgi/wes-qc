@@ -59,11 +59,11 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     '''
     mt = hl.read_matrix_table(mtfile)
 
-           # restrict to samples in trios
-    samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
-    sampleht = hl.import_table(samplefile)
-    sampleht = sampleht.key_by('s')
-    mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
+    #        # restrict to samples in trios
+    # samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
+    # sampleht = hl.import_table(samplefile)
+    # sampleht = sampleht.key_by('s')
+    # mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
     
     mt = hl.split_multi_hts(mt)
     
@@ -241,7 +241,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt=mt.write(fam_stats_mtfile , overwrite=True)
     #add gnomad AFs
     gnomad_ht = hl.read_table(gnomad_htfile)
-    mt = mt.annotate_rows(maf=gnomad_ht[mt.row_key].freq[0].AF)
+    mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
     mt = mt.write(fam_stats_gnomad_mtfile, overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
