@@ -240,8 +240,8 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
     mt=mt.write(fam_stats_mtfile , overwrite=True)
     #add gnomad AFs
-    priors = hl.read_table(gnomad_htfile)
-    mt = mt.annotate_rows(gnomad_maf=priors[mt.row_key].maf)
+    gnomad_ht = hl.read_table(gnomad_htfile)
+    mt = mt.annotate_rows(maf=gnomad_ht[mt.row_key].freq[0].AF)
     mt = mt.write(fam_stats_gnomad_mtfile, overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
@@ -353,7 +353,7 @@ def main():
         fam_stats_htfile = mtdir + "family_stats.ht"
         fam_stats_mtfile = mtdir + "family_stats.mt"
         fam_stats_gnomad_mtfile = mtdir + "family_stats_gnomad.mt"
-        gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
+        gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
         dnm_htfile = mtdir + "denovo_table.ht"
         trio_family_dnm_annotation(varqc_mtfile_split, pedfile, trio_mtfile, trio_stats_htfile, fam_stats_htfile, fam_stats_mtfile, fam_stats_gnomad_mtfile, gnomad_htfile, dnm_htfile)
 
