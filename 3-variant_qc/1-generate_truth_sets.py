@@ -242,7 +242,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     #add gnomad AFs
     gnomad_ht = hl.read_table(gnomad_htfile)
     mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
-    mt = mt.write(fam_stats_gnomad_mtfile, overwrite=True)
+    mt.write(fam_stats_gnomad_mtfile, overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
@@ -344,7 +344,7 @@ def main():
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
-        split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
+        #split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
         pedfile = resourcedir + "trios.ped"
 
         #get complete trios, family annotation, dnm annotation
