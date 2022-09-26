@@ -304,7 +304,7 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str
     mt = hl.read_matrix_table(varqc_mtfile)
     # inbreeding ht
     mt_inbreeding = mt.annotate_rows(InbreedingCoeff=bi_allelic_site_inbreeding_expr(mt.GT))
-    mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
+    #mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
     ht_inbreeding = mt_inbreeding.rows()
     # allele data and qc_ac ht
     allele_data_ht = generate_allele_data(mt)
