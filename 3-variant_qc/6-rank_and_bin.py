@@ -165,13 +165,13 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             rank_id=ht.rank_id,
             contig=ht.locus.contig,
             snv=hl.is_snp(ht.alleles[0], ht.alleles[1]),
-            bi_allelic=hl.is_defined(ht.biallelic_rank),
+            # bi_allelic=hl.is_defined(ht.biallelic_rank),
             singleton=ht.transmitted_singleton,
-            trans_singletons=hl.is_defined(ht.singleton_rank),
-            de_novo_high_quality=ht.de_novo_high_quality_rank,
-            de_novo_medium_quality=hl.is_defined(
-                ht.de_novo_medium_quality_rank),
-            de_novo_synonymous=hl.is_defined(ht.de_novo_synonymous_rank),
+            # trans_singletons=hl.is_defined(ht.singleton_rank),
+            # de_novo_high_quality=ht.de_novo_high_quality_rank,
+            # de_novo_medium_quality=hl.is_defined(
+            #     ht.de_novo_medium_quality_rank),
+            # de_novo_synonymous=hl.is_defined(ht.de_novo_synonymous_rank),
             # release_adj=ht.ac > 0,
             bin=ht.bin
         )._set_buffer_size(20000)
