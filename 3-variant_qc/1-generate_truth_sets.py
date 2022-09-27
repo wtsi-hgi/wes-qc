@@ -49,11 +49,12 @@ def get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file):
     truth_ht.write(truth_ht_file, overwrite=True)
     
 
-def split_multi_and_var_qc(mtfile: str, varqc_mtfile_split: str):
+def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str):
     '''
     Adapted from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     Run split_multi_hts and variant QC on inout mt after sample QC
     :param str mtfile: Input mtfile, raw variants with sample QC fails removed
+    :param str varqc_mtfile: Output mt with adj annotation 
     :param str varqc_mtfile_split: Output mt with variant QC annotation and split multiallelics
     '''
     mt = hl.read_matrix_table(mtfile)
@@ -67,6 +68,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile_split: str):
     #before splitting annotate with sum_ad
     mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
     mt = annotate_adj(mt)
+    mt.write(varqc_mtfile, overwrite=True)
     mt = hl.split_multi_hts(mt)
     
     tmp_mt = varqc_mtfile_split + "_tmp"
@@ -341,7 +343,7 @@ def main():
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
-        split_multi_and_var_qc(mtfile, varqc_mtfile_split)
+        split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
         pedfile = resourcedir + "trios.ped"
 
         #get complete trios, family annotation, dnm annotation
@@ -358,7 +360,7 @@ def main():
         inbreeding_htfile = mtdir + "inbreeding.ht"
         qc_ac_htfile = mtdir + "qc_ac.ht"
         allele_data_htfile = mtdir + "allele_data.ht"
-        create_inbreeding_ht_with_ac_and_allele_data(mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
+        create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
 
 
 if __name__ == '__main__':
