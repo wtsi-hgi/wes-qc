@@ -64,9 +64,6 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     mt = annotate_adj(mt)
     mt.write(varqc_mtfile, overwrite=True)
     mt = hl.split_multi_hts(mt)
-
-    
-    mt = hl.split_multi_hts(mt)
     
     tmp_mt = varqc_mtfile_split + "_tmp"
     print("writing split mt")
