@@ -59,11 +59,12 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     '''
     mt = hl.read_matrix_table(mtfile)
 
-    #        # restrict to samples in trios
-    # samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
-    # sampleht = hl.import_table(samplefile)
-    # sampleht = sampleht.key_by('s')
-    # mt = mt.filter_cols(hl.is_defined(sampleht[mt.s]))
+    #before splitting annotate with sum_ad
+    mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
+    mt = annotate_adj(mt)
+    mt.write(varqc_mtfile, overwrite=True)
+    mt = hl.split_multi_hts(mt)
+
     
     mt = hl.split_multi_hts(mt)
     
@@ -73,19 +74,6 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
 
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
-
-    mt = annotate_adj(mt)
-    #before splitting annotate with sum_ad
-    mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
-    mt.write(varqc_mtfile, overwrite=True)
-
-    # mt = hl.split_multi_hts(mt)
-    # tmp_mt = varqc_mtfile_split + "_tmp"
-    # print("writing split mt")
-    # mt.write(tmp_mt, overwrite=True)
-
-    # #add AC for trtios only
-    # mt = mt.annotate_rows(trioAC = hl.agg.sum(mt.AD[1]))
 
     #min(GT_AD) used here - but could change this to cover just those with few alts - moved to after split
     print("Annotating entries with allele balance")
@@ -340,7 +328,8 @@ def main():
 
     #add hail variant QC
     if args.annotation or args.all:
-        mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        #mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        mtfile = mtdir + "gatk_calls_from_broad.mt"
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
