@@ -30,7 +30,14 @@ def get_trans_untrans_synon_singleton_counts(mt_in: hl.MatrixTable, pedfile: str
     :param str pedfile: Path to pedfile
     '''
     pedigree = hl.Pedigree.read(pedfile)
-    synon_mt = mt_in.filter_rows(mt_in.info.consequence == 'synonymous_variant')
+    #get trios only then filter to trioAC == 1 or 2
+    trio_sample_ht = hl.import_fam(pedfile)
+    sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
+    mt2 = mt_in.filter_cols(hl.set(sample_list).contains(mt_in.s))
+    mt2 = hl.variant_qc(mt2, name = 'varqc_trios')
+    mt2 = mt2.filter_rows(mt2.varqc_trios.AC[1] <= 2)
+
+    synon_mt = mt2.filter_rows(mt2.info.consequence == 'synonymous_variant')
     tdt_ht = hl.transmission_disequilibrium_test(synon_mt, pedigree)
 
     trans_sing = tdt_ht.filter((tdt_ht.t == 1) & (tdt_ht.u == 0))
