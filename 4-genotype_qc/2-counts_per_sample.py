@@ -38,12 +38,15 @@ def get_trans_untrans_synon_singleton_counts(mt_in: hl.MatrixTable, pedfile: str
     mt2 = mt2.filter_rows(mt2.varqc_trios.AC[1] <= 2)
 
     synon_mt = mt2.filter_rows(mt2.info.consequence == 'synonymous_variant')
-    tdt_ht = hl.transmission_disequilibrium_test(synon_mt, pedigree)
+    untrans_mt = synon_mt.filter_rows(synon_mt.varqc_trios.AC[1] == 1)
+    trans_mt = synon_mt.filter_rows(synon_mt.varqc_trios.AC[1] == 2)
+    tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
+    tdt_ht_untrans = hl.transmission_disequilibrium_test(untrans_mt, pedigree)
 
-    trans_sing = tdt_ht.filter((tdt_ht.t == 1) & (tdt_ht.u == 0))
+    trans_sing = tdt_ht_trans.filter((tdt_ht_trans.t == 1) & (tdt_ht_trans.u == 0))
     trans = trans_sing.count()
 
-    untrans_sing = tdt_ht.filter((tdt_ht.t == 0) & (tdt_ht.u == 1))
+    untrans_sing = tdt_ht_untrans.filter((tdt_ht_untrans.t == 0) & (tdt_ht_untrans.u == 1))
     untrans = untrans_sing.count()
     ratio = trans/untrans
 
