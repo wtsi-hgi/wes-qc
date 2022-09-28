@@ -347,7 +347,7 @@ def main():
         inbreeding_htfile = mtdir + "inbreeding.ht"
         qc_ac_htfile = mtdir + "qc_ac.ht"
         allele_data_htfile = mtdir + "allele_data.ht"
-        create_inbreeding_ht_with_ac_and_allele_data(mtfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
+        create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
 
 
 if __name__ == '__main__':
