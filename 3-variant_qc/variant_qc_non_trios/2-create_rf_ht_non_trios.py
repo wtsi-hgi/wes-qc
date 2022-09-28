@@ -57,8 +57,8 @@ def create_rf_ht(mtfile: str, truthset_file: str, allele_data_file: str, allele_
     ht = ht.annotate(fail_hard_filters=(ht.QD < 2)
                      | (ht.FS > 60) | (ht.MQ < 30))
     ht = ht.annotate(ac_raw=ht.ac_qc_samples_raw)
-    ht = ht.annotate(transmitted_singleton=(
-        ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
+    # ht = ht.annotate(transmitted_singleton=(
+    #     ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
 
     ht = ht.select(
         "a_index",
@@ -66,8 +66,8 @@ def create_rf_ht(mtfile: str, truthset_file: str, allele_data_file: str, allele_
         *constants.FEATURES,
         *constants.TRUTH_DATA,
         **{
-            "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1)
-            & (ht[f"ac_qc_samples_{group}"] == 2),
+            # "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1)
+            # & (ht[f"ac_qc_samples_{group}"] == 2),
             "fail_hard_filters": (ht.QD < 2) | (ht.FS > 60) | (ht.MQ < 30),
         },
         ac_raw=ht.ac_qc_samples_raw
