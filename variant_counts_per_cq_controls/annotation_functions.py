@@ -135,8 +135,11 @@ def get_median_ca_per_sample(mt_in: hl.MatrixTable) -> float:
     for s in snv_count_sample.keys():
         tot_vars = int(snv_count_sample[s])
         ca_vars = int(ca_count_sample[s])
-        s_frac = ca_vars/tot_vars
-        sample_fracs.append(s_frac)
+        if tot_vars > 0:
+            s_frac = ca_vars/tot_vars
+            sample_fracs.append(s_frac)
+        else:
+            sample_fracs.append(0.0)
 
     median_ca = np.median(sample_fracs)
 
