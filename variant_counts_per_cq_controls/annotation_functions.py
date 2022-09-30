@@ -105,8 +105,8 @@ def get_median_ca_fraction(mt_in: hl.MatrixTable):
     total_ca_frac = get_median_ca_per_sample(snv_mt)
     rare_ca_frac = get_median_ca_per_sample(snv_mt_rare)
 
-    print("Median fraction CA per sample total: " + "{:.2f}".format(total_ca_frac))
-    print("Median fraction CA per sample rare: " + "{:.2f}".format(rare_ca_frac))
+    print("Median fraction CA per sample total: " + "{:.5f}".format(total_ca_frac))
+    print("Median fraction CA per sample rare: " + "{:.5f}".format(rare_ca_frac))
 
 
 def get_median_ca_per_sample(mt_in: hl.MatrixTable) -> float:
