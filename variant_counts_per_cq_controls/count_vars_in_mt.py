@@ -4,7 +4,7 @@
 import hail as hl
 import pyspark
 from wes_qc.utils.utils import parse_config
-from wes_qc.variant_counts_per_cq_controls.annotation_functions import annotate_cq, annotate_gnomad, get_counts_per_cq
+from wes_qc.variant_counts_per_cq_controls.annotation_functions import annotate_cq, annotate_gnomad, get_counts_per_cq, get_median_ca_fraction
 
 
 
@@ -29,6 +29,7 @@ def main():
     mtgnomad = annotate_gnomad(mtcq, gnomad_htfile)
 
     get_counts_per_cq(mtgnomad)
+    get_median_ca_fraction(mtgnomad)
     
 
 if __name__ == '__main__':

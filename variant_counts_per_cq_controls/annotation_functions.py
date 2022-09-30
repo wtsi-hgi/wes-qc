@@ -1,5 +1,6 @@
 #functions for annotating with consequence and gnomad and counting variants per cq
 import hail as hl
+import numpy as np
 
 def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     '''
@@ -70,6 +71,7 @@ def get_counts_per_cq(mt_in: hl.MatrixTable):
     print("Coding SNV: Total " + str(coding_snv_counts[0]) + " rare " + str(coding_snv_counts[1]))
     print("Coding indel: Total " + str(coding_indel_counts[0]) + " rare " + str(coding_indel_counts[1]))
 
+
 def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     '''
     Get median counts per sample for a list of consequences
@@ -90,3 +92,52 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     
     return total_median, rare_median
 
+
+def get_median_ca_fraction(mt_in: hl.MatrixTable):
+    '''
+    Get fraction CA per sample
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    '''
+    #filter to SNVs and to rare
+    snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
+    snv_mt_rare = snv_mt.filter_rows(snv_mt.gnomad_AC < 5)
+
+    total_ca_frac = get_median_ca_per_sample(snv_mt)
+    rare_ca_frac = get_median_ca_per_sample(snv_mt_rare)
+
+    print("Median fraction CA per sample total: " + "{:.2f}".format(total_ca_frac))
+    print("Median fraction CA per sample rare: " + "{:.2f}".format(rare_ca_frac))
+
+
+def get_median_ca_per_sample(mt_in: hl.MatrixTable) -> float:
+    '''
+    Get fraction CA per sample
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    :return: float
+    ''' 
+    #annotate SNVs with is_CA
+    mt_in = mt_in.annotate_rows(is_CA=((mt_in.alleles[0] == "C") & (mt_in.alleles[1] == "A")) | ((mt_in.alleles[0] == "G") & (mt_in.alleles[1] == "T")))
+    ca_mt = mt_in.filter_rows(mt_in.is_CA==True)
+    #run sample qc and extract cols
+    mt_in = hl.sample_qc(mt_in)
+    ca_mt = hl.sample_qc(ca_mt)
+    snv_qc = mt_in.cols()
+    ca_qc = ca_mt.cols()
+
+    snv_samples = snv_qc.s.collect()
+    ca_samples = ca_qc.s.collect()
+    snv_count = snv_qc.sample_qc.n_non_ref.collect()
+    ca_count = ca_qc.sample_qc.n_non_ref.collect()
+    snv_count_sample = {snv_samples[i]: snv_count[i] for i in range(len(snv_samples))}
+    ca_count_sample = {ca_samples[i]: ca_count[i] for i in range(len(ca_samples))}
+
+    sample_fracs = []
+    for s in snv_count_sample.keys():
+        tot_vars = int(snv_count_sample[s])
+        ca_vars = int(ca_count_sample[s])
+        s_frac = ca_vars/tot_vars
+        sample_fracs.append(s_frac)
+
+    median_ca = np.median(sample_fracs)
+
+    return median_ca
