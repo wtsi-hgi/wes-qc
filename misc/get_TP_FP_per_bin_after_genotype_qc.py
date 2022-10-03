@@ -79,7 +79,7 @@ def filter_mt_count_tp_fp(mt: hl.MatrixTable, bins: list) -> dict:
         print("Analysing bin " + str(bin))
         results[bin] = {}
         #filter by bin
-        mt_tmp = mt.filter_rows(mt.info.bin <= bin)
+        mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
         #genotype hard filters
         filter_condition = (
             (mt_tmp.GT.is_het() & (mt_tmp.HetAB < 0.3)) | 
