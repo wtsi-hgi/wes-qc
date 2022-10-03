@@ -25,6 +25,8 @@ def export_vcfs(mtfile: str, vcf_dir: str):
     }
 
     mt = hl.read_matrix_table(mtfile)
+    #drop boolean format field adj
+    mt = mt.drop(mt.adj)
 
     chroms=[*range(1,23),"X","Y"]
     chromosomes=["chr"+ str(chr) for chr in chroms]
