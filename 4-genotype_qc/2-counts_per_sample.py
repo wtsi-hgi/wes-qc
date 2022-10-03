@@ -178,10 +178,10 @@ def main():
 
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    pedfile = resourcedir + "trios.ped"
-    get_trans_untrans_synon_singleton_counts(mt, pedfile)
+    # pedfile = resourcedir + "trios.ped"
+    # get_trans_untrans_synon_singleton_counts(mt, pedfile)
 
-    get_counts_per_cq(mt)
+    # get_counts_per_cq(mt)
     get_median_ca_fraction(mt)
 
 
