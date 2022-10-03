@@ -30,6 +30,8 @@ def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
     mt = mt.annotate_rows(TP=rf_ht[mt.row_key].tp)
     mt = mt.annotate_rows(FP=rf_ht[mt.row_key].fp)
 
+    return mt
+
 
 def count_tp_fp(mt) -> tuple:
     '''
