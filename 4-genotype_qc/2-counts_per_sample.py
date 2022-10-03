@@ -176,10 +176,15 @@ def main():
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     mt = hl.read_matrix_table(mtfile)
 
+    #temporary restriction to subset of samples
+    sanger_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/sanger_accs_to_analyse_s.txt"
+    sanger_sample_ht = hl.import_table(sanger_samples_file, delimiter="\t").key_by('s')
+    mt = mt.filter_cols(hl.is_defined(sanger_sample_ht[mt.s]))
+
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    pedfile = resourcedir + "trios.ped"
-    get_trans_untrans_synon_singleton_counts(mt, pedfile)
+    # pedfile = resourcedir + "trios.ped"
+    # get_trans_untrans_synon_singleton_counts(mt, pedfile)
 
     get_counts_per_cq(mt)
     get_median_ca_fraction(mt)
