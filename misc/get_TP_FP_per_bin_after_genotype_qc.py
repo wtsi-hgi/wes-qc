@@ -105,7 +105,7 @@ def filter_and_count(mt: hl.MatrixTable):
     :param hl.MatrixTable mt: Input MatrixTable annotated with RF score, bin and TP/FP
     '''
     #split into SNPs and indels
-    snp_mt = mt.filter_rows(hl.snp(mt.alleles[0], mt.alleles[1]))
+    snp_mt = mt.filter_rows(hl.is_snp(mt.alleles[0], mt.alleles[1]))
     indel_mt = mt.filter_rows(hl.is_indel(mt.alleles[0], mt.alleles[1]))
 
     snp_total_tps, snp_total_fps = count_tp_fp(snp_mt)
