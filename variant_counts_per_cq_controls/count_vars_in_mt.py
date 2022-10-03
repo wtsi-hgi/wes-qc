@@ -23,14 +23,20 @@ def main():
     mtfile = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
     mt = hl.read_matrix_table(mtfile)
 
-    #cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt/all_consequences.txt"
+    #restrict to samples in Sanger
+    broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_accs_to_analyse_s.txt"
+    broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
+    mt = mt.filter_cols(hl.is_defined(broad_sample_ht[mt.s]))
+
+    cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt/all_consequences.txt"
     
-    cqfile = resourcedir + "all_consequences.txt"
+    #cqfile = resourcedir + "all_consequences.txt"
     mtcq = annotate_cq(mt, cqfile)
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     mtgnomad = annotate_gnomad(mtcq, gnomad_htfile)
 
     get_counts_per_cq(mtgnomad)
+
     get_median_ca_fraction(mtgnomad)
     
 
