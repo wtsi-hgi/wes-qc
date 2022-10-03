@@ -24,6 +24,8 @@ def export_vcfs(mtfile: str, vcf_dir: str):
                 }
     }
 
+    mt = hl.read_matrix_table(mtfile)
+
     chroms=[*range(1,23),"X","Y"]
     chromosomes=["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
