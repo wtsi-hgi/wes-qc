@@ -158,8 +158,8 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     mt_rare = hl.sample_qc(mt_rare)
     sampleqc_ht = mt.cols()
     sampleqc_rare_ht = mt_rare.cols()
-    counts_all = sampleqc_ht.n_non_ref.collect()
-    counts_rare = sampleqc_rare_ht.n_non_ref.collect()
+    counts_all = sampleqc_ht.sample_qc.n_non_ref.collect()
+    counts_rare = sampleqc_rare_ht.sample_qc.n_non_ref.collect()
 
     return counts_all, counts_rare
 
