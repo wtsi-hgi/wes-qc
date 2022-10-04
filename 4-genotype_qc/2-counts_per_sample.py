@@ -120,7 +120,7 @@ def get_counts_per_cq(mt_in: hl.MatrixTable, outfile: str):
         for i in range(0, n_rows):
             linedata = []
             for j in range(0, n_cols):
-                linedata.append(str(outdata[j][i]))
+                linedata.append(str(outdata[i][j]))
             o.write(("\t").join(linedata))
             o.write("\n")
 
@@ -201,7 +201,7 @@ def get_median_ca_fraction(mt_in: hl.MatrixTable, outfile: str):
         for i in range(0, n_rows):
             linedata = []
             for j in range(0, n_cols):
-                n = "{:.5f}".format(outdata[j][i])
+                n = "{:.5f}".format(outdata[i][j])
                 linedata.append(n)
             o.write(("\t").join(linedata))
             o.write("\n")
