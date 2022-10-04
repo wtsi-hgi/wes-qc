@@ -82,7 +82,7 @@ def filter_mt_count_tp_fp(mt: hl.MatrixTable, bins: list) -> dict:
         mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
         #genotype hard filters
         filter_condition = (
-            (mt_tmp.GT.is_het() & (mt_tmp.HetAB < 0.3)) | 
+            (mt_tmp.GT.is_het() & (mt_tmp.HetAB <0.2)) | 
             (mt_tmp.DP < 10) |
             (mt_tmp.GQ < 20)
         )
@@ -103,7 +103,7 @@ def filter_mt_count_tp_fp(mt: hl.MatrixTable, bins: list) -> dict:
 
 def filter_and_count(mt: hl.MatrixTable):
     '''
-    Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bin
+    Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
     :param hl.MatrixTable mt: Input MatrixTable annotated with RF score, bin and TP/FP
     '''
     #split into SNPs and indels
