@@ -5,6 +5,7 @@ import pyspark
 import argparse
 import pandas as pd
 import numpy as np
+import os
 from wes_qc.utils.utils import parse_config
 
 
@@ -161,6 +162,13 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     counts_all = sampleqc_ht.sample_qc.n_non_ref.collect()
     counts_rare = sampleqc_rare_ht.sample_qc.n_non_ref.collect()
 
+    #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+    aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
+    aggfiles = os.listdir(aggdir)
+    for af in aggfiles:
+        aggpath = aggdir + af
+        os.remove(aggpath)
+
     return counts_all, counts_rare
 
 
@@ -211,6 +219,14 @@ def get_ca_per_sample(mt_in: hl.MatrixTable) -> list:
     # run sample qc and extract cols
     mt_in = hl.sample_qc(mt_in)
     ca_mt = hl.sample_qc(ca_mt)
+
+    #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+    aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
+    aggfiles = os.listdir(aggdir)
+    for af in aggfiles:
+        aggpath = aggdir + af
+        os.remove(aggpath)
+
     snv_qc = mt_in.cols()
     ca_qc = ca_mt.cols()
 
@@ -273,7 +289,8 @@ def main():
     plot_dir = inputs['plots_dir_local']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch123/qc/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
