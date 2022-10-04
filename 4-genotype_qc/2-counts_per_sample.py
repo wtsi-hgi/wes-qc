@@ -233,7 +233,7 @@ def get_ca_per_sample(mt_in: hl.MatrixTable) -> list:
     snv_count = snv_qc.sample_qc.n_non_ref.collect()
     ca_count = ca_qc.sample_qc.n_non_ref.collect()
     fracs = []
-    for i in (0, len(snv_count)):
+    for i in range (0, len(snv_count)):
         if snv_count[i] > 0:
             f = ca_count[i]/snv_count[i]
             fracs.append(f)
