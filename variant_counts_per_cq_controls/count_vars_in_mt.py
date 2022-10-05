@@ -40,8 +40,8 @@ def main():
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     mtgnomad = annotate_gnomad(mtcq, gnomad_htfile)
 
-    cqfile = plot_dir + "/variant_counts_per_cq_post_qc_broad_vcf.txt"
-    cafile = plot_dir + "/frac_ca_per_sample_post_qc_broad_vcf.txt"
+    cqfile = plot_dir + "/variant_counts_per_cq_post_qc_sanger_samples_in_broad.txt"
+    cafile = plot_dir + "/frac_ca_per_sample_post_qc_sanger_samples_in_broad.txt"
 
     get_counts_per_cq(mtgnomad, cqfile)
 
