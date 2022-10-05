@@ -25,9 +25,9 @@ def main():
     mt = hl.read_matrix_table(mtfile)
 
     #restrict to samples in Sanger
-    # broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_accs_to_analyse_s.txt"
-    # broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
-    # mt = mt.filter_cols(hl.is_defined(broad_sample_ht[mt.s]))
+    broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_accs_to_analyse_s.txt"
+    broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
+    mt = mt.filter_cols(hl.is_defined(broad_sample_ht[mt.s]))
 
     cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt/all_consequences.txt"
     
