@@ -25,19 +25,19 @@ def main():
     mt = hl.read_matrix_table(mtfile)
 
     #restrict to samples in Sanger
-    # broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_accs_to_analyse_s.txt"
-    # broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
-    # mt = mt.filter_cols(hl.is_defined(broad_sample_ht[mt.s]))
+    broad_samples_file = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_accs_to_analyse_s.txt"
+    broad_sample_ht = hl.import_table(broad_samples_file, delimiter="\t").key_by('s')
+    mt = mt.filter_cols(hl.is_defined(broad_sample_ht[mt.s]))
 
-    #cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt/all_consequences.txt"
+    cqfile = "file:///lustre/scratch123/qc/compare_broad_sanger_vcfs/broad_vcf_samples_in_sanger_filter_by_bait/split_multi_strip_gt/all_consequences.txt"
     
-    cqfile = resourcedir + "all_consequences.txt"
+    #cqfile = resourcedir + "all_consequences.txt"
     mtcq = annotate_cq(mt, cqfile)
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     mtgnomad = annotate_gnomad(mtcq, gnomad_htfile)
 
-    cqfile = plot_dir + "/variant_counts_per_cq_post_qc_broad_called_at_samger.txt"
-    cafile = plot_dir + "/frac_ca_per_sample_post_qc_broad_called_at_samger.txt"
+    cqfile = plot_dir + "/variant_counts_per_cq_post_qc_broad_vcf.txt"
+    cafile = plot_dir + "/frac_ca_per_sample_post_qc_broad_vcf.txt"
 
     get_counts_per_cq(mtgnomad, cqfile)
 
