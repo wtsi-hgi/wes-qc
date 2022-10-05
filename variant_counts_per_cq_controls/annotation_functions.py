@@ -88,6 +88,18 @@ def get_counts_per_cq(mt_in: hl.MatrixTable, outfile: str):
     coding_indel_all, coding_indel_rare = counts_per_cq(
         indel_mt, ['frameshift_variant', 'inframe_deletion', 'inframe_insertion'])
 
+    # print out medians
+    print ("Median variant counts per sample for each functional class:")
+    print("Synonymous: All variants" + str(np.median(synonymous_all)) + " rare " + str(np.median(synonymous_rare)))
+    print("Missense: All variants " + str(np.median(missense_all)) + " rare " + str(np.median(missense_rare)))
+    print("Nonsense: All variants " + str(np.median(nonsense_all)) + " rare " + str(np.median(nonsense_rare)))
+    print("Splicing: All variants " + str(np.median(splice_all)) + " rare " + str(np.median(splice_rare)))
+    print("Frameshift: All variants " + str(np.median(frameshift_all)) + " rare " + str(np.median(frameshift_rare)))
+    print("In-frame indel: All variants " + str(np.median(inframe_all)) + " rare " + str(np.median(inframe_rare)))
+    print("Coding SNV: All variants " + str(np.median(coding_snv_all)) + " rare " + str(np.median(coding_snv_rare)))
+    print("Coding indel: All variants " + str(np.median(coding_indel_all)) + " rare " + str(np.median(coding_indel_rare)))
+
+
     # print to output table
     outdata = list(zip(synonymous_all, synonymous_rare, missense_all, missense_rare, nonsense_all, nonsense_rare, 
         splice_all, splice_rare, frameshift_all, frameshift_rare, inframe_all, inframe_rare, coding_snv_all, 
@@ -155,6 +167,77 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     rare_median = hl.median(sampleqc_rare_ht.sample_qc.n_non_ref.collect()).collect()[0]
     
     return total_median, rare_median
+
+
+def get_ca_per_sample(mt_in: hl.MatrixTable) -> list:
+    '''
+    Get fraction CA for each sample in a matrixtable
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    :return: list of C>A fractions
+    '''
+    mt_in = mt_in.annotate_rows(is_CA=((mt_in.alleles[0] == "C") & (mt_in.alleles[1] == "A")) | (
+        (mt_in.alleles[0] == "G") & (mt_in.alleles[1] == "T")))
+    ca_mt = mt_in.filter_rows(mt_in.is_CA == True)
+    # run sample qc and extract cols
+    mt_in = hl.sample_qc(mt_in)
+    ca_mt = hl.sample_qc(ca_mt)
+
+    #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+    aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
+    aggfiles = os.listdir(aggdir)
+    for af in aggfiles:
+        aggpath = aggdir + af
+        os.remove(aggpath)
+
+    snv_qc = mt_in.cols()
+    ca_qc = ca_mt.cols()
+
+    snv_count = snv_qc.sample_qc.n_non_ref.collect()
+    ca_count = ca_qc.sample_qc.n_non_ref.collect()
+    fracs = []
+    for i in range (0, len(snv_count)):
+        if snv_count[i] > 0:
+            f = ca_count[i]/snv_count[i]
+            fracs.append(f)
+        else:
+            fracs.append(0.0)
+
+    return fracs
+
+
+def get_ca_fractions(mt_in: hl.MatrixTable, outfile: str):
+    '''
+    Get fraction CA per sample
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    :param str outfile: output text file path
+    '''
+    # filter to SNVs and to rare
+    snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
+    snv_mt_rare = snv_mt.filter_rows(snv_mt.gnomad_AC < 5)
+
+    # total_ca_frac = get_median_ca_per_sample(snv_mt)
+    # rare_ca_frac = get_median_ca_per_sample(snv_mt_rare)
+    total_ca_frac = get_ca_per_sample(snv_mt)
+    rare_ca_frac = get_ca_per_sample(snv_mt_rare)
+
+    print("Median fraction CA per sample total: " + "{:.5f}".format(np.median(total_ca_frac)))
+    print("Median fraction CA per sample rare: " + "{:.5f}".format(np.median(rare_ca_frac)))
+    outdata = list(zip(total_ca_frac, rare_ca_frac))
+
+    header = ['total_ca_fraction', 'rare_ca_fraction']
+    n_rows = len(outdata)
+    n_cols = len(header)
+
+    with open(outfile, 'w') as o:
+        o.write(("\t").join(header))
+        o.write("\n")
+        for i in range(0, n_rows):
+            linedata = []
+            for j in range(0, n_cols):
+                n = "{:.5f}".format(outdata[i][j])
+                linedata.append(n)
+            o.write(("\t").join(linedata))
+            o.write("\n")
 
 
 def get_median_ca_fraction(mt_in: hl.MatrixTable):
