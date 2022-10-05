@@ -9,12 +9,12 @@ regions:
 
 gatk_vcf_header: file:///lustre/scratch123/qc/gatk_vcf_header.txt
 gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs/
-load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
-#load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
+#load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
+load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets2/
 annotation_lustre_dir: file:///lustre/scratch123/qc/annotations/
 annotation_lustre_dir_local: /lustre/scratch123/qc/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/
-#matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
+#matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/
+matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets2/
 plots_lustre_dir: file:///lustre/scratch123/qc/plots/
 plots_dir_local: /lustre/scratch123/qc/plots/
 resource_dir: file:///lustre/scratch123/qc/resources/

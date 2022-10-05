@@ -1,5 +1,6 @@
 #functions for annotating with consequence and gnomad and counting variants per cq
 import hail as hl
+import os
 import numpy as np
 
 def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
@@ -41,35 +42,98 @@ def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable
 
 
 
-def get_counts_per_cq(mt_in: hl.MatrixTable):
+def get_counts_per_cq(mt_in: hl.MatrixTable, outfile: str):
     '''
     Get median counts of each consequence per sample
     :param hl.MatrixTable mt_in: Input MatrixTable
+    :param str outfile: Output file path
     '''
     #split mt by snvs and indels
     snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
     indel_mt = mt_in.filter_rows(hl.is_indel(mt_in.alleles[0], mt_in.alleles[1]))
 
     #get median numbers of variants by consequence
-    synonymous_counts =  median_count_for_cq(snv_mt, ['synonymous_variant'])
-    missense_counts =  median_count_for_cq(snv_mt, ['missense_variant'])
-    nonsense_counts =  median_count_for_cq(snv_mt, ['stop_gained'])
-    splice_acc_don_counts = median_count_for_cq(snv_mt, ['splice_acceptor_variant', 'splice_donor_variant'])
+    # synonymous_counts =  median_count_for_cq(snv_mt, ['synonymous_variant'])
+    # missense_counts =  median_count_for_cq(snv_mt, ['missense_variant'])
+    # nonsense_counts =  median_count_for_cq(snv_mt, ['stop_gained'])
+    # splice_acc_don_counts = median_count_for_cq(snv_mt, ['splice_acceptor_variant', 'splice_donor_variant'])
 
-    frameshift_counts =  median_count_for_cq(indel_mt, ['frameshift_variant'])
-    inframe_indel_counts = median_count_for_cq(indel_mt, ['inframe_deletion', 'inframe_insertion'])
+    # frameshift_counts =  median_count_for_cq(indel_mt, ['frameshift_variant'])
+    # inframe_indel_counts = median_count_for_cq(indel_mt, ['inframe_deletion', 'inframe_insertion'])
 
-    coding_snv_counts = median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant', 'stop_gained','splice_acceptor_variant', 'splice_donor_variant', 'sart_lost', 'stop_lost'])
-    coding_indel_counts = median_count_for_cq(indel_mt, ['frameshift_variant', 'inframe_deletion', 'inframe_insertion'])
+    # coding_snv_counts = median_count_for_cq(snv_mt, ['synonymous_variant', 'missense_variant', 'stop_gained','splice_acceptor_variant', 'splice_donor_variant', 'sart_lost', 'stop_lost'])
+    # coding_indel_counts = median_count_for_cq(indel_mt, ['frameshift_variant', 'inframe_deletion', 'inframe_insertion'])
 
-    print("Synonymous: Total " + str(synonymous_counts[0]) + " rare " + str(synonymous_counts[1]))
-    print("Missense: Total " + str(missense_counts[0]) + " rare " + str(missense_counts[1]))
-    print("Nonsense: Total " + str(nonsense_counts[0]) + " rare " + str(nonsense_counts[1]))
-    print("Splicing: Total " + str(splice_acc_don_counts[0]) + " rare " + str(splice_acc_don_counts[1]))
-    print("Frameshift: Total " + str(frameshift_counts[0]) + " rare " + str(frameshift_counts[1]))
-    print("In-frame indel: Total " + str(inframe_indel_counts[0]) + " rare " + str(inframe_indel_counts[1]))
-    print("Coding SNV: Total " + str(coding_snv_counts[0]) + " rare " + str(coding_snv_counts[1]))
-    print("Coding indel: Total " + str(coding_indel_counts[0]) + " rare " + str(coding_indel_counts[1]))
+    # print("Synonymous: Total " + str(synonymous_counts[0]) + " rare " + str(synonymous_counts[1]))
+    # print("Missense: Total " + str(missense_counts[0]) + " rare " + str(missense_counts[1]))
+    # print("Nonsense: Total " + str(nonsense_counts[0]) + " rare " + str(nonsense_counts[1]))
+    # print("Splicing: Total " + str(splice_acc_don_counts[0]) + " rare " + str(splice_acc_don_counts[1]))
+    # print("Frameshift: Total " + str(frameshift_counts[0]) + " rare " + str(frameshift_counts[1]))
+    # print("In-frame indel: Total " + str(inframe_indel_counts[0]) + " rare " + str(inframe_indel_counts[1]))
+    # print("Coding SNV: Total " + str(coding_snv_counts[0]) + " rare " + str(coding_snv_counts[1]))
+    # print("Coding indel: Total " + str(coding_indel_counts[0]) + " rare " + str(coding_indel_counts[1]))
+
+    # get variant counts per consequence
+    synonymous_all, synonymous_rare = counts_per_cq(snv_mt, ['synonymous_variant'])
+    missense_all, missense_rare = counts_per_cq(snv_mt, ['missense_variant'])
+    nonsense_all, nonsense_rare = counts_per_cq(snv_mt, ['stop_gained'])
+    splice_all, splice_rare = counts_per_cq(snv_mt, ['splice_acceptor_variant', 'splice_donor_variant'])
+
+    frameshift_all, frameshift_rare = counts_per_cq(indel_mt, ['frameshift_variant'])
+    inframe_all, inframe_rare = counts_per_cq(indel_mt, ['inframe_deletion', 'inframe_insertion'])
+
+    coding_snv_all, coding_snv_rare = counts_per_cq(
+        snv_mt, ['synonymous_variant', 'missense_variant', 'stop_gained', 'splice_acceptor_variant', 
+        'splice_donor_variant', 'sart_lost', 'stop_lost'])
+    coding_indel_all, coding_indel_rare = counts_per_cq(
+        indel_mt, ['frameshift_variant', 'inframe_deletion', 'inframe_insertion'])
+
+    # print to output table
+    outdata = list(zip(synonymous_all, synonymous_rare, missense_all, missense_rare, nonsense_all, nonsense_rare, 
+        splice_all, splice_rare, frameshift_all, frameshift_rare, inframe_all, inframe_rare, coding_snv_all, 
+        coding_snv_rare, coding_indel_all, coding_indel_rare))
+
+    header = ['synonymous_all', 'synonymous_rare', 'missense_all', 'missense_rare', 'nonsense_all', 
+        'nonsense_rare', 'splice_all', 'splice_rare', 'frameshift_all', 'frameshife_rare', 'in_frame_all', 
+        'in_frame_rare', 'coding_snv_all', 'coding_snv_rare', 'coding_indel_all', 'coding_indel_rare']
+
+    n_rows = len(synonymous_all)
+    n_cols = len(header)
+    with open(outfile, 'w') as o:
+        o.write(("\t").join(header))
+        o.write("\n")
+        for i in range(0, n_rows):
+            linedata = []
+            for j in range(0, n_cols):
+                linedata.append(str(outdata[i][j]))
+            o.write(("\t").join(linedata))
+            o.write("\n")
+
+
+def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
+    '''
+    Get all counts per sample for a list of consequences
+    :param hl.MatrixTable mt_in: Input MatrixTable
+    :param list cqs: List fof consequences
+    :return: dict
+    '''
+    mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
+    mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
+    mt = hl.sample_qc(mt)
+    mt_rare = hl.sample_qc(mt_rare)
+    sampleqc_ht = mt.cols()
+    sampleqc_rare_ht = mt_rare.cols()
+    counts_all = sampleqc_ht.sample_qc.n_non_ref.collect()
+    counts_rare = sampleqc_rare_ht.sample_qc.n_non_ref.collect()
+
+    #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+    aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
+    aggfiles = os.listdir(aggdir)
+    for af in aggfiles:
+        aggpath = aggdir + af
+        os.remove(aggpath)
+
+    return counts_all, counts_rare
 
 
 def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:

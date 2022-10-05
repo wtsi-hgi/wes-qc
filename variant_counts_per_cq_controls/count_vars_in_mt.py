@@ -4,7 +4,7 @@
 import hail as hl
 import pyspark
 from wes_qc.utils.utils import parse_config
-from wes_qc.variant_counts_per_cq_controls.annotation_functions import annotate_cq, annotate_gnomad, get_counts_per_cq, get_median_ca_fraction
+from wes_qc.variant_counts_per_cq_controls.annotation_functions import annotate_cq, annotate_gnomad, get_counts_per_cq, get_ca_fractions
 
 
 
@@ -13,9 +13,10 @@ def main():
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
+    plot_dir = inputs['plots_dir_local']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch123/qc/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -35,9 +36,12 @@ def main():
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
     mtgnomad = annotate_gnomad(mtcq, gnomad_htfile)
 
-    get_counts_per_cq(mtgnomad)
+    cqfile = plot_dir + "/variant_counts_per_cq_post_qc_broad_vcf_samples_in_samger.txt"
+    cafile = plot_dir + "/frac_ca_per_sample_post_qc_broad_vcf_samples_in_samger.txt"
 
-    get_median_ca_fraction(mtgnomad)
+    get_counts_per_cq(mtgnomad, cqfile)
+
+    get_ca_fractions(mtgnomad, cafile)
     
 
 if __name__ == '__main__':
