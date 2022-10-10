@@ -44,7 +44,8 @@ def prepare_giab_ht(giab_vcf: str) -> hl.Table:
     :return: hl.Table
     '''
     mt = hl.import_vcf(giab_vcf, force_bgz = True, reference_genome='GRCh38')
-    mt.count()
+    cts = mt.count()
+    print(cts)
     exit(0)
 
 
