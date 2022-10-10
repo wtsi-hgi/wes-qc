@@ -95,12 +95,13 @@ def get_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str)
     return precision, recall
 
 
-def calculate_precision_recall(alspac_ht, giab_ht) -> dict:
+def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: str) -> dict:
     '''
     Calculate precision and recall for each RF bin for both SNPs and indels
     :param hl.Table alspace_ht: ALSPAC variants hail Table
     :param hl.Table giab_ht: GIAB variants hail Table
-    :return: dict 
+    :return: dict
+    :param str mtdir: MatrixTable directory
     '''
     results = {'snv':{}, 'indel':{}}
     n_bins = 102 #there are 101 bins but use 102 for range to work
@@ -117,8 +118,8 @@ def calculate_precision_recall(alspac_ht, giab_ht) -> dict:
         alspac_snvs = alspac_filtered_ht.filter(hl.is_snp(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
         alspac_indels = alspac_filtered_ht.filter(hl.is_indel(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
 
-        snv_prec, snv_recall = get_precision_recall(giab_snvs, alspac_snvs)
-        indel_prec, indel_recall = get_precision_recall(giab_indels, alspac_indels)
+        snv_prec, snv_recall = get_precision_recall(giab_snvs, alspac_snvs, mtdir)
+        indel_prec, indel_recall = get_precision_recall(giab_indels, alspac_indels, mtdir)
 
         results['snv'][bin]['precision'] = snv_prec
         results['snv'][bin]['recall'] = snv_recall
