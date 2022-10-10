@@ -82,12 +82,8 @@ def get_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str)
     alspac_only = alspac_vars.anti_join(giab_vars)
     print("count_vars")
     tp = vars_in_both.count()
-    print(tp)
     fn = giab_only.count()
-    print(fn)
     fp = alspac_only.count()
-    print(fp)
-    exit(0)
 
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
@@ -129,12 +125,36 @@ def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: st
     return results
 
 
+def print_results(results: dict, plot_dir: str):
+    '''
+    print results to file
+    :param dict results: results dict
+    :param str plotdir: Output plot directory
+    '''
+    outfile = plot_dir + "/prescision_recall.txt"
+    n_bins = 102
+    header = ("\t").join(['bin', 'snv_precision', 'snv_recall', 'indel_precision', 'indel_recall'])
+    with open(outfile, 'w') as o:
+        o.write(header)
+        o.write("\n")
+        for bin in range(1,n_bins):
+            binstr = str(bin)
+            snv_prec = str(results['snv'][bin]['precision'])
+            snv_recall = str(results['snv'][bin]['recall'])
+            indel_prec = str(results['indel'][bin]['precision'])
+            indel_recall = str(results['indel'][bin]['recall'])
+            outline = ("\t").join([binstr, snv_prec, snv_recall, indel_prec, indel_recall])
+            o.write(outline)
+            o.write("\n")
+        
+
 def main():
     # set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
+    plot_dir = inputs['plots_lustre_dir']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -153,7 +173,10 @@ def main():
     giab_ht = prepare_giab_ht(giab_vcf)
 
     results = calculate_precision_recall(alspac_vars_ht, giab_ht, mtdir)
-    print(results)
+
+    print_results(results, plot_dir)
+
+
 
 
 if __name__ == '__main__':
