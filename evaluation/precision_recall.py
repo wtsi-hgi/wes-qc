@@ -88,7 +88,7 @@ def calculate_precision_recall(alspac_ht, giab_ht) -> dict:
     for bin in range(1,n_bins):
         results['snv'][bin] = {}
         results['indel'][bin] = {}
-        alspac_filtered_ht = alspac_ht.filter(alspac_ht.info.bin <= bin)
+        alspac_filtered_ht = alspac_ht.filter(alspac_ht.info.rf_bin <= bin)
         alspac_var_count = alspac_filtered_ht.count()
         print("bin = " + str(bin) + " n vars = " + str(alspac_var_count))#for sanity check
         alspac_snvs = alspac_filtered_ht.filter(hl.is_snp(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
