@@ -16,6 +16,17 @@ def prepare_alspac_htfile(mtfile: str, rf_htfile: str) -> hl.Table:
     sample = 'EGAN00003332049'#GIAB12878/HG0001
     mt = mt.filter_cols(mt.s == sample)
 
+    #hard filters
+    filter_condition = (
+        (mt.GT.is_het() & (mt.HetAB < 0.3)) | 
+        (mt.DP < 10) |
+        (mt.GQ < 20)
+    )
+    mt = mt.annotate_entries(
+        hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    )
+    mt = mt.filter_entries(mt.hard_filters == 'Pass')
+
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
@@ -51,20 +62,27 @@ def prepare_giab_ht(giab_vcf: str) -> hl.Table:
     return giab_vars
 
 
-def get_precision_recall(giab_vars, alspac_vars) -> tuple:
+def get_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str) -> tuple:
     '''
     Get precision and recall for two sets of variants, reference set (GIAB) and test set (ALSPAC)
     :param hl.Table giab_vars: GIAB variants (reference set)
     :param hl.Table alspac_vars: ALSPAC variants (test set)
+    :param str mtdir: MatrixTable directory
     :return: tuple
     '''
+    #checkpoint datasets to temporary files for speed
+    tmpmt1 = mtdir + "tmp.mt"
+    tmpmt2 = mtdir + "tmp2.mt"
+    giab_vars = giab_vars.checkpoint(tmpmt1, overwrite = True)
+    alspac_vars = alspac_vars.checkpoint(tmpmt2, overwrite = True)
+
     print("get intersects")
-    #vars_in_both = giab_vars.semi_join(alspac_vars)
+    vars_in_both = giab_vars.semi_join(alspac_vars)
     giab_only = giab_vars.anti_join(alspac_vars)
     alspac_only = alspac_vars.anti_join(giab_vars)
     print("count_vars")
-    #tp = vars_in_both.count()
-    #print(tp)
+    tp = vars_in_both.count()
+    print(tp)
     fn = giab_only.count()
     print(fn)
     fp = alspac_only.count()
@@ -133,7 +151,7 @@ def main():
 
     giab_ht = prepare_giab_ht(giab_vcf)
 
-    results = calculate_precision_recall(alspac_vars_ht, giab_ht)
+    results = calculate_precision_recall(alspac_vars_ht, giab_ht, mtdir)
     print(results)
 
 
