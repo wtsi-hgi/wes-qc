@@ -58,10 +58,11 @@ def get_precision_recall(giab_vars, alspac_vars) -> tuple:
     :param hl.Table alspac_vars: ALSPAC variants (test set)
     :return: tuple
     '''
+    print("get intersects")
     vars_in_both = giab_vars.semi_join(alspac_vars)
     giab_only = giab_vars.anti_join(alspac_vars)
     alspac_only = alspac_vars.anti_join(giab_vars)
-
+    print("count_vars")
     TP = vars_in_both.count()
     FN = giab_only.count()
     FP = alspac_only.count()
