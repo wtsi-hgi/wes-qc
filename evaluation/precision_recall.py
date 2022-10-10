@@ -43,7 +43,7 @@ def prepare_giab_ht(giab_vcf: str) -> hl.Table:
     :param str giab_vcf: path of input VCF file
     :return: hl.Table
     '''
-    mt = hl.import_vcf(giab_vcf, reference_genome='GRCh38')
+    mt = hl.import_vcf(giab_vcf, force_bgz = True, reference_genome='GRCh38')
     mt.count()
     exit(0)
 
