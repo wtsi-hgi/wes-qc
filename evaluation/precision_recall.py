@@ -63,12 +63,15 @@ def get_precision_recall(giab_vars, alspac_vars) -> tuple:
     giab_only = giab_vars.anti_join(alspac_vars)
     alspac_only = alspac_vars.anti_join(giab_vars)
     print("count_vars")
-    TP = vars_in_both.count()
-    FN = giab_only.count()
-    FP = alspac_only.count()
+    tp = vars_in_both.count()
+    print(tp)
+    fn = giab_only.count()
+    print(fn)
+    fp = alspac_only.count()
+    print(fp)
 
-    precision = TP/(TP + FP)
-    recall = TP / (TP + FN)
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
 
     return precision, recall
 
