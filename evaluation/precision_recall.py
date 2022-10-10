@@ -59,16 +59,17 @@ def get_precision_recall(giab_vars, alspac_vars) -> tuple:
     :return: tuple
     '''
     print("get intersects")
-    vars_in_both = giab_vars.semi_join(alspac_vars)
+    #vars_in_both = giab_vars.semi_join(alspac_vars)
     giab_only = giab_vars.anti_join(alspac_vars)
     alspac_only = alspac_vars.anti_join(giab_vars)
     print("count_vars")
-    tp = vars_in_both.count()
-    print(tp)
+    #tp = vars_in_both.count()
+    #print(tp)
     fn = giab_only.count()
     print(fn)
     fp = alspac_only.count()
     print(fp)
+    exit(0)
 
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
