@@ -139,7 +139,7 @@ def print_results(results: dict, plot_dir: str):
     :param dict results: results dict
     :param str plotdir: Output plot directory
     '''
-    outfile = plot_dir + "/prescision_recall.txt"
+    outfile = plot_dir + "/precision_recall.txt"
     n_bins = 102
     header = ("\t").join(['bin', 'snv_precision', 'snv_recall', 'indel_precision', 'indel_recall'])
     with open(outfile, 'w') as o:
