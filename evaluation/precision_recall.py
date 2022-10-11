@@ -4,11 +4,12 @@ import pyspark
 from wes_qc.utils.utils import parse_config
 
 
-def prepare_alspac_htfile(mtfile: str, rf_htfile: str) -> hl.Table:
+def prepare_alspac_htfile(mtfile: str, rf_htfile: str, mtdir: str) -> hl.Table:
     '''
     Filter mtfile to GIAB sample only. Annotate with rf bin, genotype hard filters, remove unused variants.
     :param str mtfile: Matrixtable file after splitting
     :param str rf_htfile: Random forest ht file
+    :param str mtdir: MatrixTable directory
     :return: hl.Table
     '''
     mt = hl.read_matrix_table(mtfile)
@@ -44,14 +45,17 @@ def prepare_alspac_htfile(mtfile: str, rf_htfile: str) -> hl.Table:
     )
 
     alspac_vars = mt.rows()
+    tmpht = mtdir + "tmp.ht"
+    alspac_vars = alspac_vars.checkpoint(tmpht, overwrite = True)
     
     return alspac_vars
 
 
-def prepare_giab_ht(giab_vcf: str) -> hl.Table:
+def prepare_giab_ht(giab_vcf: str, mtdir: str) -> hl.Table:
     '''
     Get GIAB ht from vcf file
     :param str giab_vcf: path of input VCF file
+    :param str mtdir: MatrixTable directory
     :return: hl.Table
     '''
     mt = hl.import_vcf(giab_vcf, force_bgz = True, reference_genome='GRCh38')
@@ -59,6 +63,10 @@ def prepare_giab_ht(giab_vcf: str) -> hl.Table:
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
     giab_vars = mt.rows()
+
+    tmpht = mtdir + "tmpg.ht"
+    giab_vars = giab_vars.checkpoint(tmpht, overwrite = True)
+
     return giab_vars
 
 
@@ -71,10 +79,10 @@ def get_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str)
     :return: tuple
     '''
     #checkpoint datasets to temporary files for speed
-    tmpmt1 = mtdir + "tmp.mt"
-    tmpmt2 = mtdir + "tmp2.mt"
-    giab_vars = giab_vars.checkpoint(tmpmt1, overwrite = True)
-    alspac_vars = alspac_vars.checkpoint(tmpmt2, overwrite = True)
+    tmpht1 = mtdir + "tmp1.ht"
+    tmpht2 = mtdir + "tmp2.ht"
+    giab_vars = giab_vars.checkpoint(tmpht1, overwrite = True)
+    alspac_vars = alspac_vars.checkpoint(tmpht2, overwrite = True)
 
     print("get intersects")
     vars_in_both = giab_vars.semi_join(alspac_vars)
@@ -154,7 +162,7 @@ def main():
     mtdir = inputs['matrixtables_lustre_dir']
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
-    plot_dir = inputs['plots_lustre_dir']
+    plot_dir = inputs['plots_dir_local']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -166,11 +174,11 @@ def main():
     rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
 
-    alspac_vars_ht = prepare_alspac_htfile(mtfile, rf_htfile)
+    alspac_vars_ht = prepare_alspac_htfile(mtfile, rf_htfile, mtdir)
 
     giab_vcf = resourcedir + "HG001_GRCh38_benchmark.interval.illumina.vcf.gz"
 
-    giab_ht = prepare_giab_ht(giab_vcf)
+    giab_ht = prepare_giab_ht(giab_vcf, mtdir)
 
     results = calculate_precision_recall(alspac_vars_ht, giab_ht, mtdir)
 
