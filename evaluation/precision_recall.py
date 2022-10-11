@@ -108,7 +108,7 @@ def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: st
     :param str mtdir: MatrixTable directory
     '''
     results = {'snv':{}, 'indel':{}}
-    n_bins = 102 #there are 101 bins but use 102 for range to work
+    n_bins = 10 #there are 101 bins but use 102 for range to work
 
     giab_snvs = giab_ht.filter(hl.is_snp(giab_ht.alleles[0], giab_ht.alleles[1]))
     giab_indels = giab_ht.filter(hl.is_indel(giab_ht.alleles[0], giab_ht.alleles[1]))
@@ -140,7 +140,7 @@ def print_results(results: dict, plot_dir: str):
     :param str plotdir: Output plot directory
     '''
     outfile = plot_dir + "/prescision_recall.txt"
-    n_bins = 102
+    n_bins = 10
     header = ("\t").join(['bin', 'snv_precision', 'snv_recall', 'indel_precision', 'indel_recall'])
     with open(outfile, 'w') as o:
         o.write(header)
