@@ -77,18 +77,15 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str) -> dict:
     dp_vals = [10, 15, 20]
     ab_vals = [0.2, 0.3]
 
-    for i_dp in dp_vals:
-        dp = dp_vals[i_dp]
+    for dp in dp_vals:
         dp_str = 'DP_' + str(dp)
         results['snv'][dp_str] = {}
         results['indel'][dp_str] = {}
-        for i_gq in gq_vals:
-            gq = gq_vals[i_gq]
+        for gq in gq_vals:
             gq_str = 'GQ_' + str(gq)
             results['snv'][dp_str][gq_str] = {}
             results['indel'][dp_str][gq_str] = {}
-            for i_ab in ab_vals:
-                ab = ab_vals[i_ab]
+            for ab in ab_vals:
                 ab_str = 'AB_' + str(ab)
                 snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv')
                 indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel')
