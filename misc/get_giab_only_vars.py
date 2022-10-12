@@ -70,7 +70,7 @@ def prepare_giab_ht(giab_vcf: str, mtdir: str) -> hl.Table:
 
     giab_vars = mt.rows()
 
-    tmpht = mtdir + "tmpg.ht"
+    tmpht = mtdir + "tmpg1.ht"
     giab_vars = giab_vars.checkpoint(tmpht, overwrite = True)
 
     return giab_vars
