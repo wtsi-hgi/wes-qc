@@ -106,7 +106,7 @@ def get_missing_vars(giab_ht: hl.Table, alspac_mt: hl.MatrixTable, outfile: str,
 
     with open(outfile, 'w') as o:
         for i in range(0, len(loci)):
-            outline = ("\t").join([loci[i], refs[i], alts[i]])
+            outline = ("\t").join([str(loci[i]), str(refs[i]), str(alts[i])])
             o.write(outline)
             o.write("\n")
 
