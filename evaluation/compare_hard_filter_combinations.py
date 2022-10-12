@@ -148,7 +148,7 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     return results
 
 
-def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedfile, sample_list: list) -> float:
+def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: list) -> float:
     '''
     get transmitted/untransmitted ratio
     :param hl.MatrixTable mt: matrixtable
