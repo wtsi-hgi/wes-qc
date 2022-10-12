@@ -95,6 +95,8 @@ def get_missing_vars(giab_ht: hl.Table, alspac_mt: hl.MatrixTable, outfile: str,
     alspac_ht = alspac_ht.checkpoint(tmpht2, overwrite = True)
 
     giab_only = giab_ht.anti_join(alspac_ht)
+    tmpht3 = mtdir + "tmp5.ht"
+    giab_only = giab_only.checkpoint(tmpht3, overwrite = True)
     varcount = giab_only.count()
     print(varcount)
 
