@@ -1,6 +1,7 @@
 #compare different combinations of hard filters
 import hail as hl
 import pyspark
+import datetime
 from wes_qc.utils.utils import parse_config
 
 
@@ -86,12 +87,16 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str) -> dict:
             results['snv'][dp_str][gq_str] = {}
             results['indel'][dp_str][gq_str] = {}
             for ab in ab_vals:
+                now = datetime.datetime.now()
+                print(now.time())
                 ab_str = 'AB_' + str(ab)
                 snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv')
                 indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel')
                 results['snv'][dp_str][gq_str][ab_str] = snp_counts_per_bin
                 results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
                 print(results)
+                now = datetime.datetime.now()
+                print(now.time())
                 exit(0)
 
 
