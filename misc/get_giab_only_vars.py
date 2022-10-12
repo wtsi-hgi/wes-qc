@@ -124,7 +124,7 @@ def main():
     rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
 
-    alspac_mt_giab_sample = annotate_mtfile_rf(mtfile)
+    alspac_mt_giab_sample = annotate_mtfile_rf(mtfile, rf_htfile)
     alspac_mt_giab_sample_hard_filters = apply_hard_filters(alspac_mt_giab_sample)
 
     giab_vcf = resourcedir + "HG001_GRCh38_benchmark.interval.illumina.vcf.gz"
