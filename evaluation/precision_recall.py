@@ -14,7 +14,7 @@ def prepare_alspac_htfile(mtfile: str, rf_htfile: str, mtdir: str) -> hl.Table:
     '''
     mt = hl.read_matrix_table(mtfile)
     #filter to GIAB sample of interest
-    sample = 'EGAN00003332049'#GIAB12878/HG0001
+    sample = 'EGAN00003332049'#GIAB12878/HG001
     mt = mt.filter_cols(mt.s == sample)
 
     #hard filters
@@ -96,7 +96,7 @@ def get_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str)
     precision = tp / (tp + fp)
     recall = tp / (tp + fn)
 
-    return precision, recall
+    return precision, recall, tp, fp, fn
 
 
 def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: str) -> dict:
@@ -122,13 +122,19 @@ def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: st
         alspac_snvs = alspac_filtered_ht.filter(hl.is_snp(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
         alspac_indels = alspac_filtered_ht.filter(hl.is_indel(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
 
-        snv_prec, snv_recall = get_precision_recall(giab_snvs, alspac_snvs, mtdir)
-        indel_prec, indel_recall = get_precision_recall(giab_indels, alspac_indels, mtdir)
+        snv_prec, snv_recall, snv_tp, snv_fp, snv_fn = get_precision_recall(giab_snvs, alspac_snvs, mtdir)
+        indel_prec, indel_recall, indel_tp, indel_fp, indel_fn = get_precision_recall(giab_indels, alspac_indels, mtdir)
 
         results['snv'][bin]['precision'] = snv_prec
         results['snv'][bin]['recall'] = snv_recall
         results['indel'][bin]['precision'] = indel_prec
         results['indel'][bin]['recall'] = indel_recall
+        results['snv'][bin]['TP'] = snv_tp
+        results['snv'][bin]['FP'] = snv_fp
+        results['snv'][bin]['FN'] = snv_fn
+        results['indel'][bin]['TP'] = indel_tp
+        results['indel'][bin]['FP'] = indel_fp
+        results['indel'][bin]['FN'] = indel_fn
 
     return results
 
@@ -141,7 +147,8 @@ def print_results(results: dict, plot_dir: str):
     '''
     outfile = plot_dir + "/precision_recall.txt"
     n_bins = 102
-    header = ("\t").join(['bin', 'snv_precision', 'snv_recall', 'indel_precision', 'indel_recall'])
+    header = ("\t").join(['bin', 'snv_precision', 'snv_recall', 'indel_precision', 'indel_recall', 'snv_tp', 'snv_fp',
+        'snv_fn', 'indel_tp', 'indel_fp', 'indel_fn'])
     with open(outfile, 'w') as o:
         o.write(header)
         o.write("\n")
@@ -151,7 +158,14 @@ def print_results(results: dict, plot_dir: str):
             snv_recall = str(results['snv'][bin]['recall'])
             indel_prec = str(results['indel'][bin]['precision'])
             indel_recall = str(results['indel'][bin]['recall'])
-            outline = ("\t").join([binstr, snv_prec, snv_recall, indel_prec, indel_recall])
+            snv_tp = str(results['snv'][bin]['TP'])
+            snv_fp = str(results['snv'][bin]['FP'])
+            snv_fn = str(results['snv'][bin]['FN'])
+            indel_tp = str(results['indel'][bin]['TP'])
+            indel_fp = str(results['indel'][bin]['FP'])
+            indel_fn = str(results['indel'][bin]['FN'])
+            outline = ("\t").join([binstr, snv_prec, snv_recall, indel_prec, indel_recall, snv_tp, snv_fp, snv_fn,
+                indel_tp, indel_fp, indel_fn])
             o.write(outline)
             o.write("\n")
         
@@ -183,8 +197,6 @@ def main():
     results = calculate_precision_recall(alspac_vars_ht, giab_ht, mtdir)
 
     print_results(results, plot_dir)
-
-
 
 
 if __name__ == '__main__':
