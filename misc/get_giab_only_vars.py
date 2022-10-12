@@ -85,16 +85,18 @@ def get_missing_vars(giab_ht: hl.Table, alspac_mt: hl.MatrixTable, outfile: str,
     :param str mtdir: matrixtable directory
     '''
     #checkpoint files for speed
-    tmpht = mtdir + "tmp.ht"
+    tmpht = mtdir + "tmp3.ht"
     giab_ht = giab_ht.filter(hl.is_snp(giab_ht.alleles[0], giab_ht.alleles[1]))
     giab_ht = giab_ht.checkpoint(tmpht, overwrite = True)
 
     alspac_ht = alspac_mt.rows()
     alspac_ht = alspac_ht.filter(hl.is_snp(alspac_ht.alleles[0], alspac_ht.alleles[1]))
-    tmpht2 = mtdir + "tmp2.ht"
+    tmpht2 = mtdir + "tmp4.ht"
     alspac_ht = alspac_ht.checkpoint(tmpht2, overwrite = True)
 
     giab_only = giab_ht.anti_join(alspac_ht)
+    varcount = giab_only.count()
+    print(varcount)
 
     loci = giab_only.locus.collect()
     refs = giab_only.alleles[0].collect()
