@@ -28,6 +28,9 @@ def prepare_alspac_htfile(mtfile: str, rf_htfile: str, mtdir: str) -> hl.Table:
     )
     mt = mt.filter_entries(mt.hard_filters == 'Pass')
 
+    #filter to autosomes
+    mt = mt.filter_rows(mt.locus.in_autosome())
+
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
