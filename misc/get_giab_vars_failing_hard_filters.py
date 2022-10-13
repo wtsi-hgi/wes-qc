@@ -85,7 +85,7 @@ def get_vars_in_giab_fail_hard_filters(alspac_mt_giab_sample_hard_filters: hl.Ma
     '''
     tmpmt = mtdir + "tmp1.mt"
     alspac_mt_giab_sample_hard_filters = alspac_mt_giab_sample_hard_filters.checkpoint(tmpmt, overwrite = True)
-    mt = alspac_mt_giab_sample_hard_filters.semi_join(giab_ht)
+    mt = alspac_mt_giab_sample_hard_filters.semi_join_rows(giab_ht)
 
     tmpmt2 = mtdir + "tmp2.mt"
     mt = mt.checkpoint(tmpmt2, overwrite = True)
