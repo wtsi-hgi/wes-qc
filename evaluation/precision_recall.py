@@ -20,7 +20,7 @@ def prepare_alspac_htfile(mtfile: str, rf_htfile: str, mtdir: str) -> hl.Table:
     #hard filters
     filter_condition = (
         (mt.GT.is_het() & (mt.HetAB < 0.3)) | 
-        (mt.DP < 10) |
+        (mt.DP < 5) |
         (mt.GQ < 20)
     )
     mt = mt.annotate_entries(
@@ -148,7 +148,7 @@ def print_results(results: dict, plot_dir: str):
     :param dict results: results dict
     :param str plotdir: Output plot directory
     '''
-    outfile = plot_dir + "/precision_recall.txt"
+    outfile = plot_dir + "/precision_recall_dp5.txt"
     n_bins = 102
     header = ("\t").join(['bin', 'snv_precision', 'snv_recall', 'indel_precision', 'indel_recall', 'snv_tp', 'snv_fp',
         'snv_fn', 'indel_tp', 'indel_fp', 'indel_fn'])
