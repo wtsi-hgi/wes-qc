@@ -87,17 +87,12 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str) -> dict:
             results['snv'][dp_str][gq_str] = {}
             results['indel'][dp_str][gq_str] = {}
             for ab in ab_vals:
-                now = datetime.datetime.now()
-                print(now.time())
                 ab_str = 'AB_' + str(ab)
                 snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv')
                 indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel')
                 results['snv'][dp_str][gq_str][ab_str] = snp_counts_per_bin
                 results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
-                print(results)
-                now = datetime.datetime.now()
-                print(now.time())
-                exit(0)
+
 
 
 def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: int, gq: int, ab: float, var_type: str):
@@ -120,6 +115,9 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     
     for bin in bins:
         print("Analysing bin " + str(bin))
+        print("TP/FP counts")
+        now = datetime.datetime.now()
+        print(now.time())
         results[bin] = {}
         #filter by bin
         mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
@@ -140,12 +138,20 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
         counts = count_tp_fp(mt_tmp)
         results[bin]['TP'] = counts[0]
         results[bin]['FP'] = counts[1]
+        print("t/u ratio")
+        now = datetime.datetime.now()
+        print(now.time())
         #get transmitted/untransmitted
         if var_type == 'snv':
             ratio = get_trans_untrans(mt_tmp, pedigree, sample_list)
             results[bin]['t_u_ratio'] = ratio
         else:
             results[bin]['t_u_ratio'] = 0
+
+        print(results)
+        now = datetime.datetime.now()
+        print(now.time())
+        exit(0)
 
     return results
 

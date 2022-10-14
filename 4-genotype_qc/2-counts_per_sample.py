@@ -163,7 +163,7 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     return counts_all, counts_rare
 
 
-def get_median_ca_fraction(mt_in: hl.MatrixTable, outfile: str):
+def get_ca_fractions(mt_in: hl.MatrixTable, outfile: str):
     '''
     Get fraction CA per sample
     :param hl.MatrixTable mt_in: Input MatrixTable
@@ -299,7 +299,7 @@ def main():
     cafile = plot_dir + "/frac_ca_per_sample_post_qc.txt"
 
     get_counts_per_cq(mt, cqfile)
-    get_median_ca_fraction(mt, cafile)
+    get_ca_fractions(mt, cafile)
 
 
 if __name__ == '__main__':
