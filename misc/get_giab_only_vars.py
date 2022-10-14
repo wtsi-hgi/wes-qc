@@ -86,11 +86,11 @@ def get_missing_vars(giab_ht: hl.Table, alspac_mt: hl.MatrixTable, outfile: str,
     '''
     #checkpoint files for speed
     tmpht = mtdir + "tmp3.ht"
-    giab_ht = giab_ht.filter(hl.is_snp(giab_ht.alleles[0], giab_ht.alleles[1]))
+    giab_ht = giab_ht.filter(hl.is_indel(giab_ht.alleles[0], giab_ht.alleles[1]))
     giab_ht = giab_ht.checkpoint(tmpht, overwrite = True)
 
     alspac_ht = alspac_mt.rows()
-    alspac_ht = alspac_ht.filter(hl.is_snp(alspac_ht.alleles[0], alspac_ht.alleles[1]))
+    alspac_ht = alspac_ht.filter(hl.is_indel(alspac_ht.alleles[0], alspac_ht.alleles[1]))
     tmpht2 = mtdir + "tmp4.ht"
     alspac_ht = alspac_ht.checkpoint(tmpht2, overwrite = True)
 
@@ -134,8 +134,8 @@ def main():
     giab_vcf = resourcedir + "HG001_GRCh38_benchmark.interval.illumina.vcf.gz"
     giab_ht = prepare_giab_ht(giab_vcf, mtdir)
 
-    outfile_no_hard_filters = plot_dir + "/giab_vars_missing_from_alspac_unfiltered.txt"
-    outfile_hard_filters = plot_dir + "/giab_vars_missing_from_alspac_hard_filters.txt"
+    outfile_no_hard_filters = plot_dir + "/giab_vars_missing_from_alspac_unfiltered_indels.txt"
+    outfile_hard_filters = plot_dir + "/giab_vars_missing_from_alspac_hard_filters_indels.txt"
     get_missing_vars(giab_ht, alspac_mt_giab_sample, outfile_no_hard_filters, mtdir)
     get_missing_vars(giab_ht, alspac_mt_giab_sample_hard_filters, outfile_hard_filters, mtdir)
 
