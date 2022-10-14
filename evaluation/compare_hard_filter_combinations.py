@@ -156,12 +156,13 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     return results
 
 
-def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: list) -> float:
+def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: list, mtdir: str) -> float:
     '''
     get transmitted/untransmitted ratio
     :param hl.MatrixTable mt: matrixtable
     :param hl.Pedigree pedigree: Hail Pedigree
     :param list sample_list: List of samples in trios
+    :param st mtdir: matrixtable directory
     :return float:
     '''
     #filter to synonymous
@@ -169,9 +170,13 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
         #restrict to samples in trios, annotate with AC and filter to trio AC == 1 or 2
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
     mt2 = hl.variant_qc(mt2, name='varqc_trios')
-        #split to potentially transitted/untransmitted
+    #split to potentially transitted/untransmitted
     untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
+    tmpmt = mtdir + "tmp1.mt"
+    untrans_mt = untrans_mt.checkpoint(tmpmt, overwrite = True)
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
+    tmpmt2 = mtdir + "tmp2.mt"
+    trans_mt = trans_mt.checkpoint(tmpmt2, overwrite = True)
         #run tdt function for potential trans and untrans
     tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
     tdt_ht_untrans = hl.transmission_disequilibrium_test(untrans_mt, pedigree)
