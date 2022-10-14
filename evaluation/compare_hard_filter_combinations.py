@@ -172,6 +172,8 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
         #restrict to samples in trios, annotate with AC and filter to trio AC == 1 or 2
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
     mt2 = hl.variant_qc(mt2, name='varqc_trios')
+    tmpmt3 = mtdir + "tmp3.mt"
+    mt2 = mt2.checkpoint(tmpmt3, overwrite = True)
     #split to potentially transitted/untransmitted
     untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
     tmpmt = mtdir + "tmp1.mt"
