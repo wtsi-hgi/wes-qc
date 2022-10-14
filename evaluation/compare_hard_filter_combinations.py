@@ -57,11 +57,12 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     return mt
 
 
-def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str) -> dict:
+def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str, mtdir: str) -> dict:
     '''
     Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
     :param hl.MatrixTable mt: Input MatrixTable annotated with RF score, bin and TP/FP
     :param str plot_dir: directory for output files 
+    :param str mtdir: matrixtable directory
     :return: dict
     '''
     results = {'snv':{}, 'indel':{}}
@@ -88,14 +89,14 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str) -> dict:
             results['indel'][dp_str][gq_str] = {}
             for ab in ab_vals:
                 ab_str = 'AB_' + str(ab)
-                snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv')
-                indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel')
+                snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv', mtdir)
+                indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
                 results['snv'][dp_str][gq_str][ab_str] = snp_counts_per_bin
                 results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
 
 
 
-def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: int, gq: int, ab: float, var_type: str):
+def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: int, gq: int, ab: float, var_type: str, mtdir: str):
     '''
     Filter mt by each rf bin in a list, then genotype hard filters and count remaining TP and P variants
     :param hl.MatrixTable mt: Input MatrixTable
@@ -105,6 +106,7 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     ;param int gq; GQ threshold
     :param float ab: allele balance threshold
     :param  str var_type: variant type (snv/indel)
+    :param str mtdir: matrixtable directory
     :return: Dict containing bin and remaning TP/FP count
     '''
     results = {}
@@ -143,7 +145,7 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
         print(now.time())
         #get transmitted/untransmitted
         if var_type == 'snv':
-            ratio = get_trans_untrans(mt_tmp, pedigree, sample_list)
+            ratio = get_trans_untrans(mt_tmp, pedigree, sample_list, mtdir)
             results[bin]['t_u_ratio'] = ratio
         else:
             results[bin]['t_u_ratio'] = 0
@@ -229,7 +231,7 @@ def main():
     mt = hl.read_matrix_table(mtfile)
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
-    results = filter_and_count(mt_annot, plot_dir, pedfile)
+    results = filter_and_count(mt_annot, plot_dir, pedfile, mtdir)
 
 
 if __name__ == '__main__':
