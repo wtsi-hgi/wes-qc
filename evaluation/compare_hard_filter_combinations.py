@@ -79,20 +79,44 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str, mtdir: str
     dp_vals = [10, 15, 20]
     ab_vals = [0.2, 0.3]
 
-    for dp in dp_vals:
-        dp_str = 'DP_' + str(dp)
-        results['snv'][dp_str] = {}
-        results['indel'][dp_str] = {}
-        for gq in gq_vals:
-            gq_str = 'GQ_' + str(gq)
-            results['snv'][dp_str][gq_str] = {}
-            results['indel'][dp_str][gq_str] = {}
-            for ab in ab_vals:
-                ab_str = 'AB_' + str(ab)
-                snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv', mtdir)
-                indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
-                results['snv'][dp_str][gq_str][ab_str] = snp_counts_per_bin
-                results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
+    for bin in snp_bins:
+        results['snv'][bin] = {}
+        results['indel'][bin] = {}
+        now = datetime.datetime.now()
+        print(now.time())
+        print("bin " + str(bin))
+        mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
+        tmpmt1 = mtdir + "tmp1.mt"
+        mt_tmp = mt_tmp.checkpoint(tmpmt1, overwrite = True)
+        for dp in dp_vals:
+            dp_str = 'DP_' + str(dp)
+            results['snv'][bin][dp_str] = {}
+            results['indel'][bin][dp_str] = {}
+            for gq in gq_vals:
+                gq_str = 'GQ_' + str(gq)
+                results['snv'][bin][dp_str][gq_str] = {}
+                results['indel'][bin][dp_str][gq_str] = {}
+                for ab in ab_vals:
+                    ab_str = 'AB_' + str(ab)
+                    snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv', mtdir)
+                    #indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
+                    results['snv'][bin][dp_str][gq_str][ab_str] = snp_counts_per_bin
+                    #results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
+
+    # for dp in dp_vals:
+    #     dp_str = 'DP_' + str(dp)
+    #     results['snv'][dp_str] = {}
+    #     results['indel'][dp_str] = {}
+    #     for gq in gq_vals:
+    #         gq_str = 'GQ_' + str(gq)
+    #         results['snv'][dp_str][gq_str] = {}
+    #         results['indel'][dp_str][gq_str] = {}
+    #         for ab in ab_vals:
+    #             ab_str = 'AB_' + str(ab)
+    #             snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv', mtdir)
+    #             indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
+    #             results['snv'][dp_str][gq_str][ab_str] = snp_counts_per_bin
+    #             results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
 
 
 
@@ -114,46 +138,72 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     #list of samples in trios
     trio_sample_ht = hl.import_fam(pedfile)
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
-    
-    for bin in bins:
-        print("Analysing bin " + str(bin))
-        print("TP/FP counts")
-        now = datetime.datetime.now()
-        print(now.time())
-        results[bin] = {}
-        #filter by bin
-        mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
-        #genotype hard filters
-        filter_condition = (
-            (mt_tmp.GT.is_het() & (mt_tmp.HetAB < ab)) | 
-            (mt_tmp.DP < dp) |
-            (mt_tmp.GQ < gq)
-        )
-        mt_tmp = mt_tmp.annotate_entries(
-            hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
-        )
-        mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == 'Pass')
-        #remove unused rows
-        mt_tmp = hl.variant_qc(mt_tmp)
-        mt_tmp = mt_tmp.filter_rows(mt_tmp.variant_qc.n_non_ref == 0, keep = False)
-        #get counts
-        counts = count_tp_fp(mt_tmp)
-        results[bin]['TP'] = counts[0]
-        results[bin]['FP'] = counts[1]
-        print("t/u ratio")
-        now = datetime.datetime.now()
-        print(now.time())
-        #get transmitted/untransmitted
-        if var_type == 'snv':
-            ratio = get_trans_untrans(mt_tmp, pedigree, sample_list, mtdir)
-            results[bin]['t_u_ratio'] = ratio
-        else:
-            results[bin]['t_u_ratio'] = 0
 
-        print(results)
-        now = datetime.datetime.now()
-        print(now.time())
-        exit(0)
+    #genotype hard filters
+    now = datetime.datetime.now()
+    print(now.time())
+    filter_condition = (
+        (mt_tmp.GT.is_het() & (mt_tmp.HetAB < ab)) | 
+        (mt_tmp.DP < dp) |
+        (mt_tmp.GQ < gq)
+    )
+    mt_tmp = mt_tmp.annotate_entries(
+        hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    )
+    mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == 'Pass')
+        #remove unused rows
+    mt_tmp = hl.variant_qc(mt_tmp)
+    mt_tmp = mt_tmp.filter_rows(mt_tmp.variant_qc.n_non_ref == 0, keep = False)
+
+    tmpmt2 = mtdir + "tmp2.mt"
+    mt_tmp = mt_tmp.checkpoint(tmpmt2, overwrite = True)
+    counts = count_tp_fp(mt_tmp)
+    results['TP'] = counts[0]
+    results['FP'] = counts[1]
+    print(results)
+    now = datetime.datetime.now()
+    print(now.time())
+    exit(0)
+    
+    # for bin in bins:
+    #     print("Analysing bin " + str(bin))
+    #     print("TP/FP counts")
+    #     now = datetime.datetime.now()
+    #     print(now.time())
+    #     results[bin] = {}
+    #     #filter by bin
+    #     mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
+    #     #genotype hard filters
+    #     filter_condition = (
+    #         (mt_tmp.GT.is_het() & (mt_tmp.HetAB < ab)) | 
+    #         (mt_tmp.DP < dp) |
+    #         (mt_tmp.GQ < gq)
+    #     )
+    #     mt_tmp = mt_tmp.annotate_entries(
+    #         hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    #     )
+    #     mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == 'Pass')
+    #     #remove unused rows
+    #     mt_tmp = hl.variant_qc(mt_tmp)
+    #     mt_tmp = mt_tmp.filter_rows(mt_tmp.variant_qc.n_non_ref == 0, keep = False)
+    #     #get counts
+    #     counts = count_tp_fp(mt_tmp)
+    #     results[bin]['TP'] = counts[0]
+    #     results[bin]['FP'] = counts[1]
+    #     print("t/u ratio")
+    #     now = datetime.datetime.now()
+    #     print(now.time())
+    #     #get transmitted/untransmitted
+    #     if var_type == 'snv':
+    #         ratio = get_trans_untrans(mt_tmp, pedigree, sample_list, mtdir)
+    #         results[bin]['t_u_ratio'] = ratio
+    #     else:
+    #         results[bin]['t_u_ratio'] = 0
+
+    #     print(results)
+    #     now = datetime.datetime.now()
+    #     print(now.time())
+    #     exit(0)
 
     return results
 
