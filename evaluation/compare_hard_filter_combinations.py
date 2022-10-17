@@ -343,7 +343,7 @@ def main():
     mt = hl.read_matrix_table(mtfile)
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
-    mt_tp, mt_fp, mt_syn = filter_mts(mt_annot)
+    mt_tp, mt_fp, mt_syn = filter_mts(mt_annot, mtdir)
     results = filter_and_count(mt_tp, mt_fp, mt_syn, plot_dir, pedfile, mtdir)
 
 
