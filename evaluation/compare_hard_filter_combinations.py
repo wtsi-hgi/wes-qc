@@ -160,6 +160,11 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     counts = count_tp_fp(mt_tmp)
     results['TP'] = counts[0]
     results['FP'] = counts[1]
+    if var_type == 'snv':
+        ratio = get_trans_untrans(mt_tmp, pedigree, sample_list, mtdir)
+        results['t_u_ratio'] = ratio
+    else:
+        results['t_u_ratio'] = 0
     print(results)
     now = datetime.datetime.now()
     print(now.time())
@@ -226,11 +231,11 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
     mt2 = mt2.checkpoint(tmpmt3, overwrite = True)
     #split to potentially transitted/untransmitted
     untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt = mtdir + "tmp1.mt"
-    untrans_mt = untrans_mt.checkpoint(tmpmt, overwrite = True)
+    tmpmt4 = mtdir + "tmp4.mt"
+    untrans_mt = untrans_mt.checkpoint(tmpmt4, overwrite = True)
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
-    tmpmt2 = mtdir + "tmp2.mt"
-    trans_mt = trans_mt.checkpoint(tmpmt2, overwrite = True)
+    tmpmt5 = mtdir + "tmp4.mt"
+    trans_mt = trans_mt.checkpoint(tmpmt5, overwrite = True)
         #run tdt function for potential trans and untrans
     tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
     tdt_ht_untrans = hl.transmission_disequilibrium_test(untrans_mt, pedigree)
