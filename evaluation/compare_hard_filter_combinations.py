@@ -143,11 +143,11 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     now = datetime.datetime.now()
     print(now.time())
     filter_condition = (
-        (mt_tmp.GT.is_het() & (mt_tmp.HetAB < ab)) | 
-        (mt_tmp.DP < dp) |
-        (mt_tmp.GQ < gq)
+        (mt.GT.is_het() & (mt.HetAB < ab)) | 
+        (mt.DP < dp) |
+        (mt.GQ < gq)
     )
-    mt_tmp = mt_tmp.annotate_entries(
+    mt_tmp = mt.annotate_entries(
         hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
     )
     mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == 'Pass')
