@@ -57,21 +57,25 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     return mt
 
 
-def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str, mtdir: str) -> dict:
+def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, plot_dir: str, pedfile: str, mtdir: str) -> dict:
     '''
     Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
-    :param hl.MatrixTable mt: Input MatrixTable annotated with RF score, bin and TP/FP
+    :param hl.MatrixTable mt_tp: Input TP MatrixTable
+    :param hl.MatrixTable mt_fp: Input FP MatrixTable
+    :param hl.MatrixTable mt_syn: Input synonymous MatrixTable
     :param str plot_dir: directory for output files 
     :param str mtdir: matrixtable directory
     :return: dict
     '''
     results = {'snv':{}, 'indel':{}}
-    #split into SNPs and indels
-    snp_mt = mt.filter_rows(hl.is_snp(mt.alleles[0], mt.alleles[1]))
-    indel_mt = mt.filter_rows(hl.is_indel(mt.alleles[0], mt.alleles[1]))
+    #split mts into SNPs and indels
+    snp_mt_tp = mt_tp.filter_rows(hl.is_snp(mt_tp.alleles[0], mt_tp.alleles[1]))
+    indel_mt_tp = mt_tp.filter_rows(hl.is_indel(mt_tp.alleles[0], mt_tp.alleles[1]))
+    snp_mt_fp = mt_fp.filter_rows(hl.is_snp(mt_fp.alleles[0], mt_fp.alleles[1]))
+    indel_mt_fp = mt_fp.filter_rows(hl.is_indel(mt_fp.alleles[0], mt_fp.alleles[1]))
 
-    snp_total_tps, snp_total_fps = count_tp_fp(snp_mt)
-    indel_total_tps, indel_total_fps = count_tp_fp(indel_mt)
+    snp_total_tps, snp_total_fps = count_tp_fp(snp_mt_tp, snp_mt_fp)
+    indel_total_tps, indel_total_fps = count_tp_fp(indel_mt_tp, indel_mt_fp)
 
     snp_bins = list(range(35,46))
     indel_bins = list(range(57,68))
@@ -81,26 +85,31 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str, mtdir: str
 
     for bin in snp_bins:
         results['snv'][bin] = {}
-        results['indel'][bin] = {}
         now = datetime.datetime.now()
         print(now.time())
         print("bin " + str(bin))
-        mt_tmp = mt.filter_rows(mt.info.rf_bin <= bin)
-        tmpmt1 = mtdir + "tmp1.mt"
-        mt_tmp = mt_tmp.checkpoint(tmpmt1, overwrite = True)
+        mt_tp_tmp = mt_tp.filter_rows(mt_tp.info.rf_bin <= bin)
+        tmpmtb1 = mtdir + "tmp1b.mt"
+        mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
+        mt_fp_tmp = mt_fp.filter_rows(mt_fp.info.rf_bin <= bin)
+        tmpmtb2 = mtdir + "tmp2b.mt"
+        mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb1, overwrite = True)
+        mt_syn_tmp = mt_syn.filter_rows(mt_syn.info.rf_bin <= bin)
+        tmpmtb3 = mtdir + "tmp3b.mt"
+        mt_syn_tmp = mt_syn_tmp.checkpoint(tmpmtb3, overwrite = True)
+
         for dp in dp_vals:
             dp_str = 'DP_' + str(dp)
             results['snv'][bin][dp_str] = {}
-            results['indel'][bin][dp_str] = {}
             for gq in gq_vals:
                 gq_str = 'GQ_' + str(gq)
                 results['snv'][bin][dp_str][gq_str] = {}
-                results['indel'][bin][dp_str][gq_str] = {}
                 for ab in ab_vals:
                     ab_str = 'AB_' + str(ab)
-                    snp_counts_per_bin = filter_mt_count_tp_fp_t_u(snp_mt, snp_bins, pedfile, dp, gq, ab, 'snv', mtdir)
+                    snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, 'snv', mtdir)
                     #indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
-                    results['snv'][bin][dp_str][gq_str][ab_str] = snp_counts_per_bin
+                    results['snv'][bin][dp_str][gq_str][ab_str] = snp_counts
+
                     #results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
 
     # for dp in dp_vals:
@@ -120,11 +129,12 @@ def filter_and_count(mt: hl.MatrixTable, plot_dir: str, pedfile: str, mtdir: str
 
 
 
-def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: int, gq: int, ab: float, var_type: str, mtdir: str):
+def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, pedfile: str, dp: int, gq: int, ab: float, var_type: str, mtdir: str):
     '''
     Filter mt by each rf bin in a list, then genotype hard filters and count remaining TP and P variants
-    :param hl.MatrixTable mt: Input MatrixTable
-    :param list bins: List of bins to filter by
+    :param hl.MatrixTable mt_tp: Input TP MatrixTable
+    :param hl.MatrixTable mt_fp: Input FP MatrixTable
+    :param hl.MatrixTable mt_syn: Input synonymous MatrixTable
     :param str pedfile: pedfile path
     :param int dp: DP threshold
     ;param int gq; GQ threshold
@@ -139,29 +149,55 @@ def filter_mt_count_tp_fp_t_u(mt: hl.MatrixTable, bins: list, pedfile: str, dp: 
     trio_sample_ht = hl.import_fam(pedfile)
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
 
-    #genotype hard filters
+    #genotype hard filters - should put this in a different method
     now = datetime.datetime.now()
     print(now.time())
     filter_condition = (
-        (mt.GT.is_het() & (mt.HetAB < ab)) | 
-        (mt.DP < dp) |
-        (mt.GQ < gq)
+        (mt_tp.GT.is_het() & (mt_tp.HetAB < ab)) | 
+        (mt_tp.DP < dp) |
+        (mt_tp.GQ < gq)
     )
-    mt_tmp = mt.annotate_entries(
+    mt_tp_tmp = mt_tp.annotate_entries(
         hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
     )
-    mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == 'Pass')
+    mt_tp_tmp = mt_tp_tmp.filter_entries(mt_tp_tmp.hard_filters == 'Pass')
         #remove unused rows
-    mt_tmp = hl.variant_qc(mt_tmp)
-    mt_tmp = mt_tmp.filter_rows(mt_tmp.variant_qc.n_non_ref == 0, keep = False)
+    mt_tp_tmp = hl.variant_qc(mt_tp_tmp)
+    mt_tp_tmp = mt_tp_tmp.filter_rows(mt_tp_tmp.variant_qc.n_non_ref == 0, keep = False)
 
-    tmpmt2 = mtdir + "tmp2.mt"
-    mt_tmp = mt_tmp.checkpoint(tmpmt2, overwrite = True)
-    counts = count_tp_fp(mt_tmp)
+    filter_condition = (
+        (mt_fp.GT.is_het() & (mt_fp.HetAB < ab)) | 
+        (mt_fp.DP < dp) |
+        (mt_fp.GQ < gq)
+    )
+    mt_fp_tmp = mt_fp.annotate_entries(
+        hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    )
+    mt_fp_tmp = mt_fp_tmp.filter_entries(mt_fp_tmp.hard_filters == 'Pass')
+        #remove unused rows
+    mt_fp_tmp = hl.variant_qc(mt_fp_tmp)
+    mt_fp_tmp = mt_fp_tmp.filter_rows(mt_fp_tmp.variant_qc.n_non_ref == 0, keep = False)
+
+    filter_condition = (
+        (mt_syn.GT.is_het() & (mt_syn.HetAB < ab)) | 
+        (mt_syn.DP < dp) |
+        (mt_syn.GQ < gq)
+    )
+    mt_syn_tmp = mt_syn.annotate_entries(
+        hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    )
+    mt_syn_tmp = mt_syn_tmp.filter_entries(mt_syn_tmp.hard_filters == 'Pass')
+        #remove unused rows
+    mt_syn_tmp = hl.variant_qc(mt_syn_tmp)
+    mt_syn_tmp = mt_syn_tmp.filter_rows(mt_syn_tmp.variant_qc.n_non_ref == 0, keep = False)
+
+    # tmpmt2 = mtdir + "tmp2.mt"
+    # mt_tmp = mt_tmp.checkpoint(tmpmt2, overwrite = True)
+    counts = count_tp_fp(mt_tp_tmp, mt_fp_tmp)
     results['TP'] = counts[0]
     results['FP'] = counts[1]
     if var_type == 'snv':
-        ratio = get_trans_untrans(mt_tmp, pedigree, sample_list, mtdir)
+        ratio = get_trans_untrans(mt_syn_tmp, pedigree, sample_list, mtdir)
         results['t_u_ratio'] = ratio
     else:
         results['t_u_ratio'] = 0
@@ -219,7 +255,7 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
     :param hl.MatrixTable mt: matrixtable
     :param hl.Pedigree pedigree: Hail Pedigree
     :param list sample_list: List of samples in trios
-    :param st mtdir: matrixtable directory
+    :param str mtdir: matrixtable directory
     :return float:
     '''
     #filter to synonymous
@@ -251,19 +287,38 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
     return ratio
 
 
-def count_tp_fp(mt: hl.MatrixTable) -> tuple:
+def count_tp_fp(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable) -> tuple:
     '''
-    Count total TPs and FPs in a MatrixTable
-    :param hl.MatrixTable mt: Input mt
+    Count total TPs and FPs in a pair of MatrixTables
+    :param hl.MatrixTable mt_tp: Input TP mt
+    :param hl.MatrixTable mt_fp: Input FP mt
     :return: tuple of TP and FP counts
     '''
-    mt_tmp = mt.filter_rows(mt.TP == True)
-    tp_count = mt_tmp.count_rows()
 
-    mt_tmp = mt.filter_rows(mt.FP == True)
-    fp_count = mt_tmp.count_rows()
+    tp_count = mt_tp.count_rows()
+    fp_count = mt_fp.count_rows()
 
     return tp_count, fp_count
+
+
+def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
+    '''
+    Split matrixtable and return tables with just TP, just FP, just synonymous
+    :param hl.MatrixTable mt: Input mtfile
+    :param st mtdir: matrixtable directory
+    :return: tuple of 3 hl.MatrixTable objects
+    '''
+    mt_true = mt.filter_rows(mt.TP == True)
+    mt_false = mt.filter_rows(mt.FP == True)
+    mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')
+    tmpmtt = mtdir + "tmpt.mt"
+    tmpmtf = mtdir + "tmpf.mt"
+    tmpmts = mtdir + "tmps.mt"
+    mt_true = mt_true.checkpoint(tmpmtt, overwrite = True)
+    mt_false = mt_false.checkpoint(tmpmtf, overwrite = True)
+    mt_syn = mt_syn.checkpoint(tmpmts, overwrite = True)
+
+    return mt_true, mt_false, mt_syn
 
 
 def main():
@@ -288,7 +343,8 @@ def main():
     mt = hl.read_matrix_table(mtfile)
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
-    results = filter_and_count(mt_annot, plot_dir, pedfile, mtdir)
+    mt_tp, mt_fp, mt_syn = filter_mts(mt_annot)
+    results = filter_and_count(mt_tp, mt_fp, mt_syn, plot_dir, pedfile, mtdir)
 
 
 if __name__ == '__main__':
