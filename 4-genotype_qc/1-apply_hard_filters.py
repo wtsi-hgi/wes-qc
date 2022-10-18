@@ -72,8 +72,8 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mtfile = mtdir + "mt_after_var_qc_40_indel_60.mt"
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt_40_indel_60.mt"
+    mtfile = mtdir + "mt_after_var_qc.mt"
+    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
     filter_mt(mtfile, args.dp, args.gq, args.ab, mtfile_filtered)
 
 
