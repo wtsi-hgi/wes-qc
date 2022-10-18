@@ -79,8 +79,8 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
 
     snp_bins = list(range(35,46))
     indel_bins = list(range(57,68))
-    gq_vals = [20, 30]
-    dp_vals = [10, 15, 20]
+    gq_vals = [10, 20, 30]
+    dp_vals = [5, 10]
     ab_vals = [0.2, 0.3]
 
     for bin in snp_bins:
@@ -109,7 +109,9 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                     snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, 'snv', mtdir)
                     #indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
                     results['snv'][bin][dp_str][gq_str][ab_str] = snp_counts
-
+        now = datetime.datetime.now()
+        print(now.time())
+        exit(0)
                     #results['indel'][dp_str][gq_str][ab_str] = indel_counts_per_bin
 
     # for dp in dp_vals:
@@ -201,10 +203,7 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
         results['t_u_ratio'] = ratio
     else:
         results['t_u_ratio'] = 0
-    print(results)
-    now = datetime.datetime.now()
-    print(now.time())
-    exit(0)
+
     
     # for bin in bins:
     #     print("Analysing bin " + str(bin))
