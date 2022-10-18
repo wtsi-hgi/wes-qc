@@ -106,6 +106,7 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                 results['snv'][bin][dp_str][gq_str] = {}
                 for ab in ab_vals:
                     ab_str = 'AB_' + str(ab)
+                    print(dp_str + " " + gq_str + " " + ab_str)
                     snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, 'snv', mtdir)
                     #indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
                     results['snv'][bin][dp_str][gq_str][ab_str] = snp_counts
@@ -270,7 +271,7 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
     tmpmt4 = mtdir + "tmp4.mt"
     untrans_mt = untrans_mt.checkpoint(tmpmt4, overwrite = True)
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
-    tmpmt5 = mtdir + "tmp4.mt"
+    tmpmt5 = mtdir + "tmp5.mt"
     trans_mt = trans_mt.checkpoint(tmpmt5, overwrite = True)
         #run tdt function for potential trans and untrans
     tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
