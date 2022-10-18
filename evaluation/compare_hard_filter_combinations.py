@@ -109,6 +109,7 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                     snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, 'snv', mtdir)
                     #indel_counts_per_bin = filter_mt_count_tp_fp_t_u(indel_mt, indel_bins, pedfile, dp, gq, ab, 'indel', mtdir)
                     results['snv'][bin][dp_str][gq_str][ab_str] = snp_counts
+        print(results)
         now = datetime.datetime.now()
         print(now.time())
         exit(0)
