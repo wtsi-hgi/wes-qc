@@ -91,8 +91,8 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    mtfile = mtdir + "mt_varqc_splitmulti_snv_40_indel_60.mt"
-    mtfile_after_varqc = mtdir + "mt_after_var_qc.mt"
+    mtfile = mtdir + "mt_varqc_splitmulti.mt"
+    mtfile_after_varqc = mtdir + "mt_after_var_qc_snv_40_indel_60.mt"
     cqfile = resourcedir + "all_consequences.txt"
 
     annotate_mt_with_cq_rf_score_and_bin(mtfile, htfile, args.snv, args.indel, cqfile, mtfile_after_varqc)
