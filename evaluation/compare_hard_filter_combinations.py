@@ -306,11 +306,11 @@ def print_results(results: dict, outfile: str, vartype: str):
         o.write("\n")
 
         for var_f in results[vartype].keys():
-            tp = (results[vartype][var_f]['TP']/results['snv_total_tp']) * 100
-            fp = (results[vartype][var_f]['FP']/results['snv_total_fp']) * 100
+            tp = str((results[vartype][var_f]['TP']/results['snv_total_tp']) * 100)
+            fp = str((results[vartype][var_f]['FP']/results['snv_total_fp']) * 100)
             outline = [var_f, tp, fp]
             if vartype == 'snv':
-                tu = results[vartype][var_f]['t_u_ratio']
+                tu = str(results[vartype][var_f]['t_u_ratio'])
                 outline.append(tu)
             o.write(("\t").join(outline))
             o.write("\n")
