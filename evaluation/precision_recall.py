@@ -115,6 +115,7 @@ def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: st
 
     giab_snvs = giab_ht.filter(hl.is_snp(giab_ht.alleles[0], giab_ht.alleles[1]))
     giab_indels = giab_ht.filter(hl.is_indel(giab_ht.alleles[0], giab_ht.alleles[1]))
+    giab_indels = giab_indels.key_by(**hl.min_rep(giab_indels.locus, giab_indels.alleles))
 
     for bin in range(1,n_bins):
         results['snv'][bin] = {}
@@ -124,6 +125,7 @@ def calculate_precision_recall(alspac_ht: hl.Table, giab_ht: hl.Table, mtdir: st
         print("bin = " + str(bin) + " n vars = " + str(alspac_var_count))#for sanity check
         alspac_snvs = alspac_filtered_ht.filter(hl.is_snp(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
         alspac_indels = alspac_filtered_ht.filter(hl.is_indel(alspac_filtered_ht.alleles[0], alspac_filtered_ht.alleles[1]))
+        alspac_indels = alspac_indels.key_by(**hl.min_rep(alspac_indels.locus, alspac_indels.alleles))
 
         snv_prec, snv_recall, snv_tp, snv_fp, snv_fn = get_precision_recall(giab_snvs, alspac_snvs, mtdir)
         indel_prec, indel_recall, indel_tp, indel_fp, indel_fn = get_precision_recall(giab_indels, alspac_indels, mtdir)
