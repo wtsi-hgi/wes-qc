@@ -82,11 +82,9 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     results['indel_total_tp'] = indel_total_tps
     results['indel_total_fp'] = indel_total_fps
 
-    # snp_bins = list(range(35,46))
-    # indel_bins = list(range(57,68))
-    snp_bins = list(range(40,42))
-    indel_bins = list(range(60,62))
-    gq_vals = [10, 20, 30]
+    snp_bins = list(range(35,46))
+    indel_bins = list(range(58,69))
+    gq_vals = [10, 15, 20]
     dp_vals = [5, 10]
     ab_vals = [0.2, 0.3]
 
@@ -295,8 +293,6 @@ def print_results(results: dict, outfile: str, vartype: str):
     :param str outfile: output file path
     :param str vartype: variant type (snv or indel)
     '''
-    print(results)
-
     header = ['filter', 'TP', 'FP']
     if vartype == 'snv':
         header.append('t_u_ratio')
