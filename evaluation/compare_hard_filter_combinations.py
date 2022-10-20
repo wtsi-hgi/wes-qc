@@ -45,7 +45,7 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
-    ht=hl.import_table(giab_cqfile,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str', 'f6':'str', 'f7': str}, no_header=True)
+    ht=hl.import_table(giab_cqfile,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str', 'f6':'str', 'f7': 'str'}, no_header=True)
     ht=ht.annotate(chr=ht.f0)
     ht=ht.annotate(pos=ht.f1)
     ht=ht.annotate(rs=ht.f2)
