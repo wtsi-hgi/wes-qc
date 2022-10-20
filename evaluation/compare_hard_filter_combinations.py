@@ -33,7 +33,7 @@ def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
     return mt
 
 
-def prepare_giab_mt(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
+def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
     '''
     Get GIAB ht from vcf file
     :param str giab_vcf: path of input VCF file
@@ -503,7 +503,7 @@ def main():
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
     mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_annot, mtdir)
-    results = filter_and_count(mt_tp, mt_fp, mt_syn, ht_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
+    results = filter_and_count(mt_tp, mt_fp, mt_syn, mt_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
 
     outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv.txt"
     outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel.txt"
