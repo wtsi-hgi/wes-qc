@@ -440,9 +440,9 @@ def print_results(results: dict, outfile: str, vartype: str):
     '''
     header = ['filter', 'TP', 'FP']
     if vartype == 'snv':
-        header.append('t_u_ratio', 'precision', 'recall')
+        header = header + (['t_u_ratio', 'precision', 'recall'])
     elif vartype == 'indel':
-        header.append('precision', 'recall', 'precision_frameshift', 'recall_frameshift', 'precision_inframe', 'recall_inframe')
+        header = header + (['precision', 'recall', 'precision_frameshift', 'recall_frameshift', 'precision_inframe', 'recall_inframe'])
     
     with open(outfile, 'w') as o:
         o.write(("\t").join(header))
