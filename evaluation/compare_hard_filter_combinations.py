@@ -61,7 +61,7 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
 
     mt=mt.annotate_rows(consequence=ht[mt.row_key].consequence)
     giab_vars = mt.rows()
-    tmphtg = mtdir + "tmphtg.ht"
+    tmphtg = mtdir + "tmphtgx.ht"
     giab_vars = giab_vars.checkpoint(tmphtg, overwrite = True)
 
     return giab_vars
@@ -118,26 +118,30 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     results['indel_total_tp'] = indel_total_tps
     results['indel_total_fp'] = indel_total_fps
 
-    snp_bins = list(range(35,46))
-    indel_bins = list(range(58,69))
+    # snp_bins = list(range(35,46))
+    # indel_bins = list(range(58,69))
+    snp_bins = [36, 38, 40, 42, 44]
+    indel_bins = [56, 58, 60, 62, 64]
     gq_vals = [10, 15, 20]
-    dp_vals = [4, 5, 6, 10]
-    ab_vals = [0.2, 0.25, 0.3]
+    # dp_vals = [4, 5, 6, 10]
+    # ab_vals = [0.2, 0.25, 0.3]
+    dp_vals = [5, 10]
+    ab_vals = [0.2, 0.3]
 
     for bin in snp_bins:
         bin_str = "bin_" + str(bin)
         print("bin " + str(bin))
         mt_tp_tmp = snp_mt_tp.filter_rows(snp_mt_tp.info.rf_bin <= bin)
-        tmpmtb1 = mtdir + "tmp1b.mt"
+        tmpmtb1 = mtdir + "tmp1bx.mt"
         mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
         mt_fp_tmp = snp_mt_fp.filter_rows(snp_mt_fp.info.rf_bin <= bin)
-        tmpmtb2 = mtdir + "tmp2b.mt"
+        tmpmtb2 = mtdir + "tmp2bx.mt"
         mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
         mt_syn_tmp = mt_syn.filter_rows(mt_syn.info.rf_bin <= bin)
-        tmpmtb3 = mtdir + "tmp3b.mt"
+        tmpmtb3 = mtdir + "tmp3bx.mt"
         mt_syn_tmp = mt_syn_tmp.checkpoint(tmpmtb3, overwrite = True)
         mt_prec_recall_tmp = mt_prec_recall.filter_rows(mt_prec_recall.info.rf_bin <= bin)
-        tmphtb4 = mtdir + "tmp4b.ht"
+        tmphtb4 = mtdir + "tmp4bx.ht"
         mt_prec_recall_tmp = mt_prec_recall_tmp.checkpoint(tmphtb4, overwrite = True)
 
         for dp in dp_vals:
@@ -155,13 +159,13 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
         bin_str = "bin_" + str(bin)
         print("bin " + str(bin))
         mt_tp_tmp = indel_mt_tp.filter_rows(indel_mt_tp.info.rf_bin <= bin)
-        tmpmtb1 = mtdir + "tmp1b.mt"
+        tmpmtb1 = mtdir + "tmp1bx.mt"
         mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
         mt_fp_tmp = indel_mt_fp.filter_rows(indel_mt_fp.info.rf_bin <= bin)
-        tmpmtb2 = mtdir + "tmp2b.mt"
+        tmpmtb2 = mtdir + "tmp2bx.mt"
         mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
         mt_prec_recall_tmp = mt_prec_recall.filter_rows(mt_prec_recall.info.rf_bin <= bin)
-        tmphtb4 = mtdir + "tmp4b.ht"
+        tmphtb4 = mtdir + "tmp4bx.ht"
         mt_prec_recall_tmp = mt_prec_recall_tmp.checkpoint(tmphtb4, overwrite = True)
 
         for dp in dp_vals:
@@ -294,9 +298,9 @@ def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, 
     if var_type == 'snv':
         giab_snvs = ht_giab.filter(hl.is_snp(ht_giab.alleles[0], ht_giab.alleles[1]))
         alspac_snvs = ht_prec_recall.filter(hl.is_snp(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        tmpht1 = mtdir + "tmppr1.ht"
+        tmpht1 = mtdir + "tmppr1x.ht"
         giab_snvs = giab_snvs.checkpoint(tmpht1, overwrite = True)
-        tmpht2 = mtdir + "tmppr2.ht"
+        tmpht2 = mtdir + "tmppr2x.ht"
         alspac_snvs = alspac_snvs.checkpoint(tmpht2, overwrite = True)
         p, r = calculate_precision_recall(giab_snvs, alspac_snvs)
         return p, r
@@ -304,26 +308,26 @@ def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, 
     elif var_type == 'indel':
         giab_indels = ht_giab.filter(hl.is_indel(ht_giab.alleles[0], ht_giab.alleles[1]))
         alspac_indels = ht_prec_recall.filter(hl.is_indel(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        tmpht1 = mtdir + "tmppr1.ht"
+        tmpht1 = mtdir + "tmppr1x.ht"
         giab_indels = giab_indels.checkpoint(tmpht1, overwrite = True)
-        tmpht2 = mtdir + "tmppr2.ht"
+        tmpht2 = mtdir + "tmppr2x.ht"
         alspac_indels = alspac_indels.checkpoint(tmpht2, overwrite = True)
         p, r = calculate_precision_recall(giab_indels, alspac_indels)
 
         giab_frameshift = giab_indels.filter(giab_indels.consequence == 'frameshift_variant')
         alspac_frameshift = alspac_indels.filter(alspac_indels.consequence == 'frameshift_variant')
-        tmpht3 = mtdir + "tmppr3.ht"
+        tmpht3 = mtdir + "tmppr3x.ht"
         giab_frameshift = giab_frameshift.checkpoint(tmpht3, overwrite = True)
-        tmpht4 = mtdir + "tmppr4.ht"
+        tmpht4 = mtdir + "tmppr4x.ht"
         alspac_frameshift = alspac_frameshift.checkpoint(tmpht4, overwrite = True)
         p_f, r_f = calculate_precision_recall(giab_frameshift, alspac_frameshift)
 
         inframe_cqs = ['inframe_deletion', 'inframe_insertion']
         giab_in_frame = giab_indels.filter(hl.literal(inframe_cqs).contains(giab_indels.consequence))
         alspac_in_frame = alspac_indels.filter(hl.literal(inframe_cqs).contains(alspac_indels.consequence))
-        tmpht5 = mtdir + "tmppr5.ht"
+        tmpht5 = mtdir + "tmppr5x.ht"
         giab_in_frame = giab_in_frame.checkpoint(tmpht5, overwrite = True)
-        tmpht6 = mtdir + "tmppr6.ht"
+        tmpht6 = mtdir + "tmppr6x.ht"
         alspac_in_frame = alspac_in_frame.checkpoint(tmpht6, overwrite = True)
         p_if, r_if = calculate_precision_recall(giab_in_frame, alspac_in_frame)
 
@@ -366,14 +370,14 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
         #restrict to samples in trios, annotate with AC and filter to trio AC == 1 or 2
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
     mt2 = hl.variant_qc(mt2, name='varqc_trios')
-    tmpmt3 = mtdir + "tmp3.mt"
+    tmpmt3 = mtdir + "tmp3x.mt"
     mt2 = mt2.checkpoint(tmpmt3, overwrite = True)
     #split to potentially transitted/untransmitted
     untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt4 = mtdir + "tmp4.mt"
+    tmpmt4 = mtdir + "tmp4x.mt"
     untrans_mt = untrans_mt.checkpoint(tmpmt4, overwrite = True)
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
-    tmpmt5 = mtdir + "tmp5.mt"
+    tmpmt5 = mtdir + "tmp5x.mt"
     trans_mt = trans_mt.checkpoint(tmpmt5, overwrite = True)
         #run tdt function for potential trans and untrans
     tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
@@ -419,10 +423,10 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
     mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
     mt_prec_recall = hl.variant_qc(mt_prec_recall)
     mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
-    tmpmtt = mtdir + "tmpt.mt"
-    tmpmtf = mtdir + "tmpf.mt"
-    tmpmts = mtdir + "tmps.mt"
-    tmpmtpr = mtdir + "tmppr.mt"
+    tmpmtt = mtdir + "tmptx.mt"
+    tmpmtf = mtdir + "tmpfx.mt"
+    tmpmts = mtdir + "tmpsx.mt"
+    tmpmtpr = mtdir + "tmpprx.mt"
     mt_true = mt_true.checkpoint(tmpmtt, overwrite = True)
     mt_false = mt_false.checkpoint(tmpmtf, overwrite = True)
     mt_syn = mt_syn.checkpoint(tmpmts, overwrite = True)
@@ -503,8 +507,8 @@ def main():
     mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_annot, mtdir)
     results = filter_and_count(mt_tp, mt_fp, mt_syn, mt_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
 
-    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv.txt"
-    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel.txt"
+    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv_fewer_combs.txt"
+    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel_fewer_combs.txt"
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 
