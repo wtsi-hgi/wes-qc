@@ -22,8 +22,8 @@ def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
     :param str indel_results_file: indel results file path
     :param str outdir: output directory for plots
     '''
-    snv_df = pd.read_csv(snv_results_file, sep = "\t", header = True)
-    indel_df = pd.read_csv(indel_results_file, sep = "\t", header = True)
+    snv_df = pd.read_csv(snv_results_file, sep = "\t")
+    indel_df = pd.read_csv(indel_results_file, sep = "\t")
     
     snv_tp_fp_file = outdir + "snv_tp_fp.html"
     make_plot(snv_df, "TP", "FP", snv_tp_fp_file)
