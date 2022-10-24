@@ -12,7 +12,7 @@ def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str):
     :param str y: column for y axis
     :param str outfile: plot output file
     '''
-    fig = px.scatter(df, x=x, y=y)
+    fig = px.scatter(df, x=x, y=y, color = "filter")
     fig.write_html(outfile)
 
 def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
