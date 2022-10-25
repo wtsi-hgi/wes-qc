@@ -14,7 +14,7 @@ def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str, vartype: str):
     :param str vartype: Variant type
     '''
     plottitle = (" ").join([vartype, x, y])
-    fig = px.scatter(df, x=x, y=y, color = "bin", symbol="DP",  hover_data = ['GQ', 'AB'], title = plottitle)
+    fig = px.scatter(df, x=x, y=y, color = "bin", hover_data = ['DP', 'GQ', 'AB'], title = plottitle)
     fig.write_html(outfile)
 
 def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
