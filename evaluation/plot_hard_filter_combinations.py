@@ -32,7 +32,7 @@ def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
     
     snv_tp_fp_file = outdir + "snv_tp_fp.html"
     make_plot(snv_df, "TP", "FP", snv_tp_fp_file)
-    indel_tp_fp_file = outdir + "snv_tp_fp.html"
+    indel_tp_fp_file = outdir + "indel_tp_fp.html"
     make_plot(indel_df, "TP", "FP", indel_tp_fp_file)
 
 
