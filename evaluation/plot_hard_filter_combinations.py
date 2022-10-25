@@ -24,7 +24,7 @@ def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
     '''
     snv_df = pd.read_csv(snv_results_file, sep = "\t")
     snv_df[['w', 'bin', 'x', 'DP', 'y', 'GQ', 'z', 'AB']] = snv_df['filter'].str.split('_', expand=True)
-    snv_df.drop(['w', 'x', 'y', 'z'])
+    snv_df.drop(['w', 'x', 'y', 'z'], axis = 1, inplace = True)
 
     indel_df = pd.read_csv(indel_results_file, sep = "\t")
     
