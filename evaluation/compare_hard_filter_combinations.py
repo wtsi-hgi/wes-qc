@@ -120,8 +120,8 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
 
     # snp_bins = list(range(35,46))
     # indel_bins = list(range(58,69))
-    snp_bins = [36, 38, 40, 42, 44]
-    indel_bins = [56, 58, 60, 62, 64]
+    snp_bins = [40]
+    indel_bins = [45, 50, 55, 60, 65, 70, 75]
     gq_vals = [10, 15, 20]
     # dp_vals = [4, 5, 6, 10]
     # ab_vals = [0.2, 0.25, 0.3]
@@ -507,8 +507,8 @@ def main():
     mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_annot, mtdir)
     results = filter_and_count(mt_tp, mt_fp, mt_syn, mt_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
 
-    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv_fewer_combs.txt"
-    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel_fewer_combs.txt"
+    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
+    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel_fewer_combs_v2.txt"
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 
