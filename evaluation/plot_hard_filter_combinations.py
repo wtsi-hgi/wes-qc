@@ -12,7 +12,7 @@ def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str):
     :param str y: column for y axis
     :param str outfile: plot output file
     '''
-    fig = px.scatter(df, x=x, y=y, color = "filter")
+    fig = px.scatter(df, x=x, y=y, color = "bin", hover_data = ['DP', 'GQ', 'AB'])
     fig.write_html(outfile)
 
 def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
@@ -23,6 +23,9 @@ def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
     :param str outdir: output directory for plots
     '''
     snv_df = pd.read_csv(snv_results_file, sep = "\t")
+    snv_df[['w', 'bin', 'x', 'DP', 'y', 'GQ', 'z', 'AB']] = snv_df['filter'].str.split('_', expand=True)
+    snv_df.drop(['w', 'x', 'y', 'z'])
+
     indel_df = pd.read_csv(indel_results_file, sep = "\t")
     
     snv_tp_fp_file = outdir + "snv_tp_fp.html"
