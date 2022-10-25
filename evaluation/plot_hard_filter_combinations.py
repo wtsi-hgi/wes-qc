@@ -4,15 +4,17 @@ import pandas as pd
 from wes_qc.utils.utils import parse_config
 
 
-def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str):
+def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str, vartype: str):
     '''
     Creata plot from apanda df, x column, y column
     :param pd.dDtaFrame df: panda dataframe
     :param str x: column for x axis
     :param str y: column for y axis
     :param str outfile: plot output file
+    :param str vartype: Variant type
     '''
-    fig = px.scatter(df, x=x, y=y, color = "bin", hover_data = ['DP', 'GQ', 'AB'])
+    plottitle = (" ").join([vartype, x, y])
+    fig = px.scatter(df, x=x, y=y, color = "bin", hover_data = ['DP', 'GQ', 'AB'], title = plottitle)
     fig.write_html(outfile)
 
 def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
@@ -31,9 +33,9 @@ def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
     indel_df.drop(['w', 'x', 'y', 'z'], axis = 1, inplace = True)
     
     snv_tp_fp_file = outdir + "snv_tp_fp.html"
-    make_plot(snv_df, "TP", "FP", snv_tp_fp_file)
+    make_plot(snv_df, "TP", "FP", snv_tp_fp_file, 'SNV')
     indel_tp_fp_file = outdir + "indel_tp_fp.html"
-    make_plot(indel_df, "TP", "FP", indel_tp_fp_file)
+    make_plot(indel_df, "TP", "FP", indel_tp_fp_file, 'Indel')
 
 
 def main():
