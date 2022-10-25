@@ -13,11 +13,12 @@ def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str, vartype: str):
     :param str outfile: plot output file
     :param str vartype: Variant type
     '''
+    symbolmap = {'5': 'circle', '10': 'cross'}
     if x == "t_u_ratio":
         plottitle = (" ").join([vartype, "transmitted/untransmitted synonymous singletons", y])
     else:
         plottitle = (" ").join([vartype, x, y])
-    fig = px.scatter(df, x=x, y=y, color = "bin", symbol = 'DP', hover_data = ['GQ', 'AB'], title = plottitle)
+    fig = px.scatter(df, x=x, y=y, color = "bin", symbol = 'DP', symbol_map = symbolmap, hover_data = ['GQ', 'AB'], title = plottitle)
     fig.write_html(outfile)
 
 def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
