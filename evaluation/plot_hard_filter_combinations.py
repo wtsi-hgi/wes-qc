@@ -27,9 +27,13 @@ def create_plots(snv_results_file: str, indel_results_file: str, outdir: str):
     snv_df.drop(['w', 'x', 'y', 'z'], axis = 1, inplace = True)
 
     indel_df = pd.read_csv(indel_results_file, sep = "\t")
+    indel_df[['w', 'bin', 'x', 'DP', 'y', 'GQ', 'z', 'AB']] = indel_df['filter'].str.split('_', expand=True)
+    indel_df.drop(['w', 'x', 'y', 'z'], axis = 1, inplace = True)
     
     snv_tp_fp_file = outdir + "snv_tp_fp.html"
     make_plot(snv_df, "TP", "FP", snv_tp_fp_file)
+    indel_tp_fp_file = outdir + "snv_tp_fp.html"
+    make_plot(indel_df, "TP", "FP", indel_tp_fp_file)
 
 
 def main():
