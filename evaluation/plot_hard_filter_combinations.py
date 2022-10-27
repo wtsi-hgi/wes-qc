@@ -67,7 +67,7 @@ def main():
     # indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel_v1.txt"
     snv_results_file = plot_dir + "genotype_hard_filter_comparison_snv.txt"
     indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel.txt"
-    outdir = plot_dir + "hard_filter_evaluation/221027"
+    outdir = plot_dir + "hard_filter_evaluation/221027/"
 
     create_plots(snv_results_file, indel_results_file, outdir)
 
