@@ -21,6 +21,41 @@ resource_dir: file:///lustre/scratch123/qc/resources/
 resource_dir_local: /lustre/scratch123/qc/resources/
 training_set_dir: file:///lustre/scratch123/qc/training_sets/
 var_qc_rf_dir: file:///lustre/scratch123/qc/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20221003/
+vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20221102/
 
 rf_test_interval: chr20
+
+#hard filter
+hard_filters:
+  snp:
+    relaxed:
+      bin: 42
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 40
+      dp: 5
+      gq: 10
+      ab: 0.2
+    stringent:
+      bin: 36
+      dp: 5
+      gq: 10
+      ab: 0.3
+  indel:
+    relaxed:
+      bin: 62
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 59
+      dp: 5
+      gq: 10
+      ab: 0.2
+    stringent:
+      bin: 56
+      dp: 10
+      gq: 10
+      ab: 0.3
