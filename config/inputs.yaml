@@ -41,8 +41,8 @@ hard_filters:
     stringent:
       bin: 36
       dp: 5
-      gq: 10
-      ab: 0.3
+      gq: 20
+      ab: 0.2
   indel:
     relaxed:
       bin: 62
