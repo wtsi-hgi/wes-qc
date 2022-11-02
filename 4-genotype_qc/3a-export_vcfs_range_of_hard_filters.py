@@ -35,36 +35,33 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                  mt.medium_pass_count, mt.medium_fail_count, mt.relaxed_pass_count, mt.relaxed_fail_count,
                  mt.batch, mt.sequencing_location, mt.adj, mt.assigned_pop, mt.sum_AD)
     # info for header
-    stringent_filters = "SNPs: RF bin <= " + \
-        str(hard_filters['snp']['stringent']['bin']) + " & (DP < " + \
-        str(hard_filters['snp']['stringent']['dp']) + " | GQ < " + \
-        str(hard_filters['snp']['stringent']['gq']) + " | HetAB < " + \
-        str(hard_filters['snp']['stringent']['ab']) + "), Indes: RF bin <= " + \
-        str(hard_filters['indel']['stringent']['bin']) + " & (DP < " + \
-        str(hard_filters['indel']['stringent']['dp']) + " | GQ < " + \
-        str(hard_filters['indel']['stringent']['gq']) + " | HetAB < " + \
-        str(hard_filters['indel']['stringent']['ab']) + ")"
+    stringent_filters = "SNPs: RF bin<=" + \
+        str(hard_filters['snp']['stringent']['bin']) + " & DP>=" + \
+        str(hard_filters['snp']['stringent']['dp']) + " & GQ>=" + \
+        str(hard_filters['snp']['stringent']['gq']) + " & HetAB>=" + \
+        str(hard_filters['snp']['stringent']['ab']) + "), Indels: RF bin<=" + \
+        str(hard_filters['indel']['stringent']['bin']) + " & (DP>=" + \
+        str(hard_filters['indel']['stringent']['dp']) + " & GQ>=" + \
+        str(hard_filters['indel']['stringent']['gq']) + " & HetAB>="
 
-    medium_filters = "SNPs: RF bin <= " + \
-        str(hard_filters['snp']['medium']['bin']) + " & (DP < " + \
-        str(hard_filters['snp']['medium']['dp']) + " | GQ < " + \
-        str(hard_filters['snp']['medium']['gq']) + " | HetAB < " + \
-        str(hard_filters['snp']['medium']['ab']) + "), Indes: RF bin <= " + \
-        str(hard_filters['indel']['medium']['bin']) + " & (DP < " + \
-        str(hard_filters['indel']['medium']['dp']) + " | GQ < " + \
-        str(hard_filters['indel']['medium']['gq']) + " | HetAB < " + \
-        str(hard_filters['indel']['medium']['ab']) + ")"
+    medium_filters = "SNPs: RF bin<=" + \
+        str(hard_filters['snp']['medium']['bin']) + " & DP>=" + \
+        str(hard_filters['snp']['medium']['dp']) + " & GQ>=" + \
+        str(hard_filters['snp']['medium']['gq']) + " & HetAB>=" + \
+        str(hard_filters['snp']['medium']['ab']) + "), Indels: RF bin<=" + \
+        str(hard_filters['indel']['medium']['bin']) + " & (DP>=" + \
+        str(hard_filters['indel']['medium']['dp']) + " & GQ>=" + \
+        str(hard_filters['indel']['medium']['gq']) + " & HetAB>=" 
 
-    relaxed_filters = "SNPs: RF bin <= " + \
-        str(hard_filters['snp']['relaxed']['bin']) + " & (DP < " + \
-        str(hard_filters['snp']['relaxed']['dp']) + " | GQ < " + \
-        str(hard_filters['snp']['relaxed']['gq']) + " | HetAB < " + \
-        str(hard_filters['snp']['relaxed']['ab']) + "), Indes: RF bin <= " + \
-        str(hard_filters['indel']['relaxed']['bin']) + " & (DP < " + \
-        str(hard_filters['indel']['relaxed']['dp']) + " | GQ < " + \
-        str(hard_filters['indel']['relaxed']['gq']) + " | HetAB < " + \
-        str(hard_filters['indel']['relaxed']['ab']) + ")"
-
+    relaxed_filters = "SNPs: RF bin<=" + \
+        str(hard_filters['snp']['relaxed']['bin']) + " & DP>=" + \
+        str(hard_filters['snp']['relaxed']['dp']) + " & GQ>=" + \
+        str(hard_filters['snp']['relaxed']['gq']) + " & HetAB>=" + \
+        str(hard_filters['snp']['relaxed']['ab']) + "), Indels: RF bin<=" + \
+        str(hard_filters['indel']['relaxed']['bin']) + " & (DP>=" + \
+        str(hard_filters['indel']['relaxed']['dp']) + " & GQ>=" + \
+        str(hard_filters['indel']['relaxed']['gq']) + " & HetAB>="
+        
     metadata = {
         'format': {'HetAB': {'Description': 'Hetrozygous allele balance',
                              'Number': 'A',
