@@ -32,7 +32,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     mt = mt.filter_rows(mt.info.fraction_pass_relaxed_filters > 0)
     # drop unwanted fields
     mt = mt.drop(mt.a_index, mt.was_split, mt.stringent_pass_count, mt.stringent_fail_count,
-                 mt.medium_pass_count, mt.medium_fail_count, mt.relaxed_pass_count, mt.relaxed_fail_count)
+                 mt.medium_pass_count, mt.medium_fail_count, mt.relaxed_pass_count, mt.relaxed_fail_count,
+                 mt.batch, mt.sequencing_location, mt.adj, mt.assigned_pop, mt.sum_AD)
     # info for header
     stringent_filters = "SNPs: RF bin <= " + \
         str(hard_filters['snp']['stringent']['bin']) + " & (DP < " + \
