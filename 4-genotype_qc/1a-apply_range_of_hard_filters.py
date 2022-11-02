@@ -75,57 +75,145 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
     :return hl.MatrixTable:
     '''
 
-    stringent_condition = ( (
-                                (hl.is_snp(mt.alleles[0], mt.alleles[1])) 
-                                & (mt.info.rf_bin <= hard_filters['snp']['stringent']['bin'])
-                                & (mt.DP < hard_filters['snp']['stringent']['dp']) 
-                                & (mt.GQ < hard_filters['snp']['stringent']['gq']) 
-                                & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['stringent']['ab'])) )
-                                ) |
-                                (
-                                (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
-                                & (mt.info.rf_bin <= hard_filters['indel']['stringent']['bin'])
-                                & (mt.DP < hard_filters['indel']['stringent']['dp']) 
-                                & (mt.GQ < hard_filters['indel']['stringent']['gq']) 
-                                & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['stringent']['ab'])) )
-                                )   
-                            )
+    # stringent_condition = ( (
+    #                             (hl.is_snp(mt.alleles[0], mt.alleles[1])) 
+    #                             & (mt.info.rf_bin <= hard_filters['snp']['stringent']['bin'])
+    #                             & (mt.DP < hard_filters['snp']['stringent']['dp']) 
+    #                             & (mt.GQ < hard_filters['snp']['stringent']['gq']) 
+    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['stringent']['ab'])) )
+    #                             ) |
+    #                             (
+    #                             (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
+    #                             & (mt.info.rf_bin <= hard_filters['indel']['stringent']['bin'])
+    #                             & (mt.DP < hard_filters['indel']['stringent']['dp']) 
+    #                             & (mt.GQ < hard_filters['indel']['stringent']['gq']) 
+    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['stringent']['ab'])) )
+    #                             )   
+    #                         )
 
 
-    medium_condition = ( ((hl.is_snp(mt.alleles[0], mt.alleles[1])) 
-                                & (mt.info.rf_bin <= hard_filters['snp']['medium']['bin'])
-                                & (mt.DP < hard_filters['snp']['medium']['dp']) 
-                                & (mt.GQ < hard_filters['snp']['medium']['gq']) 
-                                & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['medium']['ab'])) ) 
-                                ) | 
-                                (
-                                (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
-                                & (mt.info.rf_bin <= hard_filters['indel']['medium']['bin'])
-                                & (mt.DP < hard_filters['indel']['medium']['dp']) 
-                                & (mt.GQ < hard_filters['indel']['medium']['gq']) 
-                                & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['medium']['ab'])) )
-                                )
-                            )
+    # medium_condition = ( ((hl.is_snp(mt.alleles[0], mt.alleles[1])) 
+    #                             & (mt.info.rf_bin <= hard_filters['snp']['medium']['bin'])
+    #                             & (mt.DP < hard_filters['snp']['medium']['dp']) 
+    #                             & (mt.GQ < hard_filters['snp']['medium']['gq']) 
+    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['medium']['ab'])) ) 
+    #                             ) | 
+    #                             (
+    #                             (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
+    #                             & (mt.info.rf_bin <= hard_filters['indel']['medium']['bin'])
+    #                             & (mt.DP < hard_filters['indel']['medium']['dp']) 
+    #                             & (mt.GQ < hard_filters['indel']['medium']['gq']) 
+    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['medium']['ab'])) )
+    #                             )
+    #                         )
     
-    relaxed_condition = ( ((hl.is_snp(mt.alleles[0], mt.alleles[1])) 
-                                & (mt.info.rf_bin <= hard_filters['snp']['relaxed']['bin'])
-                                & (mt.DP < hard_filters['snp']['relaxed']['dp']) 
-                                & (mt.GQ < hard_filters['snp']['relaxed']['gq']) 
-                                & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['relaxed']['ab'])) )
-                                ) |
-                                (
-                                (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
-                                & (mt.info.rf_bin <= hard_filters['indel']['relaxed']['bin'])
-                                & (mt.DP < hard_filters['indel']['relaxed']['dp']) 
-                                & (mt.GQ < hard_filters['indel']['relaxed']['gq']) 
-                                & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['relaxed']['ab'])) ) 
-                                )                               
-                            )
+    # relaxed_condition = ( ((hl.is_snp(mt.alleles[0], mt.alleles[1])) 
+    #                             & (mt.info.rf_bin <= hard_filters['snp']['relaxed']['bin'])
+    #                             & (mt.DP < hard_filters['snp']['relaxed']['dp']) 
+    #                             & (mt.GQ < hard_filters['snp']['relaxed']['gq']) 
+    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['relaxed']['ab'])) )
+    #                             ) |
+    #                             (
+    #                             (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
+    #                             & (mt.info.rf_bin <= hard_filters['indel']['relaxed']['bin'])
+    #                             & (mt.DP < hard_filters['indel']['relaxed']['dp']) 
+    #                             & (mt.GQ < hard_filters['indel']['relaxed']['gq']) 
+    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['relaxed']['ab'])) ) 
+    #                             )                               
+    #                         )
+
+    # mt = mt.annotate_entries(
+    #     stringent_filters = hl.if_else(stringent_condition, 'Fail', 'Pass'),
+    #     medium_filters = hl.if_else(medium_condition, 'Fail', 'Pass'),
+    #     relaxed_filters = hl.if_else(relaxed_condition, 'Fail', 'Pass')
+    # )
+
+    stringent_condition = (
+        (
+        (hl.is_snp(mt.alleles[0], mt.alleles[1]))
+        & (mt.info.rf_bin <= hard_filters['snp']['stringent']['bin'])
+        & (mt.DP >= hard_filters['snp']['stringent']['dp'])
+        & (mt.GQ >= hard_filters['snp']['stringent']['gq'])
+        & (
+            (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['stringent']['ab'])) |
+            (mt.GT.is_hom_ref()) |
+            (mt.GT.is_hom_var())
+        )
+
+    ) |
+        (
+        (hl.is_indel(mt.alleles[0], mt.alleles[1]))
+        & (mt.info.rf_bin <= hard_filters['indel']['stringent']['bin'])
+        & (mt.DP >= hard_filters['indel']['stringent']['dp'])
+        & (mt.GQ >= hard_filters['indel']['stringent']['gq'])
+        & (
+            (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['stringent']['ab'])) |
+            (mt.GT.is_hom_ref()) |
+            (mt.GT.is_hom_var())
+        )
+
+    )
+    )
+
+
+    medium_condition = (
+        (
+        (hl.is_snp(mt.alleles[0], mt.alleles[1]))
+        & (mt.info.rf_bin <= hard_filters['snp']['medium']['bin'])
+        & (mt.DP >= hard_filters['snp']['medium']['dp'])
+        & (mt.GQ >= hard_filters['snp']['medium']['gq'])
+        & (
+            (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['medium']['ab'])) |
+            (mt.GT.is_hom_ref()) |
+            (mt.GT.is_hom_var())
+        )
+
+    ) |
+        (
+        (hl.is_indel(mt.alleles[0], mt.alleles[1]))
+        & (mt.info.rf_bin <= hard_filters['indel']['medium']['bin'])
+        & (mt.DP >= hard_filters['indel']['medium']['dp'])
+        & (mt.GQ >= hard_filters['indel']['medium']['gq'])
+        & (
+            (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['medium']['ab'])) |
+            (mt.GT.is_hom_ref()) |
+            (mt.GT.is_hom_var())
+        )
+
+    )
+    )
+    
+    relaxed_condition = (
+        (
+        (hl.is_snp(mt.alleles[0], mt.alleles[1]))
+        & (mt.info.rf_bin <= hard_filters['snp']['relaxed']['bin'])
+        & (mt.DP >= hard_filters['snp']['relaxed']['dp'])
+        & (mt.GQ >= hard_filters['snp']['relaxed']['gq'])
+        & (
+            (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['relaxed']['ab'])) |
+            (mt.GT.is_hom_ref()) |
+            (mt.GT.is_hom_var())
+        )
+
+    ) |
+        (
+        (hl.is_indel(mt.alleles[0], mt.alleles[1]))
+        & (mt.info.rf_bin <= hard_filters['indel']['relaxed']['bin'])
+        & (mt.DP >= hard_filters['indel']['relaxed']['dp'])
+        & (mt.GQ >= hard_filters['indel']['relaxed']['gq'])
+        & (
+            (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['relaxed']['ab'])) |
+            (mt.GT.is_hom_ref()) |
+            (mt.GT.is_hom_var())
+        )
+
+    )
+    )
 
     mt = mt.annotate_entries(
-        stringent_filters = hl.if_else(stringent_condition, 'Fail', 'Pass'),
-        medium_filters = hl.if_else(medium_condition, 'Fail', 'Pass'),
-        relaxed_filters = hl.if_else(relaxed_condition, 'Fail', 'Pass')
+        stringent_filters = hl.if_else(stringent_condition, 'Pass', 'Fail'),
+        medium_filters = hl.if_else(medium_condition, 'Pass', 'Fail'),
+        relaxed_filters = hl.if_else(relaxed_condition, 'Pass', 'Fail')
     )
     #annotate variants with fraction passing/failing each set of filters
     mt = mt.annotate_rows(stringent_pass_count = hl.agg.count_where(mt.stringent_filters == 'Pass'))
