@@ -39,29 +39,32 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         str(hard_filters['snp']['stringent']['bin']) + " & DP>=" + \
         str(hard_filters['snp']['stringent']['dp']) + " & GQ>=" + \
         str(hard_filters['snp']['stringent']['gq']) + " & HetAB>=" + \
-        str(hard_filters['snp']['stringent']['ab']) + "), Indels: RF bin<=" + \
-        str(hard_filters['indel']['stringent']['bin']) + " & (DP>=" + \
+        str(hard_filters['snp']['stringent']['ab']) + ", Indels: RF bin<=" + \
+        str(hard_filters['indel']['stringent']['bin']) + " & DP>=" + \
         str(hard_filters['indel']['stringent']['dp']) + " & GQ>=" + \
-        str(hard_filters['indel']['stringent']['gq']) + " & HetAB>="
+        str(hard_filters['indel']['stringent']['gq']) + " & HetAB>=" + \
+        str(hard_filters['indel']['stringent']['ab']) 
 
     medium_filters = "SNPs: RF bin<=" + \
         str(hard_filters['snp']['medium']['bin']) + " & DP>=" + \
         str(hard_filters['snp']['medium']['dp']) + " & GQ>=" + \
         str(hard_filters['snp']['medium']['gq']) + " & HetAB>=" + \
-        str(hard_filters['snp']['medium']['ab']) + "), Indels: RF bin<=" + \
-        str(hard_filters['indel']['medium']['bin']) + " & (DP>=" + \
+        str(hard_filters['snp']['medium']['ab']) + ", Indels: RF bin<=" + \
+        str(hard_filters['indel']['medium']['bin']) + " & DP>=" + \
         str(hard_filters['indel']['medium']['dp']) + " & GQ>=" + \
-        str(hard_filters['indel']['medium']['gq']) + " & HetAB>=" 
+        str(hard_filters['indel']['medium']['gq']) + " & HetAB>=" + \
+        str(hard_filters['indel']['medium']['ab'])     
 
     relaxed_filters = "SNPs: RF bin<=" + \
         str(hard_filters['snp']['relaxed']['bin']) + " & DP>=" + \
         str(hard_filters['snp']['relaxed']['dp']) + " & GQ>=" + \
         str(hard_filters['snp']['relaxed']['gq']) + " & HetAB>=" + \
-        str(hard_filters['snp']['relaxed']['ab']) + "), Indels: RF bin<=" + \
-        str(hard_filters['indel']['relaxed']['bin']) + " & (DP>=" + \
+        str(hard_filters['snp']['relaxed']['ab']) + ", Indels: RF bin<=" + \
+        str(hard_filters['indel']['relaxed']['bin']) + " & DP>=" + \
         str(hard_filters['indel']['relaxed']['dp']) + " & GQ>=" + \
-        str(hard_filters['indel']['relaxed']['gq']) + " & HetAB>="
-        
+        str(hard_filters['indel']['relaxed']['gq']) + " & HetAB>=" + \
+        str(hard_filters['indel']['relaxd']['ab']) 
+
     metadata = {
         'format': {'HetAB': {'Description': 'Hetrozygous allele balance',
                              'Number': 'A',
@@ -74,19 +77,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                                       'Type': 'String'},
                    'relaxed_filters': {'Description': 'Pass/fail relaxed hard filters ' + relaxed_filters,
                                        'Number': 'A',
-                                       'Type': 'String'},
-                   'CSQ': {'Description': 'Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|ALLELE_NUM|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE_SELECT|MANE_PLUS_CLINICAL|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|UNIPROT_ISOFORM|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|AA_AF|EA_AF|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MAX_AF|MAX_AF_POPS|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS|SpliceRegion|GeneSplicer|existing_InFrame_oORFs|existing_OutOfFrame_oORFs|existing_uORFs|five_prime_UTR_variant_annotation|five_prime_UTR_variant_consequence|CADD_PHRED|CADD_RAW|Ensembl_transcriptid|LRT_pred|MutationTaster_pred|Polyphen2_HDIV_pred|Polyphen2_HVAR_pred|SIFT_pred|Uniprot_acc|VEP_canonical|DisGeNET_PMID|DisGeNET_SCORE|PHENOTYPES|Conservation|LoF|LoF_filter|LoF_flags|LoF_info|REVEL|SpliceAI_pred_DP_AG|SpliceAI_pred_DP_AL|SpliceAI_pred_DP_DG|SpliceAI_pred_DP_DL|SpliceAI_pred_DS_AG|SpliceAI_pred_DS_AL|SpliceAI_pred_DS_DG|SpliceAI_pred_DS_DL|SpliceAI_pred_SYMBOL',
-                           'Number': 'A',
-                           'Type': 'String'},
-                   'consequence': {'Description': 'Most severe consequence from VEP104',
-                                   'Number': 'A',
-                                   'Type': 'String'},
-                   'gene': {'Description': 'Gene affected by the most severe consequence from VEP104',
-                            'Number': 'A',
-                            'Type': 'String'},
-                   'hgnc_id': {'Description': 'HGNC id of the gene affected by the most severe consequence from VEP104',
-                               'Number': 'A',
-                               'Type': 'String'}
+                                       'Type': 'String'}
+
                    },
         'info': {
             'fraction_pass_stringent_filters': {'Description': 'Fraction of genotypes which pass stringent hard filters ' + stringent_filters,
@@ -103,7 +95,19 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                          'Type': 'Float'},
             'rf_bin': {'Description': 'Variant QC random forest bin, model id ' + run_hash,
                        'Number': 'A',
-                       'Type': 'Integer'}
+                       'Type': 'Integer'},
+            'CSQ': {'Description': 'Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|ALLELE_NUM|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE_SELECT|MANE_PLUS_CLINICAL|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|UNIPROT_ISOFORM|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|AA_AF|EA_AF|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MAX_AF|MAX_AF_POPS|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS|SpliceRegion|GeneSplicer|existing_InFrame_oORFs|existing_OutOfFrame_oORFs|existing_uORFs|five_prime_UTR_variant_annotation|five_prime_UTR_variant_consequence|CADD_PHRED|CADD_RAW|Ensembl_transcriptid|LRT_pred|MutationTaster_pred|Polyphen2_HDIV_pred|Polyphen2_HVAR_pred|SIFT_pred|Uniprot_acc|VEP_canonical|DisGeNET_PMID|DisGeNET_SCORE|PHENOTYPES|Conservation|LoF|LoF_filter|LoF_flags|LoF_info|REVEL|SpliceAI_pred_DP_AG|SpliceAI_pred_DP_AL|SpliceAI_pred_DP_DG|SpliceAI_pred_DP_DL|SpliceAI_pred_DS_AG|SpliceAI_pred_DS_AL|SpliceAI_pred_DS_DG|SpliceAI_pred_DS_DL|SpliceAI_pred_SYMBOL',
+                    'Number': 'A',
+                    'Type': 'String'},
+            'consequence': {'Description': 'Most severe consequence from VEP104',
+                            'Number': 'A',
+                            'Type': 'String'},
+            'gene': {'Description': 'Gene affected by the most severe consequence from VEP104',
+                     'Number': 'A',
+                     'Type': 'String'},
+            'hgnc_id': {'Description': 'HGNC id of the gene affected by the most severe consequence from VEP104',
+                        'Number': 'A',
+                        'Type': 'String'}
         }
     }
 
