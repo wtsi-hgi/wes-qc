@@ -63,7 +63,7 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         str(hard_filters['indel']['relaxed']['bin']) + " & DP>=" + \
         str(hard_filters['indel']['relaxed']['dp']) + " & GQ>=" + \
         str(hard_filters['indel']['relaxed']['gq']) + " & HetAB>=" + \
-        str(hard_filters['indel']['relaxd']['ab']) 
+        str(hard_filters['indel']['relaxed']['ab']) 
 
     metadata = {
         'format': {'HetAB': {'Description': 'Hetrozygous allele balance',
