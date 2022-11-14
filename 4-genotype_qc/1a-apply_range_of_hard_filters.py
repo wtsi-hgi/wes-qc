@@ -1,4 +1,5 @@
 #apply a range of different hard filters (RF bin and genotype) to SNPs and indels, also add gene and consequence
+#removes samples which fail identity checks
 import hail as hl
 import pyspark
 import argparse
@@ -17,6 +18,19 @@ def get_options():
         exit(1)
 
     return args
+
+
+def remove_samples(mt: hl.MatrixTable, exclude_file: str):
+    '''
+    Remove samples in file of samples which fail identity checks
+    :param hl.MatrixTable: Input MatrixTable
+    :param str exclude_file: path of file with samples to exclude
+    :return: hl.MatrixTable
+    '''
+    excl_ht = hl.import_table(exclude_file, impute=True, key = 'exomeID')
+    mt = mt.filter_cols(hl.is_defined(excl_ht[mt.s]), keep=False)
+
+    return mt
 
 
 def annotate_cq_rf(mt: hl.MatrixTable, rf_htfile: str, cqfile: str) -> hl.MatrixTable:
@@ -239,6 +253,7 @@ def main():
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
     hard_filters = inputs['hard_filters']
+    annotdir = inputs['annotation_lustre_dir']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -246,12 +261,16 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
+    exclude_file = annotdir + "to_be_excluded_exome.txt"
     rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = resourcedir + "all_consequences_with_gene_and_csq.txt"
     mtfile_annot = mtdir + "mt_hard_filter_combinations.mt"
 
     mt = hl.read_matrix_table(mtfile)
+
+    #remove unwanted samples
+    mt = remove_samples(mt, exclude_file)
 
     #annotate mt with consequence, gene, rf bin
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)

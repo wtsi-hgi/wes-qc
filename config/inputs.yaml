@@ -21,7 +21,7 @@ resource_dir: file:///lustre/scratch123/qc/resources/
 resource_dir_local: /lustre/scratch123/qc/resources/
 training_set_dir: file:///lustre/scratch123/qc/training_sets/
 var_qc_rf_dir: file:///lustre/scratch123/qc/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20221102/
+vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20221114/
 
 rf_test_interval: chr20
 
