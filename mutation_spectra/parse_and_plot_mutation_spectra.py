@@ -62,7 +62,7 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
                              'G>A': 0, 'G>C': 0, 'G>T': 0, 'T>A': 0, 'T>C': 0, 'T>G': 0, 'total': 0}        
         for c in chroms:
             #statsfile = bcftoos_stats_dir + "/" + s + "_" + c + ".stats.gz"
-            statsfile = bcftoos_stats_dir + "/" + s + "_" + c + "_relaxed.stats.gz"
+            statsfile = bcftoos_stats_dir + "/" + s + "_" + c + "_relaxed.txt.gz"
             if not os.path.isfile(statsfile):
                 continue
             with gzip.open(statsfile, 'rt') as zf:
