@@ -61,7 +61,8 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
         counts_per_sample = {'A>C': 0, 'A>G': 0, 'A>T': 0, 'C>A': 0, 'C>G': 0, 'C>T': 0,
                              'G>A': 0, 'G>C': 0, 'G>T': 0, 'T>A': 0, 'T>C': 0, 'T>G': 0, 'total': 0}        
         for c in chroms:
-            statsfile = bcftoos_stats_dir + "/" + s + "_" + c + ".stats.gz"
+            #statsfile = bcftoos_stats_dir + "/" + s + "_" + c + ".stats.gz"
+            statsfile = bcftoos_stats_dir + "/" + s + "_" + c + "_relaxed.stats.gz"
             if not os.path.isfile(statsfile):
                 continue
             with gzip.open(statsfile, 'rt') as zf:
@@ -102,14 +103,15 @@ def create_plots(props_per_sample, substitutions, outdir):
     create a plot for each sample
     '''
     for sample in props_per_sample.keys():
-        plotfile = outdir + "/" + sample + "_mutation_spectrum.png"
+        plotfile = outdir + "/" + sample + "_relaxed_mutation_spectrum.png"
+        #plotfile = outdir + "/" + sample + "_mutation_spectrum.png"
         bar_heights = []
         for st in substitutions:
             bar_heights.append(props_per_sample[sample][st])
         x_pos = np.arange(len(substitutions))
         plt.bar(x_pos, bar_heights, color=['blue', 'red', 'orange', 'green', 'purple', 'pink', 'pink', 'purple', 'green', 'orange', 'red', 'blue'])
         plt.xticks(x_pos, substitutions)
-        plt.title(sample)
+        plt.title(sample + " relaxed filters")
         plt.ylabel('proportion')
         plt.savefig(plotfile, dpi=100)
         plt.clf()
