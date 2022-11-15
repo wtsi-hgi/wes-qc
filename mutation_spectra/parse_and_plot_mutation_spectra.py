@@ -62,7 +62,7 @@ def parse_bcftools_stats(samples, substitutions, bcftoos_stats_dir, outdir):
                              'G>A': 0, 'G>C': 0, 'G>T': 0, 'T>A': 0, 'T>C': 0, 'T>G': 0, 'total': 0}        
         for c in chroms:
             #statsfile = bcftoos_stats_dir + "/" + s + "_" + c + ".stats.gz"
-            statsfile = bcftoos_stats_dir + "/" + s + "_" + c + "_medium.txt.gz"
+            statsfile = bcftoos_stats_dir + "/" + s + "_" + c + "_sringent.txt.gz"
             if not os.path.isfile(statsfile):
                 continue
             with gzip.open(statsfile, 'rt') as zf:
@@ -103,7 +103,7 @@ def create_plots(props_per_sample, substitutions, outdir):
     create a plot for each sample
     '''
     for sample in props_per_sample.keys():
-        plotfile = outdir + "/" + sample + "_medium_mutation_spectrum.png"
+        plotfile = outdir + "/" + sample + "_stringent_mutation_spectrum.png"
         #plotfile = outdir + "/" + sample + "_mutation_spectrum.png"
         bar_heights = []
         for st in substitutions:
@@ -111,7 +111,7 @@ def create_plots(props_per_sample, substitutions, outdir):
         x_pos = np.arange(len(substitutions))
         plt.bar(x_pos, bar_heights, color=['blue', 'red', 'orange', 'green', 'purple', 'pink', 'pink', 'purple', 'green', 'orange', 'red', 'blue'])
         plt.xticks(x_pos, substitutions)
-        plt.title(sample + " medium filters")
+        plt.title(sample + " stringent filters")
         plt.ylabel('proportion')
         plt.savefig(plotfile, dpi=100)
         plt.clf()
