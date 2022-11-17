@@ -7,20 +7,20 @@ regions:
   chr9_14_dir: 679738e5-0a41-4196-8b4e-f1e01d80b077
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
-gatk_vcf_header: file:///lustre/scratch123/qc/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs/
-load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
+gatk_vcf_header: file:///lustre/scratch123/qc/dv_vcf/header.txt
+gatk_import_lustre_dir: file:///lustre/scratch123/qc/dv_vcf/
+load_matrixtables_lustre_dir: /lustre/scratch123/qc/dv_comparison/matrixtables/
 #load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-annotation_lustre_dir: file:///lustre/scratch123/qc/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/qc/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/
+annotation_lustre_dir: file:///lustre/scratch123/qc/dv_comparison/annotations/
+annotation_lustre_dir_local: /lustre/scratch123/qc/dv_comparison/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch123/qc/dv_comparison/matrixtables/
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
 plots_lustre_dir: file:///lustre/scratch123/qc/plots/
-plots_dir_local: /lustre/scratch123/qc/plots/
+plots_dir_local: /lustre/scratch123/qc/dv_comparison/plots/
 resource_dir: file:///lustre/scratch123/qc/resources/
 resource_dir_local: /lustre/scratch123/qc/resources/
 training_set_dir: file:///lustre/scratch123/qc/training_sets/
-var_qc_rf_dir: file:///lustre/scratch123/qc/variant_qc_random_forest/
+var_qc_rf_dir: file:///lustre/scratch123/qc/dv_comparison/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20221114/
 
 rf_test_interval: chr20
