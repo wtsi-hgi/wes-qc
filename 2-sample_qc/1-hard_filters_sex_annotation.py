@@ -104,7 +104,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mt_in_file = mtdir + "/gatk_unprocessed.mt"
+    mt_in_file = mtdir + "/dv_unprocessed.mt"
     print("Reading input matrix")
     mt_unfiiltered = hl.read_matrix_table(mt_in_file)
 
