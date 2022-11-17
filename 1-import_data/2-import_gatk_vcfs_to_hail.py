@@ -26,8 +26,8 @@ def main():
     inputs = parse_config()
     vcf_header = inputs['gatk_vcf_header']
     import_vcf_dir = inputs['gatk_import_lustre_dir']
-    mtdir = inputs['load_matrixtables_lustre_dir']
-    #mtdir = inputs['matrixtables_lustre_dir']
+    #mtdir = inputs['load_matrixtables_lustre_dir']
+    mtdir = inputs['matrixtables_lustre_dir']
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
