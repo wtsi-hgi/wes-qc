@@ -34,8 +34,9 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     '''
     print("Imputing sex with male_threshold = " + str(male_threshold) + " and female threshold = " + str(female_threshold))
 
-    #filter to X and select unphased diploid genotypes
-    mt1 = hl.filter_intervals(mt, [hl.parse_locus_interval('chrX')])
+    #filter to X and select unphased diploid genotypes - no need to filter to X as impute_sex will do this
+    #mt1 = hl.filter_intervals(mt, [hl.parse_locus_interval('chrX')])
+    mt1 = hl.split_multi_hts(mt)
     mtx_unphased = mt1.select_entries(GT=hl.unphased_diploid_gt_index_call(mt1.GT.n_alt_alleles()))
     #imput sex on the unphased diploid GTs
     sex_ht = hl.impute_sex(mtx_unphased.GT, aaf_threshold=0.05, female_threshold=female_threshold, male_threshold=male_threshold)
