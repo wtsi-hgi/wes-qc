@@ -2,7 +2,7 @@
 #input gatk_unprocessed.mt from step 1.1
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''
@@ -34,8 +34,9 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     '''
     print("Imputing sex with male_threshold = " + str(male_threshold) + " and female threshold = " + str(female_threshold))
 
-    #filter to X and select unphased diploid genotypes
-    mt1 = hl.filter_intervals(mt, [hl.parse_locus_interval('chrX')])
+    #filter to X and select unphased diploid genotypes - no need to filter to X as impute_sex will do this
+    #mt1 = hl.filter_intervals(mt, [hl.parse_locus_interval('chrX')])
+    mt1 = hl.split_multi_hts(mt)
     mtx_unphased = mt1.select_entries(GT=hl.unphased_diploid_gt_index_call(mt1.GT.n_alt_alleles()))
     #imput sex on the unphased diploid GTs
     sex_ht = hl.impute_sex(mtx_unphased.GT, aaf_threshold=0.05, female_threshold=female_threshold, male_threshold=male_threshold)
@@ -72,17 +73,17 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-    metadata_file =  resourcedir +  '/all_samples_with_proceed_and_seq_info_and_warehouse_info.txt'
-    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('ega')
+    metadata_file =  resourcedir +  '/GDAC_2021_03_HURLES_Sanger_mcs_basic_demographics_v0003_shareable_20220215.txt'
+    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('sanger_sample_id')
     #we only want those from the metadata file where sex is known
-    metadata_ht = metadata_ht.filter((metadata_ht.sex == 'Male') | (metadata_ht.sex == 'Female'))
+    metadata_ht = metadata_ht.filter((metadata_ht.sex == '1') | (metadata_ht.sex == '2'))
 
     #annotate the sex-predictions with the manifest sex annotation - need to use a join here
     ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].sex)
 
     #identify samples where imputed sex and manifest sex conflict
-    conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
-        (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
+    conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == '2')) | (
+        (ht_joined.sex == 'female') & (ht_joined.manifest_sex == '1')))
     conflicting_sex_ht.export(annotdir + '/conflicting_sex.txt.bgz')
 
     #identify samples where f stat is between 0.2 and 0.8
@@ -112,7 +113,7 @@ def main():
     mt_filtered = apply_hard_filters(mt_unfiiltered, mtdir)
 
     #impute sex
-    mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
+    mt_sex = impute_sex(mt_filtered, mtdir, annotdir, female_threshold=0.34, male_threshold=0.67)
 
     # annotate_ambiguous_sex(mt_sex, mtdir)
     identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)

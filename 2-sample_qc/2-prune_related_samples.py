@@ -2,7 +2,7 @@
 # use mt with hard filters and sex annotation from 2-sample_qc/1-hard_filters_sex_annotation.py
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from bokeh.plotting import save, output_file
 
 
