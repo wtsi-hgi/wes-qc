@@ -59,7 +59,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    qc_filter_ht_file = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop.ht"
+    qc_filter_ht_file = mtdir + "mt_pops_QC_filters.ht"
     annotated_mt_file = mtdir + "dv_unprocessed_with_pop.mt"  # annotated but unfiltered mt
     sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
     sanger_mt_file = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc_sanger_only.mt"
