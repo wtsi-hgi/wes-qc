@@ -20,7 +20,7 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str):
     #             .when(mt.s.startswith('Z'), 'Bristol')
     #             .default("")
     #             )
-    mt = mt.annotate_cols(sequencing_location=seq_expr).key_cols_by('s')
+    # mt = mt.annotate_cols(sequencing_location=seq_expr).key_cols_by('s')
     pop_ht = hl.read_table(pop_ht_file)
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
     mt.write(annotated_mt_file, overwrite=True)
