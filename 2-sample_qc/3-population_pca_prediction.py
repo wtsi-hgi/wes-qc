@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import argparse
 from gnomad.sample_qc.ancestry import assign_population_pcs
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 def get_options():
     '''
@@ -175,7 +175,6 @@ def main():
 
     #run pca
     pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
-    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
     if args.pca or args.run:

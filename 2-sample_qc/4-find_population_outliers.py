@@ -1,7 +1,7 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
 
@@ -14,14 +14,11 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, runid_file: str, annotated_m
     :param str annotated_mt_file: annotated mt file
     '''
     mt = hl.read_matrix_table(raw_mt_file)
-    runida_ht = hl.import_table(runid_file, delimiter="\t").key_by('ega')
+    runida_ht = hl.import_table(runid_file, delimiter="\t").key_by('sanger_sample_id')
     mt = mt.annotate_cols(batch=runida_ht[mt.s]['runid'])
-    seq_expr = (hl.case()
-                .when(mt.s.startswith('EGAN'), 'Sanger')
-                .when(mt.s.startswith('Z'), 'Bristol')
-                .default("")
-                )
-    mt = mt.annotate_cols(sequencing_location=seq_expr).key_cols_by('s')
+    bad_runs = ['43683', '43746', '43736', '43826', '43815', '43938', '43970', '43981', '44026', '44033', '44035',
+                '44070', '44074', '44097', '44209', '44118', '44098', '44320', '44262', '44257', '44482']
+    mt = mt.annotate_cols(c_a_artefact_suspected=hl.set(bad_runs).contains(mt.batch))
     pop_ht = hl.read_table(pop_ht_file)
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
     mt.write(annotated_mt_file, overwrite=True)
@@ -104,7 +101,7 @@ def main():
     # annotate mt with runid and pop
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
     pop_ht_file = mtdir + "pop_assignments.ht"
-    runid_file = resourcesdir + "sequencing_batches.txt"
+    runid_file = resourcesdir + "sequencing_batches.mcs.txt"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop_and_runid.mt"
     annotate_mt(raw_mt_file, pop_ht_file, runid_file, annotated_mt_file)
 
