@@ -38,7 +38,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 
     ht = mt.rows()
     ht = ht.transmute(**ht.info)
-    ht = ht.select( "MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
+    ht = ht.select( "AQ_allele", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
     ht = ht.annotate(
         **inbreeding_ht[ht.key],
         **trio_stats_ht[ht.key],
@@ -56,8 +56,8 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     # ht = ht.annotate(is_CG=((ht.alleles[0] == "C") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "C")))
     # ht = ht.annotate(is_CT=((ht.alleles[0] == "C") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "A")))
 
-    ht = ht.annotate(fail_hard_filters=(ht.QD < 2)
-                     | (ht.FS > 60) | (ht.MQ < 30))
+    ht = ht.annotate(fail_hard_filters=(ht.AQ_allele < 35))
+
     ht = ht.annotate(ac_raw=ht.ac_qc_samples_raw)
     ht = ht.annotate(transmitted_singleton=(
         ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
@@ -70,7 +70,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
         **{
             "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1)
             & (ht[f"ac_qc_samples_{group}"] == 2),
-            "fail_hard_filters": (ht.QD < 2) | (ht.FS > 60) | (ht.MQ < 30),
+            "fail_hard_filters": ht.AQ_allele < 35,
         },
         ac_raw=ht.ac_qc_samples_raw
     )
@@ -84,7 +84,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
 def main():
     #set up
     inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
+    mtdir = inputs['matrixtables_lustre_dir']  
     resourcedir = inputs['resource_dir']
 
     # initialise hail
