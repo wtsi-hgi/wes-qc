@@ -101,6 +101,9 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
         meanHetAB = hl.agg.mean(mt.HetAB),
     )
 
+    #annotate with allele quality
+    mt = mt.annotate_rows(AQ_allele = mt.info.AQ[mt.a_index-1])
+
     print("writing split mt")
     mt.write(varqc_mtfile_split, overwrite=True)
 
