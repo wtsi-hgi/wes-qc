@@ -1,16 +1,7 @@
 #constants for random forest
 
 INFO_FEATURES = [
-    "AS_QD",
-    "AS_ReadPosRankSum",
-    "AS_MQRankSum",
-    "AS_SOR",
-    "QD",
-    "MQRankSum",
-    "SOR",
-    "ReadPosRankSum",
-    "FS",
-    "DP"
+    "AQ"
 ] 
 
 FEATURES = [
@@ -20,11 +11,7 @@ FEATURES = [
     "was_mixed",
     "was_split",
     "has_star",
-    "MQ",
-    "QD",
-    "MQRankSum",
-    "SOR",
-    "ReadPosRankSum",
+    "AQ_allele",
     "is_CA",
     "meanHetAB"
 ]
