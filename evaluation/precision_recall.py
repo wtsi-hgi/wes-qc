@@ -17,16 +17,16 @@ def prepare_alspac_htfile(mtfile: str, rf_htfile: str, mtdir: str) -> hl.Table:
     sample = 'EGAN00003332049'#GIAB12878/HG001
     mt = mt.filter_cols(mt.s == sample)
 
-    #hard filters
-    filter_condition = (
-        (mt.GT.is_het() & (mt.HetAB < 0.3)) | 
-        (mt.DP < 10) |
-        (mt.GQ < 10)
-    )
-    mt = mt.annotate_entries(
-        hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
-    )
-    mt = mt.filter_entries(mt.hard_filters == 'Pass')
+    # #hard filters
+    # filter_condition = (
+    #     (mt.GT.is_het() & (mt.HetAB < 0.3)) | 
+    #     (mt.DP < 10) |
+    #     (mt.GQ < 10)
+    # )
+    # mt = mt.annotate_entries(
+    #     hard_filters = hl.if_else(filter_condition, 'Fail', 'Pass')
+    # )
+    # mt = mt.filter_entries(mt.hard_filters == 'Pass')
 
     #filter to autosomes
     mt = mt.filter_rows(mt.locus.in_autosome())
@@ -190,7 +190,8 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
 
-    rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
+    #rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir + "f7252d98" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
 
     alspac_vars_ht = prepare_alspac_htfile(mtfile, rf_htfile, mtdir)
