@@ -43,6 +43,9 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
     )
     mt = mt.filter_entries(mt.hard_filters == 'Pass')
 
+    #also filter rows on AQ
+    mt = mt.filter_rows(mt.AQ_allele < 35, keep = False)
+
     
     # mt = mt.filter_entries(
     #     (mt.GT.is_het() & (mt.HetAB >= ab)) | 
@@ -72,7 +75,8 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mtfile = mtdir + "mt_after_var_qc.mt"
+    #mtfile = mtdir + "mt_after_var_qc.mt"
+    mtfile = mtdir + "mt_varqc_splitmulti.mt"#mt after sample QC
     mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
     filter_mt(mtfile, args.dp, args.gq, args.ab, mtfile_filtered)
 
