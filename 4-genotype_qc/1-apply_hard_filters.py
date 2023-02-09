@@ -77,7 +77,7 @@ def main():
 
     #mtfile = mtdir + "mt_after_var_qc.mt"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"#mt after sample QC
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
+    mtfile_filtered = mtdir + "mt_after_hard_filter_gt.mt"
     filter_mt(mtfile, args.dp, args.gq, args.ab, mtfile_filtered)
 
 
