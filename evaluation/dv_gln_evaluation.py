@@ -16,19 +16,19 @@ def get_variant_counts_per_cq_and_t_u(mtfile, cqfile, mtdir, pedfile, gnomad_htf
     '''
     mt = hl.read_matrix_table(mtfile)
     #annotate mt with consequences and gnomad
-    mt = annotate_cq(mt, cqfile)
-    mt = annotate_gnomad(mt, gnomad_htfile)
+    mt_cq = annotate_cq(mt, cqfile)
+    mt_cq_gnomad = annotate_gnomad(mt_cq, gnomad_htfile)
     cq_outfile = mtdir + "consequences_counts.txt"
     ca_outfile = mtdir + "ca_counts.txt"
-    get_counts_per_cq(mt, cq_outfile)
-    get_ca_fractions(mt, ca_outfile)
+    get_counts_per_cq(mt, mt_cq_gnomad)
+    get_ca_fractions(mt, mt_cq_gnomad)
 
     pedigree = hl.Pedigree.read(pedfile)
     #list of samples in trios
     trio_sample_ht = hl.import_fam(pedfile)
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
 
-    tu_ratio = get_trans_untrans(mt, pedigree, sample_list, mtdir)
+    tu_ratio = get_trans_untrans(mt_cq_gnomad, pedigree, sample_list, mtdir)
 
     return tu_ratio
     
