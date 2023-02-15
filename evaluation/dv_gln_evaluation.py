@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import datetime
 from wes_qc.utils.utils import parse_config
-from wes_qc.evaulation.variant_counts_per_cq_controls.annotation_functions import annotate_cq, annotate_gnomad, get_counts_per_cq, get_ca_fractions
+from wes_qc.evaluation.variant_counts_per_cq_controls.annotation_functions import annotate_cq, annotate_gnomad, get_counts_per_cq, get_ca_fractions
 
 def get_variant_counts_per_cq_and_t_u(mtfile, cqfile, mtdir, pedfile, gnomad_htfile) -> float:
     '''
