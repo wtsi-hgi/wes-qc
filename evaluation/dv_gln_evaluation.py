@@ -17,6 +17,9 @@ def get_variant_counts_per_cq_and_t_u(mtfile, cqfile, mtdir, pedfile, gnomad_htf
     mt = hl.read_matrix_table(mtfile)
     #annotate mt with consequences and gnomad
     mt_cq = annotate_cq(mt, cqfile)
+    tmpmtfile = mtdir + "tmp.mt"
+    mt_cq.write(tmpmtfile, overwrite = True)
+    exit(0)
     mt_cq_gnomad = annotate_gnomad(mt_cq, gnomad_htfile)
     cq_outfile = mtdir + "consequences_counts.txt"
     ca_outfile = mtdir + "ca_counts.txt"
