@@ -20,8 +20,8 @@ def get_variant_counts_per_cq_and_t_u(mtfile, cqfile, mtdir, pedfile, gnomad_htf
     mt_cq_gnomad = annotate_gnomad(mt_cq, gnomad_htfile)
     cq_outfile = mtdir + "consequences_counts.txt"
     ca_outfile = mtdir + "ca_counts.txt"
-    get_counts_per_cq(mt, mt_cq_gnomad)
-    get_ca_fractions(mt, mt_cq_gnomad)
+    get_counts_per_cq(mt_cq_gnomad, cq_outfile)
+    get_ca_fractions(mt_cq_gnomad, ca_outfile)
 
     pedigree = hl.Pedigree.read(pedfile)
     #list of samples in trios
