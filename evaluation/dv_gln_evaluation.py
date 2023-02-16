@@ -72,7 +72,7 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
     return ratio
 
 
-def precision_recall(mtfile: str, giab_vcffile: str, mtdir: str) -> dict:
+def get_precision_recall(mtfile: str, giab_vcffile: str, mtdir: str) -> dict:
     '''
     :param str mtfile: ALSPAC mt file
     :param str giab_vcffile: GIAB VCF file
@@ -105,8 +105,8 @@ def precision_recall(mtfile: str, giab_vcffile: str, mtdir: str) -> dict:
     giab_indels = giab_indels.key_by(**hl.min_rep(giab_indels.locus, giab_indels.alleles))
 
     #get precision recall for SNVs and indels
-    snv_prec, snv_recall, snv_tp, snv_fp, snv_fn = get_precision_recall(giab_snvs, alspac_snvs, mtdir)
-    indel_prec, indel_recall, indel_tp, indel_fp, indel_fn = get_precision_recall(giab_indels, alspac_indels, mtdir)
+    snv_prec, snv_recall, snv_tp, snv_fp, snv_fn = calculate_precision_recall(giab_snvs, alspac_snvs, mtdir)
+    indel_prec, indel_recall, indel_tp, indel_fp, indel_fn = calculate_precision_recall(giab_indels, alspac_indels, mtdir)
 
     results = {
         'snv_prec': snv_prec,
@@ -118,7 +118,7 @@ def precision_recall(mtfile: str, giab_vcffile: str, mtdir: str) -> dict:
     return results
 
 
-def get_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str) -> tuple:
+def calculate_precision_recall(giab_vars: hl.Table, alspac_vars: hl.Table, mtdir: str) -> tuple:
     '''
     Get precision and recall for two sets of variants, reference set (GIAB) and test set (ALSPAC)
     :param hl.Table giab_vars: GIAB variants (reference set)
@@ -166,7 +166,7 @@ def main():
     gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
 
     tu_ratio = get_variant_counts_per_cq_and_t_u(mtfile_filtered, cqfile, mtdir, pedfile, gnomad_htfile)
-    precison_recall = get_precision_recall(mtfile_filtered, giab_vcf, mtdir)
+    precision_recall = get_precision_recall(mtfile_filtered, giab_vcf, mtdir)
 
     print("transmitted/untransmitted ration for synonymous singletons: " + str(tu_ratio))
     print("Precision/recall:")
