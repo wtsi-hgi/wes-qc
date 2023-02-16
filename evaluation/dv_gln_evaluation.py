@@ -173,7 +173,7 @@ def main():
     print("Precision SNP: " + str(precision_recall['snv_prec']))
     print("Recall SNP: " + str(precision_recall['snv_recall']))
     print("Precision indel: " + str(precision_recall['indel_prec']))
-    print("Recall indel: " + str(precision_recall['snv_recall']))
+    print("Recall indel: " + str(precision_recall['indel_recall']))
 
 
 if __name__ == '__main__':
