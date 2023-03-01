@@ -5,8 +5,8 @@ import uuid
 import json
 from pathlib import Path
 from typing import Dict, List, Tuple
-import wes_qc.utils.constants as constants
-from wes_qc.utils.utils import parse_config, get_rf
+import utils.constants as constants
+from utils.utils import parse_config, get_rf
 from gnomad.utils.file_utils import file_exists
 from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
@@ -164,7 +164,8 @@ def main():
         json.dump(rf_runs, f)
     pretty_print_runs(rf_runs)
     save_model(
-            rf_model, get_rf(rf_dir, data="model", run_hash=run_hash), overwrite=True)
+            rf_model, get_rf(rf_dir, data="model", run_hash=run_hash), overwrite=True
+    )
 
 
 if __name__ == '__main__':

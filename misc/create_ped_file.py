@@ -1,6 +1,9 @@
 # Create ped file for trios to use in variant QC
 import gzip
-from wes_qc.utils.utils import parse_config
+import os.path
+import logging
+import pandas
+from utils.utils import parse_config
 
 
 def get_trios_to_exclude(unrelated_parents_file):
@@ -99,6 +102,73 @@ def write_ped(trios, pedfile):
         o.write(("\n").join(peddata))
 
 
+class FamilyError(Exception):
+    def __init__(self, df: pandas.DataFrame):
+        self.df = df
+        fam_id = df.hurles_fid.unique()[0]
+        message = f'Bad family detected: {fam_id}'
+        logging.error(message)
+        super(FamilyError, self).__init__(message)
+
+
+def metadata_to_ped(filename: str) -> pandas.DataFrame:
+    metadata = pandas.read_table(filename, sep='\t')
+    ped = []
+    failed_data = []
+    for family_id, family in metadata.groupby('hurles_fid'):
+        try:
+            row = family_to_ped(family, fid=family_id)
+            ped.append(row)
+        except FamilyError as e:
+            failed_data.append(e.df)
+
+    ped = pandas.concat(ped)
+    return ped
+
+
+def family_to_ped(df: pandas.DataFrame, fid: str) -> pandas.DataFrame:
+    ped = []
+
+    mother = get_person(df, person_type='M')
+    father = get_person(df, person_type='F')
+    if len(mother) + len(father) != 2:
+        raise FamilyError(df)
+
+    children = get_person(df, person_type='C')
+    for child in children:
+        if child == '0':
+            continue
+        gender = df.loc[df.sanger_sample_id == child, 'sex'].values
+        ped_row = [fid, child, father[0], mother[0], gender[0], '-9']
+        ped.append(ped_row)
+
+    ped = pandas.DataFrame.from_records(ped)
+    return ped
+
+
+def get_person(df: pandas.DataFrame, person_type: str):
+    assert person_type in ('M', 'F', 'C')
+    if person_type not in df.mfc.values:
+        return ['0']
+    person_id = df.loc[df.mfc == person_type, 'sanger_sample_id']
+    person_gender = df.loc[df.sanger_sample_id.isin(person_id), 'sex']
+    if person_type == 'M' and any(person_gender != 2):
+        logging.error(f'Wrong gender {person_gender} for mother {person_id}')
+        raise FamilyError(df)
+    if person_type == 'F' and any(person_gender != 1):
+        logging.error(f'Wrong gender {person_gender} for father {person_id}')
+        raise FamilyError(df)
+    return person_id.values
+
+
+def exclude_failed_samples(ped: pandas.DataFrame, failed_qc_file: str) -> pandas.DataFrame:
+    df = pandas.read_csv(failed_qc_file, compression='gzip')
+    ped = ped[~ped[1].isin(df.s)]
+    ped[2].replace(df.s.to_list(), value='0', inplace=True)
+    ped[3].replace(df.s.to_list(), value='0', inplace=True)
+    return ped
+
+
 def main():
     inputs = parse_config()
     resourcedir = inputs['resource_dir_local']
@@ -107,12 +177,20 @@ def main():
     sample_qc_fails = annotdir + "samples_failing_qc.tsv.bgz"
     gtcheck_mismatches = resourcedir + "gtcheck_mismatches.txt"
     unrelated_parents_file = annotdir + "unrelated_parents.txt"
+    metadata_file = os.path.join(resourcedir, 'GDAC_2021_03_HURLES_Sanger_mcs_basic_demographics_v0003_shareable_20220215.txt')
+    pedfile = annotdir + "trios.ped"
 
-    trios_to_exclude = get_trios_to_exclude(unrelated_parents_file)
-    samples_to_exclude = get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches)
-    trios  = parse_manifest(manifest_file, samples_to_exclude, trios_to_exclude)
-    pedfile = resourcedir + "trios.ped"
-    write_ped(trios, pedfile)
+    ped = metadata_to_ped(metadata_file)
+    ped.to_csv(annotdir + "trios_all.ped", header=False, sep='\t', index=False)
+
+    ped = exclude_failed_samples(ped, sample_qc_fails)
+    ped.to_csv(pedfile, header=False, sep='\t', index=False)
+
+    # trios_to_exclude = get_trios_to_exclude(unrelated_parents_file)
+    # samples_to_exclude = get_samples_to_exclude(sample_qc_fails, gtcheck_mismatches)
+    # trios = parse_manifest(manifest_file, samples_to_exclude, trios_to_exclude)
+    # write_ped(trios, pedfile)
+
 
 if __name__ == '__main__':
     main()

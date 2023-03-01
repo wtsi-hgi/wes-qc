@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -34,7 +34,7 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     synonymous_ht=synonymous_ht.annotate(alt=synonymous_ht.f4)
     synonymous_ht=synonymous_ht.annotate(consequence=synonymous_ht.f5)
     synonymous_ht = synonymous_ht.key_by(
-    locus=hl.locus(synonymous_ht.chr, synonymous_ht.pos), alleles=[synonymous_ht.ref,synonymous_ht.alt])
+        locus=hl.locus(synonymous_ht.chr, synonymous_ht.pos), alleles=[synonymous_ht.ref,synonymous_ht.alt])
     synonymous_ht=synonymous_ht.drop(synonymous_ht.f0,synonymous_ht.f1,synonymous_ht.f2,synonymous_ht.f3,synonymous_ht.f4,synonymous_ht.chr,synonymous_ht.pos,synonymous_ht.ref,synonymous_ht.alt)
     synonymous_ht = synonymous_ht.key_by(synonymous_ht.locus, synonymous_ht.alleles)
 
@@ -198,7 +198,7 @@ def main():
     #annotate with family stats and DNMs
     dnm_htfile = mtdir + "denovo_table.ht"
     fam_stats_htfile = mtdir + "family_stats.ht"
-    trio_stats_htfile = mtdir + "trio_stats.ht"
+    trio_stats_htfile = mtdir + "trio_stats.not-bi-only.ht"
     family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht"
     dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
 

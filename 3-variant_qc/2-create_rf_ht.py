@@ -1,8 +1,8 @@
 #create hail table for random forest
 import hail as hl
 import pyspark
-import wes_qc.utils.constants as constants
-from wes_qc.utils.utils import parse_config
+import utils.constants as constants
+from utils.utils import parse_config
 from gnomad.variant_qc.random_forest import median_impute_features
 
 
@@ -94,7 +94,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     truthset_file = resourcedir + "truthset_table.ht"
-    trio_stats_file = mtdir + "trio_stats.ht"
+    trio_stats_file = mtdir + "trio_stats.not-bi-only.ht"
     allele_data_file = mtdir + "allele_data.ht"
     allele_counts_file = mtdir + "qc_ac.ht"
     inbreeding_file = mtdir + "inbreeding.ht"

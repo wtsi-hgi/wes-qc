@@ -4,7 +4,7 @@ import pyspark
 import argparse
 from typing import Optional, Dict
 from pprint import pformat
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
