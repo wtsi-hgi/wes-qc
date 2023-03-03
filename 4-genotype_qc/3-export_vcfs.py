@@ -15,12 +15,6 @@ def export_vcfs(mtfile: str, vcf_dir: str):
         'info': {'consequence': {'Description': 'Most severe consequence from VEP104',
                    'Number': 'A',
                    'Type': 'String'},
-                   'rf_score': {'Description': 'Score from variant QC randon forest',
-                   'Number': 'A',
-                   'Type': 'Float'},
-                   'rf_bin': {'Description': 'Bin from variant QC random forest',
-                   'Number': 'A',
-                   'Type': 'Integer'}
                 }
     }
 
@@ -49,7 +43,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
+    mtfile_filtered = mtdir + "mt_after_hard_filter_gt.mt"
     export_vcfs(mtfile_filtered, filtered_vcf_dir)
 
 
