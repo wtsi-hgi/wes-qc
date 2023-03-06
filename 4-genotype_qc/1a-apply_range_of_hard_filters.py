@@ -3,7 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -270,7 +270,7 @@ def main():
     mt = hl.read_matrix_table(mtfile)
 
     #remove unwanted samples
-    mt = remove_samples(mt, exclude_file)
+    # mt = remove_samples(mt, exclude_file)
 
     #annotate mt with consequence, gene, rf bin
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)

@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import os
 from bokeh.plotting import output_file, save
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def plot_kinship(pcrelate_htfile: str, pedfile: str, annotfile: str, plot_dir: str):

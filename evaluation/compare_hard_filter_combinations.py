@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import datetime
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
@@ -46,17 +46,18 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
     ht=hl.import_table(giab_cqfile,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str', 'f6':'str', 'f7': 'str'}, no_header=True)
-    ht=ht.annotate(chr=ht.f0)
-    ht=ht.annotate(pos=ht.f1)
-    ht=ht.annotate(rs=ht.f2)
-    ht=ht.annotate(ref=ht.f3)
-    ht=ht.annotate(alt=ht.f4)
-    ht=ht.annotate(consequence=ht.f5)
-    ht=ht.annotate(impacte=ht.f6)
-    ht=ht.annotate(misc=ht.f7)
-    ht = ht.key_by(
-    locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref,ht.alt])
-    ht=ht.drop(ht.f0,ht.f1,ht.f2,ht.f3,ht.f4,ht.chr,ht.pos,ht.ref,ht.alt)
+    ht = ht.rename({
+        'f0': 'chr',
+        'f1': 'pos',
+        'f2': 'rs',
+        'f3': 'ref',
+        'f4': 'alt',
+        'f5': 'consequence',
+        'f6': 'impacte',
+        'f7': 'misc'
+    })
+    ht = ht.key_by(locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref, ht.alt])
+    ht = ht.drop(ht.chr, ht.pos, ht.ref, ht.alt)
     ht = ht.key_by(ht.locus, ht.alleles)
 
     mt=mt.annotate_rows(consequence=ht[mt.row_key].consequence)
@@ -82,7 +83,7 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     ht=ht.annotate(alt=ht.f4)
     ht=ht.annotate(consequence=ht.f5)
     ht = ht.key_by(
-    locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref,ht.alt])
+        locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref,ht.alt])
     ht=ht.drop(ht.f0,ht.f1,ht.f2,ht.f3,ht.f4,ht.chr,ht.pos,ht.ref,ht.alt)
     ht = ht.key_by(ht.locus, ht.alleles)
 
@@ -120,8 +121,8 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
 
     # snp_bins = list(range(35,46))
     # indel_bins = list(range(58,69))
-    snp_bins = [40]
-    indel_bins = [45, 50, 55, 60, 65, 70, 75]
+    snp_bins = [82,83,84,85,86,87]
+    indel_bins = [60,61,62,63,64,65,66]
     gq_vals = [10, 15, 20]
     # dp_vals = [4, 5, 6, 10]
     # ab_vals = [0.2, 0.25, 0.3]
@@ -418,7 +419,7 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
     mt_true = mt.filter_rows(mt.TP == True)#TP variants
     mt_false = mt.filter_rows(mt.FP == True)#FP variants
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')#synonymous for transmitted/unstransmitted
-    sample = 'EGAN00003332049'#GIAB12878/HG001
+    sample = 'bibkidex13159884'  #NA12878
     mt_prec_recall = mt.filter_cols(mt.s == sample)#GIAB sample for precision/recall
     mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
     mt_prec_recall = hl.variant_qc(mt_prec_recall)
@@ -484,6 +485,7 @@ def main():
     mtdir = inputs['matrixtables_lustre_dir']
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
+    anno_dir = inputs['annotation_lustre_dir']
     plot_dir = inputs['plots_dir_local']
 
     # initialise hail
@@ -496,10 +498,10 @@ def main():
     giab_cqfile = resourcedir + "all.interval.illumina.vep.info.txt"
     giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
 
-    rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir + "0e5d073b" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = resourcedir + "all_consequences.txt"
-    pedfile = resourcedir + "trios.ped"
+    pedfile = anno_dir + "trios_only.ped"
 
     mt = hl.read_matrix_table(mtfile)
     mt_annot = annotate_with_rf(mt, rf_htfile)
@@ -507,8 +509,8 @@ def main():
     mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_annot, mtdir)
     results = filter_and_count(mt_tp, mt_fp, mt_syn, mt_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
 
-    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
-    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel_fewer_combs_v2.txt"
+    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv.txt"
+    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel.txt"
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 

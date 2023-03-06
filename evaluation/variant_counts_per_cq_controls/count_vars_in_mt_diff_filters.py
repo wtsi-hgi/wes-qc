@@ -5,7 +5,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import os
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable:
