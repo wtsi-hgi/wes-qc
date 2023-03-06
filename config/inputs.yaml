@@ -1,6 +1,6 @@
 ---
-cromwell_base_dir: /lustre/scratch119/realdata/mdt3/projects/birth_cohort_wes/alspac/gatk/joint_call/cromwell/cromwell-executions/JointCalling/
-target_dir: /lustre/scratch123/hgi/mdt2/projects/birth_cohort_wes/qc/gatk_vcfs/
+#cromwell_base_dir: /lustre/scratch119/realdata/mdt3/projects/birth_cohort_wes/alspac/gatk/joint_call/cromwell/cromwell-executions/JointCalling/
+#target_dir: /lustre/scratch123/hgi/mdt2/projects/birth_cohort_wes/qc/gatk_vcfs/
 regions:
   chr1_3_dir: 303af8c0-4b7b-4388-98b5-2f552584a8f7
   chr4_8_dir: 5b20ad2f-9f35-4713-b171-a7f8f0b0aebc
@@ -8,20 +8,20 @@ regions:
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
 gatk_vcf_header: file:///lustre/scratch123/qc/dv_vcf/header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/dv_vcf/
-load_matrixtables_lustre_dir: /lustre/scratch123/qc/dv_comparison/matrixtables/
+gatk_import_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/part_three_stage2sampleQC_shardedvcfs/
+load_matrixtables_lustre_dir: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/
 #load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-annotation_lustre_dir: file:///lustre/scratch123/qc/dv_comparison/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/qc/dv_comparison/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/qc/dv_comparison/matrixtables/
+annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/
+annotation_lustre_dir_local: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-plots_lustre_dir: file:///lustre/scratch123/qc/plots/
-plots_dir_local: /lustre/scratch123/qc/dv_comparison/plots/
-resource_dir: file:///lustre/scratch123/qc/resources/
+plots_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/plots/
+plots_dir_local: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/plots/
+resource_dir: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/
 resource_dir_local: /lustre/scratch123/qc/resources/
-training_set_dir: file:///lustre/scratch123/qc/training_sets/
-var_qc_rf_dir: file:///lustre/scratch123/qc/dv_comparison/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20221114/
+training_set_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/training_sets/
+var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/filtered_vcfs/20221114/
 
 rf_test_interval: chr20
 
