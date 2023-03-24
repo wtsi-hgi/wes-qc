@@ -87,18 +87,23 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     # mt = mt.annotate_rows(trioAC = hl.agg.sum(mt.AD[1]))
 
     #min(GT_AD) used here - but could change this to cover just those with few alts - moved to after split
+
     print("Annotating entries with allele balance")
     mt = mt.annotate_entries(
-        HetAB = hl.case().when(
-            mt.GT.is_het(),
-            hl.min(mt.AD[1]) / mt.sum_AD
-            # hl.min(mt.AD[1]) / hl.sum(mt.AD)
-        ).or_missing()
+        HetAB=hl.case()
+                .when(mt.sum_AD == 0, hl.missing('float64'))
+                .when(mt.GT.is_het(), hl.min(mt.AD[1]) / mt.sum_AD)  # hl.min(mt.AD[1]) / hl.sum(mt.AD)
+                .or_missing()
     )
 
     print("Annotating variants with mean allele balance")
     mt = mt.annotate_rows(
-        meanHetAB = hl.agg.mean(mt.HetAB),
+        meanHetAB=hl.agg.mean(mt.HetAB)
+    )
+
+    # replacing NaN values with NA
+    mt = mt.annotate_rows(
+        meanHetAB=hl.if_else(hl.is_nan(mt.meanHetAB), hl.missing('float64'), mt.meanHetAB)
     )
 
     print("writing split mt")
@@ -229,7 +234,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
 
-    trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=True)
+    trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=False)
     trio_stats_ht.write(trio_stats_htfile, overwrite=True)
 
     print("Generating family stats")
