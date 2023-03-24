@@ -1,7 +1,7 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
 
@@ -14,16 +14,10 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, runid_file: str, annotated_m
     :param str annotated_mt_file: annotated mt file
     '''
     mt = hl.read_matrix_table(raw_mt_file)
-    runida_ht = hl.import_table(runid_file, delimiter="\t").key_by('ega')
-    mt = mt.annotate_cols(batch=runida_ht[mt.s]['runid'])
-    seq_expr = (hl.case()
-                .when(mt.s.startswith('EGAN'), 'Sanger')
-                .when(mt.s.startswith('Z'), 'Bristol')
-                .default("")
-                )
-    mt = mt.annotate_cols(sequencing_location=seq_expr).key_cols_by('s')
     pop_ht = hl.read_table(pop_ht_file)
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
+    mt = mt.annotate_cols(assigned_pop=mt.assigned_pop.replace('other', 'other-sas'))
+    mt = mt.annotate_cols(assigned_pop=hl.if_else(hl.is_missing(mt.assigned_pop), 'non-sas', mt.assigned_pop))
     mt.write(annotated_mt_file, overwrite=True)
 
 
@@ -41,9 +35,9 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     mt = mt.filter_rows(mt.locus.in_autosome())
 
     # filter MT by depth/gq/vaf
-    min_dp = 20
-    min_gq = 20
-    min_vaf = 0.25
+    min_dp = 0
+    min_gq = 0
+    min_vaf = 0
     if min_dp > 0 or min_gq > 0 or min_vaf > 0:
         vaf = mt.AD[1] / hl.sum(mt.AD)
         print("Filtering input MT by depth: DP=" + str(min_dp) +
@@ -74,6 +68,10 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
         qc_metrics={
             metric: pop_ht.sample_qc[metric] for metric in qc_metrics
         },
+        metric_threshold={'heterozygosity_rate': (100, 6),
+                          'r_het_hom_var': (100, 6)},
+        lower_threshold=6,
+        upper_threshold=6,
         strata={"qc_pop": pop_ht.assigned_pop},
     )
 
@@ -105,7 +103,7 @@ def main():
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
     pop_ht_file = mtdir + "pop_assignments.ht"
     runid_file = resourcesdir + "sequencing_batches.txt"
-    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop_and_runid.mt"
+    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"
     annotate_mt(raw_mt_file, pop_ht_file, runid_file, annotated_mt_file)
 
     # run sample QC and stratify by population

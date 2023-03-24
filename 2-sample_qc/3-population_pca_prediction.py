@@ -3,7 +3,8 @@ import hail as hl
 import pyspark
 import argparse
 from gnomad.sample_qc.ancestry import assign_population_pcs
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
+
 
 def get_options():
     '''
@@ -91,7 +92,7 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     mt_vqc_filtered = mt_vqc.filter_rows(
         (mt_vqc.variant_QC_Hail.call_rate >= 0.99) &
         (mt_vqc.variant_QC_Hail.AF[1] >= 0.05) &
-        (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
+        (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-10)
     )
     long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
     long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
@@ -176,7 +177,6 @@ def main():
     #run pca
     pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
     pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
-    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
     if args.pca or args.run:
         run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
@@ -188,4 +188,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main() 
+    main()
