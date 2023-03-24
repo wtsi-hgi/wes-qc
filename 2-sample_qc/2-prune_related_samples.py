@@ -2,7 +2,7 @@
 # use mt with hard filters and sex annotation from 2-sample_qc/1-hard_filters_sex_annotation.py
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from bokeh.plotting import save, output_file
 
 
@@ -65,11 +65,17 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     variants, samples = pca_mt.count()
     print(f"{samples} samples after relatedness step.")
 
-    plink_mt = pca_mt.annotate_cols(uid=pca_mt.s).key_cols_by('uid')
-    plinkfile = mtdir + "mt_unrelated.plink"
-    hl.export_plink(plink_mt, plinkfile,fam_id=plink_mt.uid, ind_id=plink_mt.uid)
-
     print("Running PCA")
+    pca_mt = hl.variant_qc(pca_mt, name='variant_QC_Hail')
+    pca_mt = pca_mt.filter_rows(
+        (pca_mt.variant_QC_Hail.AF[1] >= 0.05) &
+        (pca_mt.variant_QC_Hail.p_value_hwe >= 1e-5)
+    )
+
+    long_range_ld_file = "file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/long_ld_regions.hg38.bed"
+    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
+    pca_mt = pca_mt.filter_rows(hl.is_defined(long_range_ld_to_exclude[pca_mt.locus]), keep=False)
+
     pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=20, compute_loadings=True)
     pca_af_ht = pca_mt.annotate_rows(pca_af=hl.agg.mean(pca_mt.GT.n_alt_alleles()) / 2).rows()
     pca_loadings = pca_loadings.annotate(pca_af=pca_af_ht[pca_loadings.key].pca_af)
@@ -119,4 +125,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main() 
+    main()
