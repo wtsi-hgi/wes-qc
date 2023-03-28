@@ -5,6 +5,20 @@ import datetime
 from wes_qc.utils.utils import parse_config
 
 
+def get_options():
+    '''
+    Get options from the command line
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runhash", help="RF run hash")
+    args = parser.parse_args()
+    if not args.runhash:
+        print("--runhash must be specified")
+        exit(1)
+
+    return args
+
+
 def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
     '''
     Annotate MatrixTable with TP, FP, rf_bin and rf_score
@@ -480,6 +494,7 @@ def print_results(results: dict, outfile: str, vartype: str):
 
 def main():
     # set up
+    args = get_options()
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     rf_dir = inputs['var_qc_rf_dir']
@@ -496,7 +511,7 @@ def main():
     giab_cqfile = resourcedir + "all.interval.illumina.vep.info.txt"
     giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
 
-    rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = resourcedir + "all_consequences.txt"
     pedfile = resourcedir + "trios.ped"
@@ -507,8 +522,8 @@ def main():
     mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_annot, mtdir)
     results = filter_and_count(mt_tp, mt_fp, mt_syn, mt_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
 
-    outfile_snv = plot_dir + "/genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
-    outfile_indel = plot_dir + "/genotype_hard_filter_comparison_indel_fewer_combs_v2.txt"
+    outfile_snv = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
+    outfile_indel = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_indel_fewer_combs_v2.txt"
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 
