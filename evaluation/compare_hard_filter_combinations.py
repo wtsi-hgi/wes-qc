@@ -2,6 +2,7 @@
 import hail as hl
 import pyspark
 import datetime
+import argparse
 from wes_qc.utils.utils import parse_config
 
 
