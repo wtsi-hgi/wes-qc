@@ -56,7 +56,7 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     # annotate with heterozygosity rate
     mt_with_sampleqc = mt_with_sampleqc.annotate_cols(sample_qc=mt_with_sampleqc.sample_qc.annotate(
         heterozygosity_rate=mt_with_sampleqc.sample_qc.n_het/mt_with_sampleqc.sample_qc.n_called))
-    mt_with_sampleqc.write(mt_qc_outfile, overwrite=True)
+    # mt_with_sampleqc.write(mt_qc_outfile, overwrite=True)
     mt_with_sampleqc.cols().write(ht_qc_cols_outfile,  overwrite=True)
     # stratify by pop
     pop_ht = hl.read_table(ht_qc_cols_outfile)

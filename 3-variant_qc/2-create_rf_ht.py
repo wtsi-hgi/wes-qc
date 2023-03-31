@@ -1,8 +1,8 @@
 #create hail table for random forest
 import hail as hl
 import pyspark
-import wes_qc.utils.constants as constants
-from wes_qc.utils.utils import parse_config
+import utils.constants as constants
+from utils.utils import parse_config
 from gnomad.variant_qc.random_forest import median_impute_features
 
 
@@ -50,11 +50,11 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     #annotate with C>A or not
     ht = ht.annotate(is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T")))
     #annotate with all other possible SNPs
-    # ht = ht.annotate(is_AC=((ht.alleles[0] == "A") & (ht.alleles[1] == "C")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "G")))
-    # ht = ht.annotate(is_AG=((ht.alleles[0] == "A") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "C")))
-    # ht = ht.annotate(is_AT=((ht.alleles[0] == "A") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "A")))
-    # ht = ht.annotate(is_CG=((ht.alleles[0] == "C") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "C")))
-    # ht = ht.annotate(is_CT=((ht.alleles[0] == "C") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "A")))
+    ht = ht.annotate(is_AC=((ht.alleles[0] == "A") & (ht.alleles[1] == "C")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "G")))
+    ht = ht.annotate(is_AG=((ht.alleles[0] == "A") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "C")))
+    ht = ht.annotate(is_AT=((ht.alleles[0] == "A") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "A")))
+    ht = ht.annotate(is_CG=((ht.alleles[0] == "C") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "C")))
+    ht = ht.annotate(is_CT=((ht.alleles[0] == "C") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "A")))
 
     ht = ht.annotate(fail_hard_filters=(ht.QD < 2)
                      | (ht.FS > 60) | (ht.MQ < 30))
@@ -78,7 +78,7 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     ht = ht.repartition(n_partitions, shuffle=False)
     ht = ht.checkpoint(htfile_rf_all_cols, overwrite=True)
     ht = median_impute_features(ht, strata={"variant_type": ht.variant_type})
-    ht = ht.checkpoint(htfile_rf_var_type_all_cols, overwrite=True)
+    ht.write(htfile_rf_var_type_all_cols, overwrite=True)
 
 
 def main():

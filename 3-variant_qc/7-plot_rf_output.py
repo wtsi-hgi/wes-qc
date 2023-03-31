@@ -9,7 +9,7 @@ from bokeh.models import Plot, Row, Span
 from bokeh.plotting import output_file, save
 from gnomad.utils.plotting import *
 from hail.plot import show, output_notebook
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():

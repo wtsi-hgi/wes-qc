@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, rm_mt
 
 
 def get_options():
@@ -137,10 +137,11 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     # mt_filtered = mt_trios.filter_entries((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_rows((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_entries((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    mt_filtered.write(trio_filtered_mtfile, overwrite=True)
+    mt_filtered = mt_filtered.checkpoint(trio_filtered_mtfile, overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
-    ht.write(trans_sing_htfile, overwrite=True)    
+    ht.write(trans_sing_htfile, overwrite=True)
+    rm_mt(trio_filtered_mtfile)
 
 
 # def run_tdt(mtfile: str, trans_sing_htfile: str, pedfile: str, tdt_htfile: str):

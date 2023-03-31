@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import argparse
 from typing import Tuple
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, rm_mt
 from gnomad.utils.filtering import filter_to_adj, filter_to_autosomes
 from gnomad.utils.annotations import unphase_call_expr, bi_allelic_site_inbreeding_expr, add_variant_type, annotate_adj, bi_allelic_expr
 from gnomad.sample_qc.relatedness import generate_trio_stats_expr
@@ -68,12 +68,12 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     #before splitting annotate with sum_ad
     mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
     mt = annotate_adj(mt)
-    mt.write(varqc_mtfile, overwrite=True)
+    mt = mt.checkpoint(varqc_mtfile, overwrite=True)
     mt = hl.split_multi_hts(mt)
     
     tmp_mt = varqc_mtfile_split + "_tmp"
     print("writing split mt")
-    mt.write(tmp_mt, overwrite=True)
+    mt = mt.checkpoint(tmp_mt, overwrite=True)
 
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False) 
@@ -89,20 +89,25 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     #min(GT_AD) used here - but could change this to cover just those with few alts - moved to after split
     print("Annotating entries with allele balance")
     mt = mt.annotate_entries(
-        HetAB = hl.case().when(
-            mt.GT.is_het(),
-            hl.min(mt.AD[1]) / mt.sum_AD
-            # hl.min(mt.AD[1]) / hl.sum(mt.AD)
-        ).or_missing()
+        HetAB=hl.case()
+                .when(mt.sum_AD == 0, hl.missing('float64'))
+                .when(mt.GT.is_het(), hl.min(mt.AD[1]) / mt.sum_AD)  # hl.min(mt.AD[1]) / hl.sum(mt.AD)
+                .or_missing()
     )
 
     print("Annotating variants with mean allele balance")
     mt = mt.annotate_rows(
-        meanHetAB = hl.agg.mean(mt.HetAB),
+        meanHetAB=hl.agg.mean(mt.HetAB)
+    )
+
+    # replacing NaN values with NA
+    mt = mt.annotate_rows(
+        meanHetAB=hl.if_else(hl.is_nan(mt.meanHetAB), hl.missing('float64'), mt.meanHetAB)
     )
 
     print("writing split mt")
     mt.write(varqc_mtfile_split, overwrite=True)
+    rm_mt(tmp_mt)
 
 
 def read_fam(fam_file: str) -> hl.Table:
@@ -229,7 +234,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
     trio_dataset.write(trio_mtfile, overwrite=True)
 
-    trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=True)
+    trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=False)
     trio_stats_ht.write(trio_stats_htfile, overwrite=True)
 
     print("Generating family stats")
@@ -237,7 +242,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     ht1.write(fam_stats_htfile ,overwrite=True)
 
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
-    mt.write(fam_stats_mtfile , overwrite=True)
+    mt = mt.checkpoint(fam_stats_mtfile, overwrite=True)
     #add gnomad AFs
     gnomad_ht = hl.read_table(gnomad_htfile)
     mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
@@ -246,6 +251,8 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
     de_novo_table.write(dnm_htfile, overwrite=True)
+
+    rm_mt(fam_stats_mtfile)
 
 
 def generate_allele_data(mt: hl.MatrixTable) -> hl.Table:
@@ -339,12 +346,12 @@ def main():
 
     #add hail variant QC
     if args.annotation or args.all:
-        mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+        mtfile = mtdir + "mt_pops_QC_filters_sample_qc.mt"
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
         split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
-        pedfile = resourcedir + "trios.ped"
+        pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.fam'
 
         #get complete trios, family annotation, dnm annotation
         trio_mtfile = mtdir + "trios.mt"
@@ -361,6 +368,7 @@ def main():
         qc_ac_htfile = mtdir + "qc_ac.ht"
         allele_data_htfile = mtdir + "allele_data.ht"
         create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
+        rm_mt(varqc_mtfile)
 
 
 if __name__ == '__main__':

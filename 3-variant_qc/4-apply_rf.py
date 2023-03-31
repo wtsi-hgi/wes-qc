@@ -2,8 +2,8 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config, get_rf
-import wes_qc.utils.constants as constants
+from utils.utils import parse_config, get_rf
+import utils.constants as constants
 from gnomad.variant_qc.random_forest import apply_rf_model, load_model
 
 

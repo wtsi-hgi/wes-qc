@@ -3,6 +3,7 @@ import os
 import sys
 import yaml
 import pandas as pd
+from shutil import rmtree
 from typing import Optional, Union
 from gnomad.resources.resource_utils import TableResource
 
@@ -74,3 +75,7 @@ def get_rf(
         return model_file
     else:
         return TableResource(data_file)
+
+
+def rm_mt(path: str):
+    rmtree(path.replace('file://', ''))
