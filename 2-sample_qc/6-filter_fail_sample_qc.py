@@ -15,7 +15,7 @@ def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     '''
     mt = hl.read_matrix_table(annotated_mt_file)
     mt = mt.filter_cols(mt.sequencing_location == 'Sanger')  # filter to Sanger only
-    mt.write(sanger_mt_file)
+    mt.write(sanger_mt_file, overwrite = True)
 
 
 def remove_sample_qc_fails(sanger_mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, verifybamid_file: str, gtcheck_fail_file: str, sample_qc_filtered_mt_file: str):
