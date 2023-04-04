@@ -1,8 +1,9 @@
 #compare different combinations of hard filters
+import os.path
 import hail as hl
 import pyspark
 import datetime
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
@@ -74,19 +75,15 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     :param str cqfile: Most severe consequence annotation from VEP
     :return: hl.MatrixTable
     '''
-    ht=hl.import_table(cqfile,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'}, no_header=True)
-    ht=ht.annotate(chr=ht.f0)
-    ht=ht.annotate(pos=ht.f1)
-    ht=ht.annotate(rs=ht.f2)
-    ht=ht.annotate(ref=ht.f3)
-    ht=ht.annotate(alt=ht.f4)
-    ht=ht.annotate(consequence=ht.f5)
+    ht = hl.import_table(cqfile, types={'f1': 'int32'}, no_header=True)
+    ht = ht.rename({'f0': 'chr', 'f1': 'pos', 'f2': 'rs',
+                    'f3': 'ref', 'f4': 'alt', 'f5': 'consequence'})
     ht = ht.key_by(
-    locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref,ht.alt])
-    ht=ht.drop(ht.f0,ht.f1,ht.f2,ht.f3,ht.f4,ht.chr,ht.pos,ht.ref,ht.alt)
-    ht = ht.key_by(ht.locus, ht.alleles)
+        locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref, ht.alt]
+    )
+    ht = ht.drop(ht.chr, ht.pos, ht.ref, ht.alt)
 
-    mt=mt.annotate_rows(consequence=ht[mt.row_key].consequence)
+    mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
 
     return mt
 
@@ -370,14 +367,14 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: li
         #restrict to samples in trios, annotate with AC and filter to trio AC == 1 or 2
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
     mt2 = hl.variant_qc(mt2, name='varqc_trios')
-    tmpmt3 = mtdir + "tmp3x.mt"
-    mt2 = mt2.checkpoint(tmpmt3, overwrite = True)
+    tmpmt3 = os.path.join(mtdir, "tmp3x.mt")
+    mt2 = mt2.repartition(n_partitions=2000).checkpoint(tmpmt3, overwrite = True)
     #split to potentially transitted/untransmitted
     untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt4 = mtdir + "tmp4x.mt"
+    tmpmt4 = os.path.join(mtdir, "tmp4x.mt")
     untrans_mt = untrans_mt.checkpoint(tmpmt4, overwrite = True)
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
-    tmpmt5 = mtdir + "tmp5x.mt"
+    tmpmt5 = os.path.join(mtdir, "tmp5x.mt")
     trans_mt = trans_mt.checkpoint(tmpmt5, overwrite = True)
         #run tdt function for potential trans and untrans
     tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
@@ -496,7 +493,7 @@ def main():
     giab_cqfile = resourcedir + "all.interval.illumina.vep.info.txt"
     giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
 
-    rf_htfile = rf_dir + "6617f838" + "/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir + "ce85819e" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = resourcedir + "all_consequences.txt"
     pedfile = resourcedir + "trios.ped"

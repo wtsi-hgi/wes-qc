@@ -250,7 +250,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
-    de_novo_table.write(dnm_htfile, overwrite=True)
+    de_novo_table.repartition(480).write(dnm_htfile, overwrite=True)
 
     rm_mt(fam_stats_mtfile)
 

@@ -82,7 +82,7 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     pca_scores_file = mtdir + "mt_pca_scores.ht"#table of pca scores per sample
     pca_scores.write(pca_scores_file, overwrite=True)
     pca_loadings_file = mtdir + "mt_pca_loadings.ht"#table of SNPs, PCA loadings and AF
-    pca_loadings.write(pca_loadings_file, overwrite=True)
+    pca_loadings.repartition(480).write(pca_loadings_file, overwrite=True)
     pca_mt = pca_mt.annotate_cols(scores=pca_scores[pca_mt.col_key].scores)
     pca_mt.write(pca_mt_file, overwrite=True)
 

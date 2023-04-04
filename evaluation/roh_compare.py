@@ -1,10 +1,12 @@
 import hail as hl
 import pyspark
 import pandas
+from typing import Union
 from utils.utils import rm_mt
 
 
-def read_roh(path: str):
+def read_roh(path: str) -> pandas.DataFrame:
+    """ read plink's .hom file """
     roh = pandas.read_csv(path, sep='\s+',
                           usecols=['FID', 'CHR', 'POS1', 'POS2', 'NSNP', 'PHET'],
                           dtype={'FID': str, 'CHR': str})
@@ -14,14 +16,14 @@ def read_roh(path: str):
 
 
 def filter_roh(df: pandas.DataFrame, min_length_bp=5e6, trim_bp=2e6) -> pandas.DataFrame:
-    # ROH length filter
     count_init = df.shape[0]
 
+    # ROH length filter
     df = df[df['POS_LEN'] > min_length_bp]
     count_2 = df.shape[0]
 
     # exclude regions intersecting with HLA
-    hla = ('6', 29941260, 29949572)
+    hla = ('6', 28510120, 33480577)
     df = df[~((df['CHR'] == hla[0]) &
               (df['POS1'] < hla[2]) &
               (df['POS2'] > hla[1]))]
@@ -34,7 +36,7 @@ def filter_roh(df: pandas.DataFrame, min_length_bp=5e6, trim_bp=2e6) -> pandas.D
     print(f'There are {count_init} ROHs\n'
           f'{count_init-count_2} ROHs are less {min_length_bp/1e6} Mb\n'
           f'{count_2-count_3} intersect with HLA\n'
-          f'{count_3-count_4} have >1 hets')
+          f'{count_3-count_4} have >=1 hets')
 
     # trim ROHs from each side
     df['POS1'] = df['POS1'] + int(trim_bp)
@@ -70,15 +72,20 @@ def make_roh(path: str, map_path: str) -> str:
 
 def import_roh(path: str) -> hl.Table:
     roh = hl.import_table(path, key='ID', impute=True, types={'CHR': hl.tstr})
-    roh = roh.annotate(region=hl.locus_interval(roh.CHR, roh.POS1, roh.POS2))
+    roh = roh.annotate(region=hl.locus_interval(roh.CHR, roh.POS1, roh.POS2, includes_end=True))
     # roh = roh.annotate(locus=hl.struct(chrom=roh.CHR, start=roh.POS1, end=roh.POS2))
     roh = roh.select(roh.region)
     return roh.cache()
 
 
-def count_hets_in_rohs(mt_path: str, roh_path: str, temp_path: str):
+def count_hets_in_rohs(mt_input: Union[str, hl.MatrixTable], roh_path: str):
+    if isinstance(mt_input, str):
+        mt = hl.read_matrix_table(mt_input)
+    elif isinstance(mt_input, hl.MatrixTable):
+        mt = mt_input
+    else:
+        raise ValueError(f'unknown mt_input type {type(mt_input)}')
 
-    mt = hl.read_matrix_table(mt_path)
     roh = import_roh(roh_path)
     # samples = roh.aggregate(hl.agg.collect_as_set(roh.ID))
 
@@ -89,14 +96,23 @@ def count_hets_in_rohs(mt_path: str, roh_path: str, temp_path: str):
     # print(f'\nthere are {data.count()} variants after filter')
     # data = data.group_by(data.s, data.roh.locus).aggregate(nhet=hl.agg.count_where(data['GT'].is_het()))
 
+    if 'type' not in mt.row_value:
+        mt = mt.annotate_rows(
+            type=hl.case()
+                   .when(hl.is_snp(mt.alleles[0], mt.alleles[1]), 'snp')
+                   .when(hl.is_indel(mt.alleles[0], mt.alleles[1]), 'indel')
+                   .default('other')
+        )
     gt = mt.entries().key_by('s')
     data = gt.join(roh, how='inner')
 
     data = data.filter(data.region.contains(data.locus))
-    data = data.group_by(data.s, data.region).aggregate(nhet=hl.agg.count_where(data['GT'].is_het()),
-                                                        nsnp=hl.agg.count())
+    data = data.group_by(data.s, data.region, data.type).aggregate(
+        nhet=hl.agg.count_where(data['GT'].is_het()),
+        nsnp=hl.agg.count()
+    )
 
-    data.write(temp_path, overwrite=True)
+    return data
 
     # for sample in samples:
     #     sample_roh = roh.filter(roh.ID == sample).key_by('region')
@@ -120,7 +136,18 @@ def count_hets_in_rohs(mt_path: str, roh_path: str, temp_path: str):
     # rm_mt(temp_path)
 
 
-def shrink_input_mt(mt_path: str, roh_path: str):
+def write_out(ht: hl.Table, out_prefix: str, n_cores: int = None, sc: pyspark.SparkContext = None):
+    assert (n_cores is None) is not (sc is None)
+    if n_cores is None:
+        n_cores = sc.defaultParallelism
+
+    ht = ht.repartition(n=2*n_cores, shuffle=True)
+    out_path = out_prefix + '.ht'
+    ht.write(out_path, overwrite=True)
+    hl.read_table(out_path).export(out_prefix + '.tsv')
+
+
+def shrink_input_mt(mt_path: str, roh_path: str) -> str:
     mt = hl.read_matrix_table(mt_path)
     roh = import_roh(roh_path).key_by('region')
     samples = roh.aggregate(hl.agg.collect_as_set(roh.ID))
@@ -144,14 +171,15 @@ def main():
     path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hom'
     map_path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/link_OrageneID_all-WES_GSA.txt'
     mt_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.mt'
-    temp_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.roh-stat.ht'
+    temp_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.roh-stat'
 
     roh_path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hail-ready.hom'
     mt_shrinked_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.filtered.mt'
-    # roh_path = make_roh(path=path, map_path=map_path)
+    roh_path = make_roh(path=path, map_path=map_path)
     # mt_shrinked_path = shrink_input_mt(mt_path, roh_path='file://'+roh_path)
 
-    count_hets_in_rohs(mt_path=mt_shrinked_path, roh_path='file://'+roh_path, temp_path=temp_path)
+    hets_ht = count_hets_in_rohs(mt_input=mt_shrinked_path, roh_path='file://' + roh_path)
+    write_out(ht=hets_ht, sc=sc, out_prefix=temp_path)
 
 
 if __name__ == '__main__':
