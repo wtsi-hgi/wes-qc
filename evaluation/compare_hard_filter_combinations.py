@@ -133,10 +133,8 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     results['indel_total_tp'] = indel_total_tps
     results['indel_total_fp'] = indel_total_fps
 
-    # snp_bins = list(range(35,46))
-    # indel_bins = list(range(58,69))
-    snp_bins = [36, 38, 40, 42, 44, 46]
-    indel_bins = [54, 56, 59, 62, 64]
+    snp_bins = list(range(35,46))
+    indel_bins = list(range(58,69))
     gq_vals = [10, 15, 20]
     # dp_vals = [4, 5, 6, 10]
     # ab_vals = [0.2, 0.25, 0.3]
