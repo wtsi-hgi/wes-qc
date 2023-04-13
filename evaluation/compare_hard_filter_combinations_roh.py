@@ -100,9 +100,6 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     '''
     results = {}
     pedigree = hl.Pedigree.read(pedfile)
-    #list of samples in trios
-    trio_sample_ht = hl.import_fam(pedfile)
-    sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
 
     #genotype hard filters - should put this in a different method
     now = datetime.datetime.now()
@@ -129,7 +126,7 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     results['FP'] = counts[1]
 
     if var_type == 'snv':
-        ratio = get_trans_untrans(mt_syn_tmp, pedigree, sample_list, mtdir)
+        ratio = get_trans_untrans(mt_syn_tmp, pedigree, mtdir)
         results['t_u_ratio'] = ratio
 
     return results
@@ -270,7 +267,7 @@ def main():
     rf_dir = inputs['var_qc_rf_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
-    annodir = inputs['annotation_lustre_dir']
+    annodir = inputs['annotation_lustre_dir_local']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -281,7 +278,7 @@ def main():
     rf_htfile = os.path.join(rf_dir, rf_hash, "_gnomad_score_binning_tmp.ht")
     mtfile = os.path.join(mtdir, "mt_varqc_splitmulti.mt")
     cqfile = os.path.join(resourcedir, "all_consequences.txt")
-    pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.fam'
+    pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.consistent.fam'
 
     mt = hl.read_matrix_table(mtfile)
     mt = clean_mt(mt)

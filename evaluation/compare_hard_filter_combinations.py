@@ -4,6 +4,7 @@ import hail as hl
 import pyspark
 import datetime
 from utils.utils import parse_config
+from utils.utils import select_founders, collect_pedigree_samples
 
 
 def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
@@ -199,9 +200,6 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     '''
     results = {}
     pedigree = hl.Pedigree.read(pedfile)
-    #list of samples in trios
-    trio_sample_ht = hl.import_fam(pedfile)
-    sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
 
     #genotype hard filters - should put this in a different method
     now = datetime.datetime.now()
@@ -265,7 +263,7 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     results['TP'] = counts[0]
     results['FP'] = counts[1]
     if var_type == 'snv':
-        ratio = get_trans_untrans(mt_syn_tmp, pedigree, sample_list, mtdir)
+        ratio = get_trans_untrans(mt_syn_tmp, pedigree, mtdir)
         prec, recall = get_prec_recall(ht_prec_recall_tmp, ht_giab, 'snv', mtdir)
         results['t_u_ratio'] = ratio
         results['prec'] = prec
@@ -353,36 +351,38 @@ def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple
     return precision, recall
 
 
-def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: list, mtdir: str) -> float:
-    '''
+def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> float:
+    """
     get transmitted/untransmitted ratio
     :param hl.MatrixTable mt: matrixtable
     :param hl.Pedigree pedigree: Hail Pedigree
-    :param list sample_list: List of samples in trios
     :param str mtdir: matrixtable directory
     :return float:
-    '''
-    #filter to synonymous
+    """
+    # filter to synonymous
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')
-        #restrict to samples in trios, annotate with AC and filter to trio AC == 1 or 2
+
+    # restrict to samples in trios, annotate with AC and filter to AC == 1 in parents
+    sample_list = collect_pedigree_samples(pedigree)  # list of samples in trios
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
-    mt2 = hl.variant_qc(mt2, name='varqc_trios')
+
+    founders = select_founders(pedigree)
+    mt_founders = mt2.filter_cols(hl.set(founders).contains(mt2.s))
+    mt_founders = hl.variant_qc(mt_founders, name='varqc_founders')
+
+    mt2 = mt2.annotate_rows(varqc_trios=hl.Struct(AC=mt_founders.index_rows(mt2.row_key).varqc_founders.AC))
     tmpmt3 = os.path.join(mtdir, "tmp3x.mt")
-    mt2 = mt2.repartition(n_partitions=2000).checkpoint(tmpmt3, overwrite = True)
-    #split to potentially transitted/untransmitted
-    untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt4 = os.path.join(mtdir, "tmp4x.mt")
-    untrans_mt = untrans_mt.checkpoint(tmpmt4, overwrite = True)
-    trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
+    mt2 = mt2.repartition(n_partitions=2000).checkpoint(tmpmt3, overwrite=True)
+
+    # split to potentially transmitted/untransmitted
+    trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
     tmpmt5 = os.path.join(mtdir, "tmp5x.mt")
-    trans_mt = trans_mt.checkpoint(tmpmt5, overwrite = True)
-        #run tdt function for potential trans and untrans
-    tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
-    tdt_ht_untrans = hl.transmission_disequilibrium_test(untrans_mt, pedigree)
-    trans_sing = tdt_ht_trans.filter((tdt_ht_trans.t == 1) & (tdt_ht_trans.u == 0))
-    trans = trans_sing.count()
-    untrans_sing = tdt_ht_untrans.filter((tdt_ht_untrans.t == 0) & (tdt_ht_untrans.u == 1))
-    untrans = untrans_sing.count()
+    trans_mt = trans_mt.checkpoint(tmpmt5, overwrite=True)
+
+    # run tdt function for potential trans and untrans
+    tdt_ht = hl.transmission_disequilibrium_test(trans_mt, pedigree)
+    trans = tdt_ht.aggregate(hl.agg.sum(tdt_ht.t))
+    untrans = tdt_ht.aggregate(hl.agg.sum(tdt_ht.u))
     if untrans > 0:
         ratio = trans/untrans
     else:
