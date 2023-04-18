@@ -67,7 +67,7 @@ def main():
     # indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel_v1.txt"
     # snv_results_file = plot_dir + "genotype_hard_filter_comparison_snv.txt"
     # indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel.txt"
-    snv_results_file = plot_dir + "fef0f4464_genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
+    snv_results_file = plot_dir + "fef0f446_genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
     indel_results_file = plot_dir + "fef0f446_genotype_hard_filter_comparison_indel_fewer_combs_v2.txt"
     outdir = plot_dir + "hard_filter_evaluation/230418/"
 
