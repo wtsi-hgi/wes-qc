@@ -190,7 +190,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
 
-    rf_htfile = rf_dir + "86f80184" + "/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir + "fef0f446" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
 
     alspac_vars_ht = prepare_alspac_htfile(mtfile, rf_htfile, mtdir)
