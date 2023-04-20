@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -33,7 +33,7 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     # drop unwanted fields
     mt = mt.drop(mt.a_index, mt.was_split, mt.stringent_pass_count, mt.stringent_fail_count,
                  mt.medium_pass_count, mt.medium_fail_count, mt.relaxed_pass_count, mt.relaxed_fail_count,
-                 mt.batch, mt.sequencing_location, mt.adj, mt.assigned_pop, mt.sum_AD)
+                 mt.batch, mt.adj, mt.assigned_pop, mt.sum_AD)
     # info for header
     stringent_filters = "SNPs: RF bin<=" + \
         str(hard_filters['snp']['stringent']['bin']) + " & DP>=" + \
@@ -116,7 +116,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     chromosomes=["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
-        mt_chrom=mt.filter_rows(mt.locus.contig==chromosome)
+        mt_chrom = mt.annotate_globals(chromosome=chromosome)
+        mt_chrom = mt_chrom.filter_rows(mt_chrom.locus.contig == mt_chrom.chromosome)
         outfile = filtered_vcf_dir + chromosome + "_hard_filters.vcf.bgz"
         hl.export_vcf(mt_chrom, outfile, metadata = metadata)
 

@@ -27,19 +27,19 @@ rf_test_interval: chr20
 hard_filters:
   snp:
     relaxed:
-      bin: 85
+      bin: 86
       dp: 5
       gq: 10
       ab: 0.2
     medium:
-      bin: 85
+      bin: 84
       dp: 5
       gq: 15
       ab: 0.2
     stringent:
-      bin: 84
-      dp: 6
-      gq: 20
+      bin: 82
+      dp: 5
+      gq: 15
       ab: 0.2
   indel:
     relaxed:
@@ -48,12 +48,12 @@ hard_filters:
       gq: 10
       ab: 0.2
     medium:
-      bin: 63
-      dp: 5
-      gq: 10
-      ab: 0.2
-    stringent:
       bin: 62
-      dp: 6
+      dp: 5
       gq: 15
+      ab: 0.3
+    stringent:
+      bin: 58
+      dp: 10
+      gq: 20
       ab: 0.3
