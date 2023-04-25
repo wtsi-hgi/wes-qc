@@ -116,7 +116,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     chromosomes=["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
-        mt_chrom=mt.filter_rows(mt.locus.contig==chromosome)
+        mt_chrom = mt.annotate_globals(chromosome=chromosome)
+        mt_chrom = mt_chrom.filter_rows(mt_chrom.locus.contig == mt_chrom.chromosome)
         outfile = filtered_vcf_dir + chromosome + "_hard_filters.vcf.bgz"
         hl.export_vcf(mt_chrom, outfile, metadata = metadata)
 
