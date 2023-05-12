@@ -16,7 +16,7 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, runid_file: str, annotated_m
     mt = hl.read_matrix_table(raw_mt_file)
     pop_ht = hl.read_table(pop_ht_file)
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
-    mt = mt.annotate_cols(assigned_pop=mt.assigned_pop.replace('other', 'other-sas'))
+    # mt = mt.annotate_cols(assigned_pop=mt.assigned_pop.replace('other', 'other-sas'))
     mt = mt.annotate_cols(assigned_pop=hl.if_else(hl.is_missing(mt.assigned_pop), 'non-sas', mt.assigned_pop))
     mt.write(annotated_mt_file, overwrite=True)
 

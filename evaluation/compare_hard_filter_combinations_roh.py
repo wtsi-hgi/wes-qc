@@ -13,9 +13,9 @@ from evaluation.compare_hard_filter_combinations import annotate_cq
 from evaluation.compare_hard_filter_combinations import count_tp_fp
 from evaluation.compare_hard_filter_combinations import get_trans_untrans
 
-rf_hash = 'ce85819e'
-snp_bins = [78, 81]
-indel_bins = [49, 52, 55]
+rf_hash = 'fa8798b1'
+snp_bins = [80, 82, 83, 84]
+indel_bins = [44, 46, 48, 49, 50]
 gq_vals = [10, 15, 20]
 dp_vals = [5, 10]
 ab_vals = [0.2, 0.3]
@@ -186,9 +186,10 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                     snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, 'snv', mtdir)
                     results['snv'][filter_name] = snp_counts
 
-                    mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
-                    het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
-                    write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.snp.roh_stat'))
+                    if not os.path.exists(os.path.join(mtdir, f'{filter_name}.snp.roh_stat.tsv')):
+                        mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
+                        het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
+                        write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.snp.roh_stat'))
 
                     with open(os.path.join(mtpath, 'results.json'), 'w') as f:
                         json.dump(results, f)
@@ -220,9 +221,10 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                     indel_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn, pedfile, dp, gq, ab, 'indel', mtdir)
                     results['indel'][filter_name] = indel_counts
 
-                    mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
-                    het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
-                    write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.indel.roh_stat'))
+                    if not os.path.exists(os.path.join(mtdir, f'{filter_name}.indel.roh_stat.tsv')):
+                        mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
+                        het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
+                        write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.indel.roh_stat'))
 
                     with open(os.path.join(mtpath, 'results.json'), 'w') as f:
                         json.dump(results, f)

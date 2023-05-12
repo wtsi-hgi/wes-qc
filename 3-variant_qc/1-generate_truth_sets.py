@@ -346,12 +346,12 @@ def main():
 
     #add hail variant QC
     if args.annotation or args.all:
-        mtfile = mtdir + "mt_pops_QC_filters_sample_qc.mt"
+        mtfile = mtdir + "mt_pops_QC_filters_sample_qc.shrank.mt"
         varqc_mtfile = mtdir + "mt_varqc.mt"
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
         split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
-        pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.fam'
+        pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.consistent.fam'
 
         #get complete trios, family annotation, dnm annotation
         trio_mtfile = mtdir + "trios.mt"
