@@ -3,7 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -27,7 +27,7 @@ def remove_samples(mt: hl.MatrixTable, exclude_file: str):
     :param str exclude_file: path of file with samples to exclude
     :return: hl.MatrixTable
     '''
-    excl_ht = hl.import_table(exclude_file, impute=True, key = 'exomeID')
+    excl_ht = hl.import_table(exclude_file, key='ID')
     mt = mt.filter_cols(hl.is_defined(excl_ht[mt.s]), keep=False)
 
     return mt
@@ -261,7 +261,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    exclude_file = annotdir + "to_be_excluded_exome.txt"
+    exclude_file = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/david_samples_to_remove.txt'
     rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = resourcedir + "all_consequences_with_gene_and_csq.txt"
