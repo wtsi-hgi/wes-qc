@@ -28,12 +28,14 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     :param str run_hash: random forest run hash used
     '''
     mt = hl.read_matrix_table(mtfile)
-    # filter to remove rows where all variants fail the most relaxed filters
-    mt = mt.filter_rows(mt.info.fraction_pass_relaxed_filters > 0)
+    # filter to remove rows where all variants fail the most stringent filters
+    mt = mt.filter_rows(mt.info.fraction_pass_stringent_filters > 0)
     # drop unwanted fields
     mt = mt.drop(mt.a_index, mt.was_split, mt.stringent_pass_count, mt.stringent_fail_count,
                  mt.medium_pass_count, mt.medium_fail_count, mt.relaxed_pass_count, mt.relaxed_fail_count,
-                 mt.batch, mt.adj, mt.assigned_pop, mt.sum_AD)
+                 mt.batch, mt.adj, mt.assigned_pop, mt.sum_AD,
+                 mt.medium_filters, mt.relaxed_filters)
+    mt = mt.annotate_rows(info=mt.info.drop('fraction_pass_medium_filters', 'fraction_pass_relaxed_filters'))
     # info for header
     stringent_filters = "SNPs: RF bin<=" + \
         str(hard_filters['snp']['stringent']['bin']) + " & DP>=" + \
@@ -45,26 +47,6 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         str(hard_filters['indel']['stringent']['gq']) + " & HetAB>=" + \
         str(hard_filters['indel']['stringent']['ab']) 
 
-    medium_filters = "SNPs: RF bin<=" + \
-        str(hard_filters['snp']['medium']['bin']) + " & DP>=" + \
-        str(hard_filters['snp']['medium']['dp']) + " & GQ>=" + \
-        str(hard_filters['snp']['medium']['gq']) + " & HetAB>=" + \
-        str(hard_filters['snp']['medium']['ab']) + ", Indels: RF bin<=" + \
-        str(hard_filters['indel']['medium']['bin']) + " & DP>=" + \
-        str(hard_filters['indel']['medium']['dp']) + " & GQ>=" + \
-        str(hard_filters['indel']['medium']['gq']) + " & HetAB>=" + \
-        str(hard_filters['indel']['medium']['ab'])     
-
-    relaxed_filters = "SNPs: RF bin<=" + \
-        str(hard_filters['snp']['relaxed']['bin']) + " & DP>=" + \
-        str(hard_filters['snp']['relaxed']['dp']) + " & GQ>=" + \
-        str(hard_filters['snp']['relaxed']['gq']) + " & HetAB>=" + \
-        str(hard_filters['snp']['relaxed']['ab']) + ", Indels: RF bin<=" + \
-        str(hard_filters['indel']['relaxed']['bin']) + " & DP>=" + \
-        str(hard_filters['indel']['relaxed']['dp']) + " & GQ>=" + \
-        str(hard_filters['indel']['relaxed']['gq']) + " & HetAB>=" + \
-        str(hard_filters['indel']['relaxed']['ab']) 
-
     metadata = {
         'format': {'HetAB': {'Description': 'Hetrozygous allele balance',
                              'Number': 'A',
@@ -72,24 +54,11 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                    'stringent_filters': {'Description': 'Pass/fail stringent hard filters ' + stringent_filters,
                                          'Number': 'A',
                                          'Type': 'String'},
-                   'medium_filters': {'Description': 'Pass/fail hard medium filters ' + medium_filters,
-                                      'Number': 'A',
-                                      'Type': 'String'},
-                   'relaxed_filters': {'Description': 'Pass/fail relaxed hard filters ' + relaxed_filters,
-                                       'Number': 'A',
-                                       'Type': 'String'}
-
                    },
         'info': {
             'fraction_pass_stringent_filters': {'Description': 'Fraction of genotypes which pass stringent hard filters ' + stringent_filters,
                                                 'Number': 'A',
                                                 'Type': 'Float'},
-            'fraction_pass_medium_filters': {'Description': 'Fraction of genotypes which pass medium hard filters ' + medium_filters,
-                                             'Number': 'A',
-                                             'Type': 'Float'},
-            'fraction_pass_relaxed_filters': {'Description': 'Fraction of genotypes which pass relaxed hard filters ' + relaxed_filters,
-                                              'Number': 'A',
-                                              'Type': 'Float'},
             'rf_score': {'Description': 'Variant QC random forest score, model id ' + run_hash,
                          'Number': 'A',
                          'Type': 'Float'},
