@@ -12,6 +12,7 @@ from evaluation.compare_hard_filter_combinations import annotate_with_rf
 from evaluation.compare_hard_filter_combinations import annotate_cq
 from evaluation.compare_hard_filter_combinations import count_tp_fp
 from evaluation.compare_hard_filter_combinations import get_trans_untrans
+from utils.utils import rm_mt
 
 rf_hash = 'fa8798b1'
 snp_bins = [80, 82, 83, 84]
@@ -39,7 +40,7 @@ def clean_mt(mt: hl.MatrixTable) -> hl.MatrixTable:
     return mt
 
 
-def filter_mts(mt: hl.MatrixTable, roh_path: str, mtdir: str) -> Tuple[str, str, str, str]:
+def filter_mts(mt: hl.MatrixTable, roh: hl.Table, mtdir: str) -> Tuple[hl.MatrixTable, hl.MatrixTable, hl.MatrixTable, hl.MatrixTable]:
     """
     Split matrixtable and return tables with just TP, just FP, just synonymous
     :param hl.MatrixTable mt: Input mtfile
@@ -55,16 +56,15 @@ def filter_mts(mt: hl.MatrixTable, roh_path: str, mtdir: str) -> Tuple[str, str,
     tmpmts = os.path.join(mtdir, "syn.mt")
     tmpmtr = os.path.join(mtdir, "roh.mt")
 
-    mt_true.write(tmpmtt, overwrite=True)
-    mt_false.write(tmpmtf, overwrite=True)
-    mt_syn.write(tmpmts, overwrite=True)
+    mt_true = mt_true.checkpoint(tmpmtt, overwrite=True)
+    mt_false = mt_false.checkpoint(tmpmtf, overwrite=True)
+    mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
 
-    roh = import_roh(roh_path)
     samples = roh.aggregate(hl.agg.collect_as_set(roh.ID))
     mt_roh = mt.filter_cols(hl.set(samples).contains(mt.s))
-    mt_roh.write(tmpmtr, overwrite=True)
+    mt_roh = mt_roh.checkpoint(tmpmtr, overwrite=True)
 
-    return tmpmtt, tmpmtf, tmpmts, tmpmtr
+    return mt_true, mt_false, mt_syn, mt_roh
 
 
 def count_rows(mt: hl.MatrixTable, mutation_type: str) -> int:
@@ -89,13 +89,13 @@ def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rat
     return mt_tmp
 
 
-def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, pedfile: str, dp: int, gq: int, ab: float, call_rate: float, var_type: str, mtdir: str):
+def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, pedigree: hl.Pedigree, var_type: str, mtdir: str):
     '''
     Filter mt by each rf bin in a list, then genotype hard filters and count remaining TP and P variants
     :param hl.MatrixTable mt_tp: Input TP MatrixTable
     :param hl.MatrixTable mt_fp: Input FP MatrixTable
     :param hl.MatrixTable mt_syn: Input synonymous MatrixTable
-    :param str pedfile: pedfile path
+    :param str pedigree: hail pedigree object
     :param int dp: DP threshold
     ;param int gq; GQ threshold
     :param float ab: allele balance threshold
@@ -104,28 +104,23 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     :return: Dict containing bin and remaning TP/FP count
     '''
     results = {}
-    pedigree = hl.Pedigree.read(pedfile)
 
     #genotype hard filters - should put this in a different method
     now = datetime.datetime.now()
     print(now.time())
-    mt_tp_tmp = apply_hard_filters(mt_tp, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
+
         #remove unused rows
-    mt_tp_tmp = hl.variant_qc(mt_tp_tmp)
+    mt_tp_tmp = hl.variant_qc(mt_tp)
     mt_tp_tmp = mt_tp_tmp.filter_rows(mt_tp_tmp.variant_qc.n_non_ref == 0, keep = False)
 
-    mt_fp_tmp = apply_hard_filters(mt_fp, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
         #remove unused rows
-    mt_fp_tmp = hl.variant_qc(mt_fp_tmp)
+    mt_fp_tmp = hl.variant_qc(mt_fp)
     mt_fp_tmp = mt_fp_tmp.filter_rows(mt_fp_tmp.variant_qc.n_non_ref == 0, keep = False)
 
-    mt_syn_tmp = apply_hard_filters(mt_syn, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
         #remove unused rows
-    mt_syn_tmp = hl.variant_qc(mt_syn_tmp)
+    mt_syn_tmp = hl.variant_qc(mt_syn)
     mt_syn_tmp = mt_syn_tmp.filter_rows(mt_syn_tmp.variant_qc.n_non_ref == 0, keep = False)
 
-    # tmpmt2 = mtdir + "tmp2.mt"
-    # mt_tmp = mt_tmp.checkpoint(tmpmt2, overwrite = True)
     counts = count_tp_fp(mt_tp_tmp, mt_fp_tmp)
     results['TP'] = counts[0]
     results['FP'] = counts[1]
@@ -137,9 +132,9 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     return results
 
 
-def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, mt_roh: hl.MatrixTable, pedfile: str, mtdir: str) -> dict:
+def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> dict:
     '''
-    Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
+    Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bin
     :param hl.MatrixTable mt_tp: Input TP MatrixTable
     :param hl.MatrixTable mt_fp: Input FP MatrixTable
     :param hl.MatrixTable mt_syn: Input synonymous MatrixTable
@@ -149,36 +144,26 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     results = {'snv': {}, 'indel': {}}
     mtpath = mtdir.replace('file://', '')
 
-    snp_mt_tp = mt_tp.filter_rows(mt_tp.type == snp_label)
-    snp_mt_fp = mt_fp.filter_rows(mt_fp.type == snp_label)
-    snp_mt_roh = mt_roh.filter_rows(mt_roh.type == snp_label)
-    indel_mt_tp = mt_tp.filter_rows(mt_tp.type == indel_label)
-    indel_mt_fp = mt_fp.filter_rows(mt_fp.type == indel_label)
-    indel_mt_roh = mt_roh.filter_rows(mt_roh.type == indel_label)
+    mt = hl.read_matrix_table(mt_path)
+    roh = import_roh(roh_path)
+    pedigree = hl.Pedigree.read(pedfile)
 
+    mt_snp = mt.filter_rows(mt.type == snp_label)
+    mt_indel = mt.filter_rows(mt.type == indel_label)
+
+    mt_snp_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp.mt')
+    mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
+    mt_indel_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel.mt')
+    mt_indel = mt_indel.repartition(mt.n_partitions() // 4).checkpoint(mt_indel_path, overwrite=True)
+
+    snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, roh, mtdir=mtdir)
     results['snv_total_tp'] = snp_mt_tp.count_rows()
     results['snv_total_fp'] = snp_mt_fp.count_rows()
-    results['indel_total_tp'] = indel_mt_tp.count_rows()
-    results['indel_total_fp'] = indel_mt_fp.count_rows()
 
     for bin in snp_bins:
         bin_str = "bin_" + str(bin)
         print("bin " + str(bin))
-        mt_tp_tmp = snp_mt_tp.filter_rows(snp_mt_tp.info.rf_bin <= bin)
-        tmpmtb1 = os.path.join(mtdir, "tmp1bx.mt")
-        mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
-
-        mt_fp_tmp = snp_mt_fp.filter_rows(snp_mt_fp.info.rf_bin <= bin)
-        tmpmtb2 = os.path.join(mtdir, "tmp2bx.mt")
-        mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
-
-        mt_syn_tmp = mt_syn.filter_rows(mt_syn.info.rf_bin <= bin)
-        tmpmtb3 = os.path.join(mtdir, "tmp3bx.mt")
-        mt_syn_tmp = mt_syn_tmp.checkpoint(tmpmtb3, overwrite = True)
-
-        # mt_roh_tmp = snp_mt_roh.filter_rows(snp_mt_roh.info.rf_bin <= bin)
-        # tmpmtb4 = os.path.join(mtdir, "tmp4bx.mt")
-        # mt_roh_tmp = mt_roh_tmp.checkpoint(tmpmtb4, overwrite=True)
+        mt_snp_bin = mt_snp.filter_rows(mt_snp.info.rf_bin <= bin)
 
         for dp in dp_vals:
             dp_str = 'DP_' + str(dp)
@@ -190,32 +175,35 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                         missing_str = f'missing_{missing}'
                         print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
-                        snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, missing, 'snv', mtdir)
+
+                        mt_snp_hard = apply_hard_filters(mt_snp_bin, dp=dp, gq=gq, ab=ab, call_rate=missing)
+                        mt_snp_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp-hard.mt')
+                        mt_snp_hard = mt_snp_hard.checkpoint(mt_snp_hard_path, overwrite=True)
+
+                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_roh_tmp = filter_mts(mt_snp_hard, roh, mtdir=mtdir)
+
+                        snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedigree, 'snv', mtdir)
                         results['snv'][filter_name] = snp_counts
 
-                        # if not os.path.exists(os.path.join(mtdir, f'{filter_name}.snp.roh_stat.tsv')):
+                        # if not os.path.exists(os.path.join(mtpath, f'{filter_name}.snp.roh_stat.tsv')):
                         #     mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
                         #     het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
                         #     write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.snp.roh_stat'))
 
-                        with open(os.path.join(mtpath, 'results-call_rate.json'), 'w') as f:
+                        all_errors, _, _, _ = hl.mendel_errors(mt_snp_hard.GT, pedigree)
+                        results['snv'][filter_name]['mendel_errors'] = all_errors.count()
+
+                        with open(os.path.join(mtpath, 'results-mendel-missing.json'), 'w') as f:
                             json.dump(results, f)
-    return
+
+    indel_mt_tp, indel_mt_fp, _, _ = filter_mts(mt_indel, roh, mtdir=mtdir)
+    results['indel_total_tp'] = indel_mt_tp.count_rows()
+    results['indel_total_fp'] = indel_mt_fp.count_rows()
+
     for bin in indel_bins:
         bin_str = "bin_" + str(bin)
         print("bin " + str(bin))
-
-        mt_tp_tmp = indel_mt_tp.filter_rows(indel_mt_tp.info.rf_bin <= bin)
-        tmpmtb1 = mtdir + "tmp1bx.mt"
-        mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
-
-        mt_fp_tmp = indel_mt_fp.filter_rows(indel_mt_fp.info.rf_bin <= bin)
-        tmpmtb2 = mtdir + "tmp2bx.mt"
-        mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
-
-        mt_roh_tmp = indel_mt_roh.filter_rows(indel_mt_roh.info.rf_bin <= bin)
-        tmpmtb4 = os.path.join(mtdir, "tmp4bx.mt")
-        mt_roh_tmp = mt_roh_tmp.checkpoint(tmpmtb4, overwrite=True)
+        mt_indel_bin = mt_indel.filter_rows(mt_indel.info.rf_bin <= bin)
 
         for dp in dp_vals:
             dp_str = 'DP_' + str(dp)
@@ -223,18 +211,30 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                 gq_str = 'GQ_' + str(gq)
                 for ab in ab_vals:
                     ab_str = 'AB_' + str(ab)
-                    print(dp_str + " " + gq_str + " " + ab_str)
-                    filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str])
-                    indel_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn, pedfile, dp, gq, ab, 'indel', mtdir)
-                    results['indel'][filter_name] = indel_counts
+                    for missing in missing_vals:
+                        missing_str = f'missing_{missing}'
+                        print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
+                        filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
-                    if not os.path.exists(os.path.join(mtdir, f'{filter_name}.indel.roh_stat.tsv')):
-                        mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
-                        het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
-                        write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.indel.roh_stat'))
+                        mt_indel_hard = apply_hard_filters(mt_indel_bin, dp=dp, gq=gq, ab=ab, call_rate=missing)
+                        mt_indel_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel-hard.mt')
+                        mt_indel_hard = mt_indel_hard.checkpoint(mt_indel_hard_path, overwrite=True)
 
-                    with open(os.path.join(mtpath, 'results-call_rate.json'), 'w') as f:
-                        json.dump(results, f)
+                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_roh_tmp = filter_mts(mt_indel_hard, roh, mtdir=mtdir)
+
+                        indel_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedigree, 'indel', mtdir)
+                        results['indel'][filter_name] = indel_counts
+
+                        # if not os.path.exists(os.path.join(mtpath, f'{filter_name}.indel.roh_stat.tsv')):
+                        #     mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
+                        #     het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
+                        #     write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.indel.roh_stat'))
+
+                        all_errors, _, _, _ = hl.mendel_errors(mt_indel_hard.GT, pedigree)
+                        results['indel'][filter_name]['mendel_errors'] = all_errors.count()
+
+                        with open(os.path.join(mtpath, 'results-mendel-missing.json'), 'w') as f:
+                            json.dump(results, f)
 
     return results
 
@@ -288,23 +288,21 @@ def main():
     mtfile = os.path.join(mtdir, "mt_varqc_splitmulti.mt")
     cqfile = os.path.join(resourcedir, "all_consequences.txt")
     pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.consistent.fam'
+    wd = os.path.join(mtdir, rf_hash)
 
     mt = hl.read_matrix_table(mtfile)
     mt = clean_mt(mt)
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
 
-    # mt_tp, mt_fp, mt_syn, mt_roh = filter_mts(mt_annot, roh_path, mtdir=os.path.join(mtdir, rf_hash))
+    mt_annot_path = os.path.join(wd, 'tmp.hard_filters_combs.mt')
+    # mt_annot.write(mt_annot_path, overwrite=True)
+
     results = filter_and_count(
-        # hl.read_matrix_table(mt_tp),
-        # hl.read_matrix_table(mt_fp),
-        # hl.read_matrix_table(mt_syn),
-        # hl.read_matrix_table(mt_roh),
-        hl.read_matrix_table(os.path.join(mtdir, rf_hash, 'tp.mt')),
-        hl.read_matrix_table(os.path.join(mtdir, rf_hash, 'fp.mt')),
-        hl.read_matrix_table(os.path.join(mtdir, rf_hash, 'syn.mt')),
-        hl.read_matrix_table(os.path.join(mtdir, rf_hash, 'roh.mt')),
-        pedfile, mtdir=os.path.join(mtdir, rf_hash)
+        mt_path=mt_annot_path,
+        roh_path=roh_path,
+        pedfile=pedfile,
+        mtdir=wd
     )
 
     outfile_snv = os.path.join(annodir, "genotype_hard_filter_comparison_snv.txt")
