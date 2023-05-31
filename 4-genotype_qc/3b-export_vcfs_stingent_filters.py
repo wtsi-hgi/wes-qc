@@ -28,7 +28,13 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     :param str run_hash: random forest run hash used
     '''
     mt = hl.read_matrix_table(mtfile)
-    # filter to remove rows where all variants fail the most stringent filters
+    # remove control samples
+    samples_to_exclude = ['EGAN00003332049', 'EGAN00003332050', 'EGAN00003332051', 'EGAN00003332052', 
+                          'EGAN00003332053', 'EGAN00003332049_remapped', 'EGAN00003332050_remapped', 
+                          'EGAN00003332051_remapped', 'EGAN00003332052_remapped', 'EGAN00003332053_remapped']
+    set_to_remove = hl.literal(samples_to_exclude)
+    mt = mt.filter_cols(~set_to_remove.contains(mt['s']))
+    # filter to remove rows where all variants fail the most stringent filters, 
     mt = mt.filter_rows(mt.info.fraction_pass_stringent_filters > 0)
 
     # drop unwanted fields
