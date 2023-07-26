@@ -43,7 +43,9 @@ def main():
 
     mtfile = os.path.join(mtdir, "mt_pops_QC_filters_sample_qc.mt")
     shrinked_file = os.path.join(mtdir, "mt_pops_QC_filters_sample_qc.shrank.mt")
-    baits = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/Twist Alliance Clinical Research Exome_Covered_Targets_hg38-34.9MB .bed'
+    # mtfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/gatk_unprocessed.chrX.mt'
+    # shrinked_file = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/gatk_unprocessed.chrX.baits.mt'
+    baits = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/Twist_Alliance_Clinical_Research_Exome_Covered_Targets_hg38-34.9MB.bed'
     restrict_to_baits(mtfile, shrinked_file, baits)
 
 

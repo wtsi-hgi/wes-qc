@@ -15,12 +15,13 @@ from evaluation.compare_hard_filter_combinations import get_trans_untrans
 from utils.utils import rm_mt
 
 rf_hash = 'fa8798b1'
-snp_bins = [80, 82, 83, 84]
+# snp_bins = [80, 82, 83, 84]
+snp_bins = []
 indel_bins = [44, 46, 48, 49, 50]
-gq_vals = [10, 15, 20]
+gq_vals = [15]
 dp_vals = [5, 10]
 ab_vals = [0.2, 0.3]
-missing_vals = [0.9, 0.95]
+missing_vals = [0.5, 0.9, 0.95]
 roh_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hail-ready.hom'
 
 snp_label = 'snp'
@@ -62,7 +63,7 @@ def filter_mts(mt: hl.MatrixTable, roh: hl.Table, mtdir: str) -> Tuple[hl.Matrix
 
     samples = roh.aggregate(hl.agg.collect_as_set(roh.ID))
     mt_roh = mt.filter_cols(hl.set(samples).contains(mt.s))
-    mt_roh = mt_roh.checkpoint(tmpmtr, overwrite=True)
+    # mt_roh = mt_roh.checkpoint(tmpmtr, overwrite=True)
 
     return mt_true, mt_false, mt_syn, mt_roh
 
@@ -152,13 +153,11 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
     mt_indel = mt.filter_rows(mt.type == indel_label)
 
     mt_snp_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp.mt')
-    mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
-    mt_indel_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel.mt')
-    mt_indel = mt_indel.repartition(mt.n_partitions() // 4).checkpoint(mt_indel_path, overwrite=True)
+    # mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
 
-    snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, roh, mtdir=mtdir)
-    results['snv_total_tp'] = snp_mt_tp.count_rows()
-    results['snv_total_fp'] = snp_mt_fp.count_rows()
+    # snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, roh, mtdir=mtdir)
+    # results['snv_total_tp'] = snp_mt_tp.count_rows()
+    # results['snv_total_fp'] = snp_mt_fp.count_rows()
 
     for bin in snp_bins:
         bin_str = "bin_" + str(bin)
@@ -193,8 +192,11 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
                         all_errors, _, _, _ = hl.mendel_errors(mt_snp_hard.GT, pedigree)
                         results['snv'][filter_name]['mendel_errors'] = all_errors.count()
 
-                        with open(os.path.join(mtpath, 'results-mendel-missing.json'), 'w') as f:
+                        with open(os.path.join(mtpath, 'results-mendel-missing-2.json'), 'w') as f:
                             json.dump(results, f)
+
+    mt_indel_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel.mt')
+    mt_indel = mt_indel.repartition(mt.n_partitions() // 4).checkpoint(mt_indel_path, overwrite=True)
 
     indel_mt_tp, indel_mt_fp, _, _ = filter_mts(mt_indel, roh, mtdir=mtdir)
     results['indel_total_tp'] = indel_mt_tp.count_rows()
@@ -233,7 +235,7 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
                         all_errors, _, _, _ = hl.mendel_errors(mt_indel_hard.GT, pedigree)
                         results['indel'][filter_name]['mendel_errors'] = all_errors.count()
 
-                        with open(os.path.join(mtpath, 'results-mendel-missing.json'), 'w') as f:
+                        with open(os.path.join(mtpath, 'results-mendel-missing-3.json'), 'w') as f:
                             json.dump(results, f)
 
     return results

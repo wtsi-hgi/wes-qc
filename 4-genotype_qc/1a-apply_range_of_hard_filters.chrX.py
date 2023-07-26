@@ -109,140 +109,122 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
 
     stringent_condition = (
         (
-        (hl.is_snp(mt.alleles[0], mt.alleles[1]))
-        & (mt.info.rf_bin <= hard_filters['snp']['stringent']['bin'])
-        & (mt.DP >= hard_filters['snp']['stringent']['dp'])
-        & (mt.GQ >= hard_filters['snp']['stringent']['gq'])
-        & (
-            (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['stringent']['ab'])) |
-            (mt.GT.is_hom_ref()) |
-            (mt.GT.is_hom_var())
-        )
-
-    ) |
+            (hl.is_snp(mt.alleles[0], mt.alleles[1]))
+            & (mt.info.rf_bin <= hard_filters['snp']['stringent']['bin'])
+            & (((mt.DP >= hard_filters['snp']['stringent']['dp_female']) & (mt.sex == 'female')) |
+               ((mt.DP >= hard_filters['snp']['stringent']['dp_female']) & (mt.sex == 'male') & mt.locus.in_x_par()) |
+               ((mt.DP >= hard_filters['snp']['stringent']['dp_male']) & (mt.sex == 'male') & mt.locus.in_x_nonpar()))
+            & (mt.GQ >= hard_filters['snp']['stringent']['gq'])
+            & (
+                (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['stringent']['ab'])) |
+                (mt.GT.is_hom_ref()) |
+                (mt.GT.is_hom_var())
+            )
+        ) |
         (
-        (hl.is_indel(mt.alleles[0], mt.alleles[1]))
-        & (mt.info.rf_bin <= hard_filters['indel']['stringent']['bin'])
-        & (mt.DP >= hard_filters['indel']['stringent']['dp'])
-        & (mt.GQ >= hard_filters['indel']['stringent']['gq'])
-        & (
-            (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['stringent']['ab'])) |
-            (mt.GT.is_hom_ref()) |
-            (mt.GT.is_hom_var())
+            (hl.is_indel(mt.alleles[0], mt.alleles[1]))
+            & (mt.info.rf_bin <= hard_filters['indel']['stringent']['bin'])
+            & (mt.DP >= hard_filters['indel']['stringent']['dp'])
+            & (mt.GQ >= hard_filters['indel']['stringent']['gq'])
+            & (
+                (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['stringent']['ab'])) |
+                (mt.GT.is_hom_ref()) |
+                (mt.GT.is_hom_var())
+            )
         )
-
     )
-    )
-
 
     medium_condition = (
         (
-        (hl.is_snp(mt.alleles[0], mt.alleles[1]))
-        & (mt.info.rf_bin <= hard_filters['snp']['medium']['bin'])
-        & (mt.DP >= hard_filters['snp']['medium']['dp'])
-        & (mt.GQ >= hard_filters['snp']['medium']['gq'])
-        & (
-            (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['medium']['ab'])) |
-            (mt.GT.is_hom_ref()) |
-            (mt.GT.is_hom_var())
-        )
-
-    ) |
+            (hl.is_snp(mt.alleles[0], mt.alleles[1]))
+            & (mt.info.rf_bin <= hard_filters['snp']['medium']['bin'])
+            & (((mt.DP >= hard_filters['snp']['medium']['dp_female']) & (mt.sex == 'female')) |
+               ((mt.DP >= hard_filters['snp']['medium']['dp_female']) & (mt.sex == 'male') & mt.locus.in_x_par()) |
+               ((mt.DP >= hard_filters['snp']['medium']['dp_male']) & (mt.sex == 'male') & mt.locus.in_x_nonpar()))
+            & (mt.GQ >= hard_filters['snp']['medium']['gq'])
+            & (
+                (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['medium']['ab'])) |
+                (mt.GT.is_hom_ref()) |
+                (mt.GT.is_hom_var())
+            )
+        ) |
         (
-        (hl.is_indel(mt.alleles[0], mt.alleles[1]))
-        & (mt.info.rf_bin <= hard_filters['indel']['medium']['bin'])
-        & (mt.DP >= hard_filters['indel']['medium']['dp'])
-        & (mt.GQ >= hard_filters['indel']['medium']['gq'])
-        & (
-            (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['medium']['ab'])) |
-            (mt.GT.is_hom_ref()) |
-            (mt.GT.is_hom_var())
+            (hl.is_indel(mt.alleles[0], mt.alleles[1]))
+            & (mt.info.rf_bin <= hard_filters['indel']['medium']['bin'])
+            & (mt.DP >= hard_filters['indel']['medium']['dp'])
+            & (mt.GQ >= hard_filters['indel']['medium']['gq'])
+            & (
+                (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['medium']['ab'])) |
+                (mt.GT.is_hom_ref()) |
+                (mt.GT.is_hom_var())
+            )
         )
-
-    )
-    )
-    
-    relaxed_condition = (
-        (
-        (hl.is_snp(mt.alleles[0], mt.alleles[1]))
-        & (mt.info.rf_bin <= hard_filters['snp']['relaxed']['bin'])
-        & (mt.DP >= hard_filters['snp']['relaxed']['dp'])
-        & (mt.GQ >= hard_filters['snp']['relaxed']['gq'])
-        & (
-            (mt.GT.is_het() & (mt.HetAB >= hard_filters['snp']['relaxed']['ab'])) |
-            (mt.GT.is_hom_ref()) |
-            (mt.GT.is_hom_var())
-        )
-
-    ) |
-        (
-        (hl.is_indel(mt.alleles[0], mt.alleles[1]))
-        & (mt.info.rf_bin <= hard_filters['indel']['relaxed']['bin'])
-        & (mt.DP >= hard_filters['indel']['relaxed']['dp'])
-        & (mt.GQ >= hard_filters['indel']['relaxed']['gq'])
-        & (
-            (mt.GT.is_het() & (mt.HetAB >= hard_filters['indel']['relaxed']['ab'])) |
-            (mt.GT.is_hom_ref()) |
-            (mt.GT.is_hom_var())
-        )
-
-    )
     )
 
     mt = mt.annotate_entries(
         stringent_filters = hl.if_else(stringent_condition, 'Pass', 'Fail'),
-        medium_filters = hl.if_else(medium_condition, 'Pass', 'Fail'),
-        relaxed_filters = hl.if_else(relaxed_condition, 'Pass', 'Fail')
+        medium_filters = hl.if_else(medium_condition, 'Pass', 'Fail')
     )
 
     mt = apply_missingness(
         mt=mt,
-        call_rate_relaxed=hard_filters['missingness']['relaxed'],
         call_rate_medium=hard_filters['missingness']['medium'],
         call_rate_stringent=hard_filters['missingness']['stringent']
     )
 
-    #annotate variants with fraction passing/failing each set of filters
+    # annotate variants with fraction passing/failing each set of filters
     n_samples = mt.count_cols()
     mt = mt.annotate_rows(stringent_pass_count = hl.agg.count_where(mt.stringent_filters == 'Pass'))
     mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_stringent_filters = mt.stringent_pass_count/n_samples))
 
     mt = mt.annotate_rows(medium_pass_count = hl.agg.count_where(mt.medium_filters == 'Pass'))
     mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_medium_filters = mt.medium_pass_count/n_samples))
-    
-    mt = mt.annotate_rows(relaxed_pass_count = hl.agg.count_where(mt.relaxed_filters == 'Pass'))
-    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_relaxed_filters = mt.relaxed_pass_count/n_samples))
 
-    for filter_name in ('stringent', 'medium', 'relaxed'):
+    for filter_name in ('stringent', 'medium'):
         mt = annotate_ac(mt, filter_name=filter_name)
 
     return mt
 
 
-def apply_missingness(mt: hl.MatrixTable, call_rate_stringent: float, call_rate_medium: float, call_rate_relaxed: float) -> hl.MatrixTable:
+def apply_missingness(mt: hl.MatrixTable, call_rate_stringent: float, call_rate_medium: float) -> hl.MatrixTable:
     n = mt.count_cols()
 
     mt = mt.annotate_rows(
         stringent_pass_count=hl.agg.count_where(mt.stringent_filters == 'Pass'),
-        medium_pass_count=hl.agg.count_where(mt.medium_filters == 'Pass'),
-        relaxed_pass_count=hl.agg.count_where(mt.relaxed_filters == 'Pass')
+        medium_pass_count=hl.agg.count_where(mt.medium_filters == 'Pass')
     )
 
     mt = mt.annotate_entries(
         stringent_filters=hl.if_else(mt.stringent_pass_count > n * call_rate_stringent, mt.stringent_filters, 'Fail'),
-        medium_filters=hl.if_else(mt.medium_pass_count > n * call_rate_medium, mt.medium_filters, 'Fail'),
-        relaxed_filters=hl.if_else(mt.relaxed_pass_count > n * call_rate_relaxed, mt.relaxed_filters, 'Fail')
+        medium_filters=hl.if_else(mt.medium_pass_count > n * call_rate_medium, mt.medium_filters, 'Fail')
     )
 
-    mt = mt.drop(mt.stringent_pass_count, mt.medium_pass_count, mt.relaxed_pass_count)
+    mt = mt.drop(mt.stringent_pass_count, mt.medium_pass_count)
 
+    return mt
+
+
+def annotate_genders(mt: hl.MatrixTable, genders: hl.Table) -> hl.MatrixTable:
+    genders = genders.key_by('s')
+    genders = genders.annotate(
+        sex=hl.switch(genders.is_female)
+              .when(True, 'female')
+              .when(False, 'male')
+              .when_missing('female')  # treat all missings as females and apply stronger filters
+              .default('error')
+    )
+    assert genders.aggregate(hl.agg.count_where(genders.sex == 'error')) == 0
+    genders = genders.annotate(  # known error case
+        sex=hl.switch(genders.s).when('GNH-15001903132878', 'female').default(genders.sex)
+    )
+    mt = mt.annotate_cols(sex=genders[mt.s].sex)
     return mt
 
 
 def main():
     #set up
     args = get_options()
-    inputs = parse_config()
+    inputs = parse_config(filename='inputs-chrX.yaml')
     mtdir = inputs['matrixtables_lustre_dir']
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
@@ -257,14 +239,17 @@ def main():
 
     exclude_file = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/david_samples_to_remove.txt'
     rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
+    mtfile = mtdir + "mt_varqc_splitmulti.chrX.mt"
     cqfile = resourcedir + "all_consequences_with_gene_and_csq.txt"
-    mtfile_annot = mtdir + "mt_hard_filter_combinations.mt"
+    mtfile_annot = mtdir + "mt_hard_filter_combinations.chrX.mt"
 
     mt = hl.read_matrix_table(mtfile)
 
     #remove unwanted samples
     mt = remove_samples(mt, exclude_file)
+
+    genders = hl.import_table('file:/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/sex_annotated.sex_check.txt.bgz', impute=True)
+    mt = annotate_genders(mt, genders)
 
     #annotate mt with consequence, gene, rf bin
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)

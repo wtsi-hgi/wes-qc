@@ -359,6 +359,7 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> 
     :param str mtdir: matrixtable directory
     :return float:
     """
+    parts = min(mt.n_partitions(), 2000)
     # filter to synonymous
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')
 
@@ -372,7 +373,7 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> 
 
     mt2 = mt2.annotate_rows(varqc_trios=hl.Struct(AC=mt_founders.index_rows(mt2.row_key).varqc_founders.AC))
     tmpmt3 = os.path.join(mtdir, "tmp3x.mt")
-    mt2 = mt2.repartition(n_partitions=2000).checkpoint(tmpmt3, overwrite=True)
+    mt2 = mt2.repartition(n_partitions=parts).checkpoint(tmpmt3, overwrite=True)
 
     # split to potentially transmitted/untransmitted
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)

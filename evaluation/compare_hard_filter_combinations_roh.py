@@ -14,12 +14,13 @@ from evaluation.compare_hard_filter_combinations import count_tp_fp
 from evaluation.compare_hard_filter_combinations import get_trans_untrans
 
 rf_hash = 'fa8798b1'
-snp_bins = [80, 82, 83, 84]
+snp_bins = []
+# snp_bins = [80, 82, 83, 84]
 indel_bins = [44, 46, 48, 49, 50]
-gq_vals = [10, 15, 20]
+gq_vals = [15]
 dp_vals = [5, 10]
 ab_vals = [0.2, 0.3]
-missing_vals = [0.9, 0.95]
+missing_vals = [0.5, 0.9, 0.95]
 roh_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hail-ready.hom'
 
 snp_label = 'snp'
@@ -156,29 +157,29 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     indel_mt_fp = mt_fp.filter_rows(mt_fp.type == indel_label)
     indel_mt_roh = mt_roh.filter_rows(mt_roh.type == indel_label)
 
-    results['snv_total_tp'] = snp_mt_tp.count_rows()
-    results['snv_total_fp'] = snp_mt_fp.count_rows()
-    results['indel_total_tp'] = indel_mt_tp.count_rows()
-    results['indel_total_fp'] = indel_mt_fp.count_rows()
+    # results['snv_total_tp'] = snp_mt_tp.count_rows()
+    # results['snv_total_fp'] = snp_mt_fp.count_rows()
+    # results['indel_total_tp'] = indel_mt_tp.count_rows()
+    # results['indel_total_fp'] = indel_mt_fp.count_rows()
 
     for bin in snp_bins:
         bin_str = "bin_" + str(bin)
         print("bin " + str(bin))
-        mt_tp_tmp = snp_mt_tp.filter_rows(snp_mt_tp.info.rf_bin <= bin)
-        tmpmtb1 = os.path.join(mtdir, "tmp1bx.mt")
-        mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
+        # mt_tp_tmp = snp_mt_tp.filter_rows(snp_mt_tp.info.rf_bin <= bin)
+        # tmpmtb1 = os.path.join(mtdir, "tmp1bx.mt")
+        # mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
+        #
+        # mt_fp_tmp = snp_mt_fp.filter_rows(snp_mt_fp.info.rf_bin <= bin)
+        # tmpmtb2 = os.path.join(mtdir, "tmp2bx.mt")
+        # mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
+        #
+        # mt_syn_tmp = mt_syn.filter_rows(mt_syn.info.rf_bin <= bin)
+        # tmpmtb3 = os.path.join(mtdir, "tmp3bx.mt")
+        # mt_syn_tmp = mt_syn_tmp.checkpoint(tmpmtb3, overwrite = True)
 
-        mt_fp_tmp = snp_mt_fp.filter_rows(snp_mt_fp.info.rf_bin <= bin)
-        tmpmtb2 = os.path.join(mtdir, "tmp2bx.mt")
-        mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
-
-        mt_syn_tmp = mt_syn.filter_rows(mt_syn.info.rf_bin <= bin)
-        tmpmtb3 = os.path.join(mtdir, "tmp3bx.mt")
-        mt_syn_tmp = mt_syn_tmp.checkpoint(tmpmtb3, overwrite = True)
-
-        # mt_roh_tmp = snp_mt_roh.filter_rows(snp_mt_roh.info.rf_bin <= bin)
-        # tmpmtb4 = os.path.join(mtdir, "tmp4bx.mt")
-        # mt_roh_tmp = mt_roh_tmp.checkpoint(tmpmtb4, overwrite=True)
+        mt_roh_tmp = snp_mt_roh.filter_rows(snp_mt_roh.info.rf_bin <= bin)
+        tmpmtb4 = os.path.join(mtdir, "tmp4bx.mt")
+        mt_roh_tmp = mt_roh_tmp.checkpoint(tmpmtb4, overwrite=True)
 
         for dp in dp_vals:
             dp_str = 'DP_' + str(dp)
@@ -190,28 +191,28 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                         missing_str = f'missing_{missing}'
                         print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
-                        snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, missing, 'snv', mtdir)
-                        results['snv'][filter_name] = snp_counts
+                        # snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, missing, 'snv', mtdir)
+                        # results['snv'][filter_name] = snp_counts
 
-                        # if not os.path.exists(os.path.join(mtdir, f'{filter_name}.snp.roh_stat.tsv')):
-                        #     mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
-                        #     het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
-                        #     write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.snp.roh_stat'))
+                        if not os.path.exists(os.path.join(mtdir, f'{filter_name}.snp.roh_stat.tsv')):
+                            mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab, call_rate=missing)
+                            het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
+                            write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.snp.roh_stat'))
 
-                        with open(os.path.join(mtpath, 'results-call_rate.json'), 'w') as f:
+                        with open(os.path.join(mtpath, 'results-call_rate-roh.json'), 'w') as f:
                             json.dump(results, f)
-    return
+
     for bin in indel_bins:
         bin_str = "bin_" + str(bin)
         print("bin " + str(bin))
 
-        mt_tp_tmp = indel_mt_tp.filter_rows(indel_mt_tp.info.rf_bin <= bin)
-        tmpmtb1 = mtdir + "tmp1bx.mt"
-        mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
-
-        mt_fp_tmp = indel_mt_fp.filter_rows(indel_mt_fp.info.rf_bin <= bin)
-        tmpmtb2 = mtdir + "tmp2bx.mt"
-        mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
+        # mt_tp_tmp = indel_mt_tp.filter_rows(indel_mt_tp.info.rf_bin <= bin)
+        # tmpmtb1 = mtdir + "tmp1bx.mt"
+        # mt_tp_tmp = mt_tp_tmp.checkpoint(tmpmtb1, overwrite = True)
+        #
+        # mt_fp_tmp = indel_mt_fp.filter_rows(indel_mt_fp.info.rf_bin <= bin)
+        # tmpmtb2 = mtdir + "tmp2bx.mt"
+        # mt_fp_tmp = mt_fp_tmp.checkpoint(tmpmtb2, overwrite = True)
 
         mt_roh_tmp = indel_mt_roh.filter_rows(indel_mt_roh.info.rf_bin <= bin)
         tmpmtb4 = os.path.join(mtdir, "tmp4bx.mt")
@@ -223,18 +224,20 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                 gq_str = 'GQ_' + str(gq)
                 for ab in ab_vals:
                     ab_str = 'AB_' + str(ab)
-                    print(dp_str + " " + gq_str + " " + ab_str)
-                    filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str])
-                    indel_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn, pedfile, dp, gq, ab, 'indel', mtdir)
-                    results['indel'][filter_name] = indel_counts
+                    for missing in missing_vals:
+                        missing_str = f'missing_{missing}'
+                        print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
+                        filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
+                        # indel_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn, pedfile, dp, gq, ab, 'indel', mtdir)
+                        # results['indel'][filter_name] = indel_counts
 
-                    if not os.path.exists(os.path.join(mtdir, f'{filter_name}.indel.roh_stat.tsv')):
-                        mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab)
-                        het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
-                        write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.indel.roh_stat'))
+                        if not os.path.exists(os.path.join(mtdir, f'{filter_name}.indel.roh_stat.tsv')):
+                            mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab, call_rate=missing)
+                            het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
+                            write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.indel.roh_stat'))
 
-                    with open(os.path.join(mtpath, 'results-call_rate.json'), 'w') as f:
-                        json.dump(results, f)
+                        # with open(os.path.join(mtpath, 'results-call_rate.json'), 'w') as f:
+                        #     json.dump(results, f)
 
     return results
 
@@ -294,7 +297,7 @@ def main():
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
 
-    # mt_tp, mt_fp, mt_syn, mt_roh = filter_mts(mt_annot, roh_path, mtdir=os.path.join(mtdir, rf_hash))
+    mt_tp, mt_fp, mt_syn, mt_roh = filter_mts(mt_annot, roh_path, mtdir=os.path.join(mtdir, rf_hash))
     results = filter_and_count(
         # hl.read_matrix_table(mt_tp),
         # hl.read_matrix_table(mt_fp),

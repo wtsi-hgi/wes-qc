@@ -22,6 +22,7 @@ resource_dir_local: /lustre/scratch123/qc/resources/
 training_set_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/training_sets/
 var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/filtered_vcfs/
+vcfraw_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/annotated_vcfs/
 
 rf_test_interval: chr20
 
@@ -48,7 +49,7 @@ hard_filters:
       bin: 50
       dp: 10
       gq: 10
-      ab: 0.2
+      ab: 0.3
     medium:
       bin: 48
       dp: 10
@@ -59,3 +60,7 @@ hard_filters:
       dp: 10
       gq: 20
       ab: 0.3
+  missingness:
+    relaxed: 0
+    medium: 0.9
+    stringent: 0.95

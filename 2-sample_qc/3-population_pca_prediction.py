@@ -92,7 +92,7 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     mt_vqc_filtered = mt_vqc.filter_rows(
         (mt_vqc.variant_QC_Hail.call_rate >= 0.99) &
         (mt_vqc.variant_QC_Hail.AF[1] >= 0.05) &
-        (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-10)
+        (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
     )
     long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
     long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')

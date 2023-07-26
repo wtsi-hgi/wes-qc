@@ -1,0 +1,36 @@
+---
+
+matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/
+var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/variant_qc_random_forest/
+resource_dir: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/
+annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/
+
+#hard filter
+hard_filters:
+  snp:
+    medium:
+      bin: 82
+      dp_male: 5
+      dp_female: 10
+      gq: 15
+      ab: 0.2
+    stringent:
+      bin: 80
+      dp_male: 5
+      dp_female: 10
+      gq: 20
+      ab: 0.2
+  indel:
+    medium:
+      bin: 48
+      dp: 10
+      gq: 15
+      ab: 0.3
+    stringent:
+      bin: 44
+      dp: 10
+      gq: 20
+      ab: 0.3
+  missingness:
+    medium: 0.9
+    stringent: 0.95

@@ -4,19 +4,22 @@ import sys
 import yaml
 import hail as hl
 import pandas as pd
+from pathlib import Path
 from shutil import rmtree
 from typing import Optional, Union, Set
 from gnomad.resources.resource_utils import TableResource
 
+
 def get_script_path():
-    #returns the path of the script that is being run
+    # returns the path of the script that is being run
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
-def parse_config():
+
+def parse_config(filename='inputs.yaml'):
     script_dir = get_script_path()
-    input_yaml = script_dir + '/../config/inputs.yaml'
+    input_yaml = script_dir + f'/../config/{filename}'
     if not os.path.exists(input_yaml):
-        input_yaml = script_dir + '/../../config/inputs.yaml'
+        input_yaml = script_dir + f'/../../config/{filename}'
     with open(input_yaml, 'r') as y:
         inputs = yaml.load(y, Loader=yaml.FullLoader)
 
@@ -79,7 +82,7 @@ def get_rf(
 
 
 def rm_mt(path: str):
-    rmtree(path.replace('file://', ''))
+    rmtree(path.replace('file:/', '/'))
 
 
 def collect_pedigree_samples(ped: hl.Pedigree) -> Set[str]:
@@ -93,3 +96,19 @@ def select_founders(ped: hl.Pedigree) -> Set[str]:
     for trio in ped.trios:
         samples.discard(trio.s)
     return samples
+
+
+def remove_samples(mt: hl.MatrixTable, exclude_file: Union[Path, str], sample_column_name: str = 's'):
+    """
+    General function to remove samples from Matrix Table using tsv file
+    :param hl.MatrixTable: Input MatrixTable
+    :param str exclude_file: path of file with samples to exclude
+    :param str sample_column_name: column name with samples
+    :return: hl.MatrixTable
+    """
+    samples_to_remove_ht = hl.import_table(str(exclude_file))
+    samples_to_remove = samples_to_remove_ht.aggregate(hl.agg.collect_as_set(samples_to_remove_ht[sample_column_name]),
+                                                       _localize=False)
+
+    mt = mt.filter_cols(samples_to_remove.contains(mt.s), keep=False)
+    return mt

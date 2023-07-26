@@ -33,3 +33,8 @@ TRUTH_DATA = ["hapmap", "omni", "mills", "kgp_phase1_hc"]
 LABEL_COL = "rf_label"
 TRAIN_COL = "rf_train"
 PREDICTION_COL = "rf_prediction"
+
+
+class Sex:
+    male = 'male'
+    female = 'female'
