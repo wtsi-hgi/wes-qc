@@ -1,6 +1,6 @@
 ---
 gatk_vcf_header: file:///lustre/scratch123/qc/BiB/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs/
+gatk_import_lustre_dir: file:///lustre/scratch123/qc/BiB/gatk_vcfs/
 load_matrixtables_lustre_dir: /lustre/scratch123/qc/BiB/matrixtables/
 #load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
 annotation_lustre_dir: file:///lustre/scratch123/qc/BiB/annotations/
