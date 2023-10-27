@@ -72,13 +72,13 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-    metadata_file =  resourcedir +  '/all_samples_with_proceed_and_seq_info_and_warehouse_info.txt'
-    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('ega')
+    metadata_file =  resourcedir +  '/mlwh_sample_and_sex.txt'
+    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
     #we only want those from the metadata file where sex is known
-    metadata_ht = metadata_ht.filter((metadata_ht.sex == 'Male') | (metadata_ht.sex == 'Female'))
+    metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.sex == 'Female'))
 
     #annotate the sex-predictions with the manifest sex annotation - need to use a join here
-    ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].sex)
+    ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].gender)
 
     #identify samples where imputed sex and manifest sex conflict
     conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
