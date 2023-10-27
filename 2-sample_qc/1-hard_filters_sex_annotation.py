@@ -76,7 +76,7 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     metadata_file =  resourcedir +  '/mlwh_sample_and_sex.txt'
     metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
     #we only want those from the metadata file where sex is known
-    metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.sex == 'Female'))
+    metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.gender == 'Female'))
 
     #annotate the sex-predictions with the manifest sex annotation - need to use a join here
     ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].gender)
