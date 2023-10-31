@@ -113,6 +113,9 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str,
     :param str pca_evals_file: PCA scores HT file
     '''
     mt = hl.read_matrix_table(filtered_mt_file)
+    #exclude EGAN00004311029 this is a huge outlier on PCA and skews all the PCs
+    to_exclude = ['EGAN00004311029']
+    mt = mt.filter_cols(~hl.set(to_exclude).contains(mt.s)) 
     pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=10, compute_loadings=True)
     pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
     pca_scores.write(pca_scores_file, overwrite=True)
@@ -175,7 +178,6 @@ def main():
 
     #run pca
     pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
-    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
     pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
     if args.pca or args.run:
