@@ -14,14 +14,6 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, runid_file: str, annotated_m
     :param str annotated_mt_file: annotated mt file
     '''
     mt = hl.read_matrix_table(raw_mt_file)
-    runida_ht = hl.import_table(runid_file, delimiter="\t").key_by('ega')
-    mt = mt.annotate_cols(batch=runida_ht[mt.s]['runid'])
-    seq_expr = (hl.case()
-                .when(mt.s.startswith('EGAN'), 'Sanger')
-                .when(mt.s.startswith('Z'), 'Bristol')
-                .default("")
-                )
-    mt = mt.annotate_cols(sequencing_location=seq_expr).key_cols_by('s')
     pop_ht = hl.read_table(pop_ht_file)
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
     mt.write(annotated_mt_file, overwrite=True)
@@ -104,7 +96,6 @@ def main():
     # annotate mt with runid and pop
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
     pop_ht_file = mtdir + "pop_assignments.ht"
-    runid_file = resourcesdir + "sequencing_batches.txt"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop_and_runid.mt"
     annotate_mt(raw_mt_file, pop_ht_file, runid_file, annotated_mt_file)
 
