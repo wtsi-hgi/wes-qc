@@ -2,6 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
+import pandas as pd
 from gnomad.sample_qc.ancestry import assign_population_pcs
 from wes_qc.utils.utils import parse_config
 
@@ -125,17 +126,32 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str,
             f.write(str(val) + "\n")
 
 
+def append_row(df, row):
+    return pd.concat([
+                df, 
+                pd.DataFrame([row], columns=row.index)]
+           ).reset_index(drop=True)
 
-def predict_pops(pca_scores_file: str, pop_ht_file: str):
+
+def predict_pops(pca_scores_file: str, pop_ht_file: str, pop_ht_tsv):
     '''
     Predict populations from PCA scores
     :param str pca_sores_file: PCA scores HT file
     :param str pop_ht_file: predicted population HT file
+    :param str pop_ht_tsv: population tsv file
     '''
     pca_scores = hl.read_table(pca_scores_file)
     known_col = "known_pop"
     pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5)
     pop_ht.write(pop_ht_file, overwrite=True)
+    #convert to pandas and put in only pops files, add excluded sample back
+    pop_ht_df = pop_ht.to_pandas()
+    pop_ht_df2 =pop_ht_df[['s', 'pop']]
+    new_row = pd.Series({'s':'EGAN00004311029', 'pop':'OTH'})
+    pop_ht_df2 = append_row(pop_ht_df2, new_row)
+
+    pop_ht_df2.to_csv(pop_ht_tsv, sep = '\t')
+    
     # This is a work around for hail <0.2.88 - convert hail table to pandas df then run assign_population_pcs
     # pop_pca_scores = pca_scores.select(known_col, pca_scores=pca_scores.scores)
     # pop_pc_pd = pop_pca_scores.to_pandas()
@@ -185,8 +201,9 @@ def main():
 
     #assign pops
     pop_ht_file = mtdir + "pop_assignments.ht"
+    pop_ht_tsv = mtdir + "pop_assignemtnts.tsv"
     if args.assign_pops or args.run:
-        predict_pops(pca_scores_file, pop_ht_file)
+        predict_pops(pca_scores_file, pop_ht_file, pop_ht.tsv)
 
 
 if __name__ == '__main__':
