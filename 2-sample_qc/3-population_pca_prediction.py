@@ -203,7 +203,7 @@ def main():
     pop_ht_file = mtdir + "pop_assignments.ht"
     pop_ht_tsv = mtdir2 + "pop_assignemtnts.tsv"
     if args.assign_pops or args.run:
-        predict_pops(pca_scores_file, pop_ht_file, pop_ht.tsv)
+        predict_pops(pca_scores_file, pop_ht_file, pop_ht_tsv)
 
 
 if __name__ == '__main__':
