@@ -5,16 +5,18 @@ from wes_qc.utils.utils import parse_config
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
 
-def annotate_mt(raw_mt_file: str, pop_ht_file: str, runid_file: str, annotated_mt_file: str):
+def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str, pop_pandas_file: str):
     '''
     Annotate mt with superpopulation and sequencing runid
     :param str raw_mt_file: raw mt file
     :param str pop_ht_file: file with population annotations
     :param str runid_file: metadata file to annotate run ids
     :param str annotated_mt_file: annotated mt file
+    :param str pop_pandas_file: tsv from pandas df - EGA and pop
     '''
     mt = hl.read_matrix_table(raw_mt_file)
-    pop_ht = hl.read_table(pop_ht_file)
+    #pop_ht = hl.read_table(pop_ht_file)
+    pop_ht = hl.import_table(pop_pandas_file, delimiter="\t").key_by('s')
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
     mt.write(annotated_mt_file, overwrite=True)
 
@@ -86,6 +88,7 @@ def main():
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
     resourcesdir = inputs['resource_dir']
+    mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -96,8 +99,9 @@ def main():
     # annotate mt with runid and pop
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
     pop_ht_file = mtdir + "pop_assignments.ht"
-    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop_and_runid.mt"
-    annotate_mt(raw_mt_file, pop_ht_file, runid_file, annotated_mt_file)
+    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"
+    pop_pandas_file = mtdir2 + "pop_assignemtnts.tsv"
+    annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file, pop_pandas_file)
 
     # run sample QC and stratify by population
     mt_qc_outfile = mtdir + "mt_pops_sampleqc.mt"
