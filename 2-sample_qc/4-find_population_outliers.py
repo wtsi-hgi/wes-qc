@@ -88,7 +88,7 @@ def main():
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
     resourcesdir = inputs['resource_dir']
-    mtdir2 = inputs['load_matrixtables_lustre_dir']
+    #mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
@@ -100,7 +100,7 @@ def main():
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
     pop_ht_file = mtdir + "pop_assignments.ht"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"
-    pop_pandas_file = mtdir2 + "pop_assignemtnts.tsv"
+    pop_pandas_file = mtdir + "pop_assignemtnts.tsv"
     annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file, pop_pandas_file)
 
     # run sample QC and stratify by population
