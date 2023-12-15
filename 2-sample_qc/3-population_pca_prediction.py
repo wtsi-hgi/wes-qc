@@ -147,7 +147,7 @@ def predict_pops(pca_scores_file: str, pop_ht_file: str, pop_ht_tsv):
     #convert to pandas and put in only pops files, add excluded sample back
     pop_ht_df = pop_ht.to_pandas()
     pop_ht_df2 =pop_ht_df[['s', 'pop']]
-    new_row = pd.Series({'s':'EGAN00004311029', 'pop':'OTH'})
+    new_row = pd.Series({'s':'EGAN00004311029', 'pop':'oth'})
     pop_ht_df2 = append_row(pop_ht_df2, new_row)
     print(pop_ht_df2)
     print(pop_ht_tsv)
