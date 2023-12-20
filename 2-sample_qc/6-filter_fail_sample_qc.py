@@ -59,7 +59,7 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     qc_filter_ht_file = mtdir + "mt_pops_QC_filters.ht"
-    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop_and_runid.mt"  # annotated but unfiltered mt
+    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"  # annotated but unfiltered mt
     sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_after_sample_qc.mt"
     samples_failing_qc_file = annotdir + "samples_failing_qc.tsv.bgz"
     remove_sample_qc_fails(annotated_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
