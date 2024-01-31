@@ -1,19 +1,20 @@
 ---
-gatk_vcf_header: file:///lustre/scratch123/qc/BiB/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/BiB/gatk_vcfs/
-load_matrixtables_lustre_dir: /lustre/scratch123/qc/BiB/matrixtables/
+gatk_vcf_header: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/gatk_vcf_header.txt
+gatk_import_lustre_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/
+load_matrixtables_lustre_dir: /lustre/scratch125/teams/hgi/ad7/otar2064/qc/matrixtables/
 #load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-annotation_lustre_dir: file:///lustre/scratch123/qc/BiB/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/qc/BiB/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/qc/BiB/matrixtables/
+annotation_lustre_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/annotations/
+annotation_lustre_dir_local: /lustre/scratch125/teams/hgi/ad7/otar2064/qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/matrixtables/
+matrixtables_local_dir: file:///home/ubuntu/volume/data/
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-plots_lustre_dir: file:///lustre/scratch123/qc/BiB/plots/
-plots_dir_local: /lustre/scratch123/qc/BiB/plots/
-resource_dir: file:///lustre/scratch123/qc/BiB/resources/
-resource_dir_local: /lustre/scratch123/qc/BiB/resources/
-training_set_dir: file:///lustre/scratch123/qc/BiB/training_sets/
-var_qc_rf_dir: file:///lustre/scratch123/qc/BiB/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/qc/BiB/filtered_vcfs/20230425/
+plots_lustre_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/plots/
+plots_dir_local: /lustre/scratch125/teams/hgi/ad7/otar2064/qc/plots/
+resource_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/resources/
+resource_dir_local: /lustre/scratch125/teams/hgi/ad7/otar2064/qc/resources/
+training_set_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/training_sets/
+var_qc_rf_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch125/teams/hgi/ad7/otar2064/qc/filtered_vcfs/20230425/
 
 rf_test_interval: chr20
 

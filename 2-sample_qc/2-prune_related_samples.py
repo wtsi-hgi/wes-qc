@@ -91,7 +91,7 @@ def main():
     #set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
-    plotdir = inputs['plots_lustre_dir']
+    plotdir = inputs['plots_dir_local']
 
     #initialise hail
     tmp_dir = "hdfs://spark-master:9820/"
