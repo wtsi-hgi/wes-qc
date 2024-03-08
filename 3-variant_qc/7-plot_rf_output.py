@@ -9,7 +9,7 @@ from bokeh.models import Plot, Row, Span
 from bokeh.plotting import output_file, save
 from gnomad.utils.plotting import *
 from hail.plot import show, output_notebook
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -379,15 +379,15 @@ def main():
     root_plot_dir = inputs['plots_dir_local']
 
     qc_plots_settings = {
-    'mean_point_size': 4.0,
-    'min_point_size': 1.0,
-    'max_point_size': 16.0,
-    'label_text_font_size': "14pt",
-    'title.text_font_size': "16pt",
-    'subtitle.text_font_size': "14pt",
-    'axis.axis_label_text_font_size': "16pt",
-    'axis.axis_label_text_font_style': "normal",
-    'axis.major_label_text_font_size': "14pt"
+        'mean_point_size': 4.0,
+        'min_point_size': 1.0,
+        'max_point_size': 16.0,
+        'label_text_font_size': "14pt",
+        'title.text_font_size': "16pt",
+        'subtitle.text_font_size': "14pt",
+        'axis.axis_label_text_font_size': "16pt",
+        'axis.axis_label_text_font_style': "normal",
+        'axis.major_label_text_font_size': "14pt"
     }
     plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/"
     if not os.path.exists(plot_dir):

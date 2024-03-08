@@ -1,21 +1,15 @@
 #!/bin/bash
-#run bcftools ststs as a job array - for each job index run on all 24 chromsomes sequentially as each job is failry short
+#run bcftools stats as a job array - for each job index run on all 24 chromosomes sequentially as each job is fairly short
 
-sample_list=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/gatk_samples.txt
 wdir=$(pwd)
+sample_list=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/BiB/gatk_vcfs_sites_in_array/all_chroms_isec.samples.txt
+cmds_file=${wdir}/mutation_spectra.cmds
 
 script=${wdir}/run_bcftools_stats.sh
 echo ${script}
 
-sampleraw=$(sed -n -e ${LSB_JOBINDEX}p ${sample_list})
-echo ${sampleraw}
-#strip new line
-sample="$(echo "$sampleraw"|tr -d '\n')"
-echo ${sample}
+parallel --dry-run ${script} {} :::: $sample_list > ${cmds_file}
 
-for chr in {{1..22},X,Y}
-do
-echo ${chr}
-${script} ${sample} ${chr}
-done
+#wr add -f ${cmds_file} -i "ip13.bcftools_stats.bib" -g "bcftools.stats" -l "bcftools.stats:500"
 
+#rm ${cmds_file}

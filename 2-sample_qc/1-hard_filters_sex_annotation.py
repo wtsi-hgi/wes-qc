@@ -2,7 +2,7 @@
 #input gatk_unprocessed.mt from step 1.1
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''

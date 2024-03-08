@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, rm_mt
 
 
 def get_options():
@@ -34,7 +34,8 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     synonymous_ht=synonymous_ht.annotate(alt=synonymous_ht.f4)
     synonymous_ht=synonymous_ht.annotate(consequence=synonymous_ht.f5)
     synonymous_ht = synonymous_ht.key_by(
-    locus=hl.locus(synonymous_ht.chr, synonymous_ht.pos), alleles=[synonymous_ht.ref,synonymous_ht.alt])
+        locus=hl.locus(synonymous_ht.chr, synonymous_ht.pos), alleles=[synonymous_ht.ref,synonymous_ht.alt]
+    )
     synonymous_ht=synonymous_ht.drop(synonymous_ht.f0,synonymous_ht.f1,synonymous_ht.f2,synonymous_ht.f3,synonymous_ht.f4,synonymous_ht.chr,synonymous_ht.pos,synonymous_ht.ref,synonymous_ht.alt)
     synonymous_ht = synonymous_ht.key_by(synonymous_ht.locus, synonymous_ht.alleles)
 
@@ -137,10 +138,11 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     # mt_filtered = mt_trios.filter_entries((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_rows((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_entries((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    mt_filtered.write(trio_filtered_mtfile, overwrite=True)
+    mt_filtered = mt_filtered.checkpoint(trio_filtered_mtfile, overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
-    ht.write(trans_sing_htfile, overwrite=True)    
+    ht.write(trans_sing_htfile, overwrite=True)
+    rm_mt(trio_filtered_mtfile)
 
 
 # def run_tdt(mtfile: str, trans_sing_htfile: str, pedfile: str, tdt_htfile: str):

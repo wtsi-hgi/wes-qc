@@ -2,7 +2,7 @@
 # Filter to remove samples sequenced at Broad
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     '''

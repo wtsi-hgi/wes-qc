@@ -2,8 +2,10 @@
 import os
 import sys
 import yaml
+import hail as hl
 import pandas as pd
-from typing import Optional, Union
+from shutil import rmtree
+from typing import Optional, Union, Set
 from gnomad.resources.resource_utils import TableResource
 
 def get_script_path():
@@ -74,3 +76,20 @@ def get_rf(
         return model_file
     else:
         return TableResource(data_file)
+
+
+def rm_mt(path: str):
+    rmtree(path.replace('file:/', '/'))
+
+
+def collect_pedigree_samples(ped: hl.Pedigree) -> Set[str]:
+    samples = {getattr(trio, member) for trio in ped.trios for member in ('mat_id', 'pat_id', 's')}
+    samples.discard(None)
+    return samples
+
+
+def select_founders(ped: hl.Pedigree) -> Set[str]:
+    samples = collect_pedigree_samples(ped)
+    for trio in ped.trios:
+        samples.discard(trio.s)
+    return samples

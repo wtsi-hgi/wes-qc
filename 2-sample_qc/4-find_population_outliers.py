@@ -1,7 +1,7 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
 
@@ -63,15 +63,37 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     qc_metrics = ['heterozygosity_rate', 'n_snp', 'r_ti_tv', 'n_transition', 'n_transversion',
                   'r_insertion_deletion', 'n_insertion', 'n_deletion', 'r_het_hom_var']
 
-    pop_filter_ht = compute_stratified_metrics_filter(
-        pop_ht,
+    pop_ht_afr = pop_ht.filter(pop_ht.assigned_pop == 'AFR')
+    pop_ht_nonafr = pop_ht.filter(pop_ht.assigned_pop != 'AFR')
+
+    pop_filter_ht_afr = compute_stratified_metrics_filter(
+        pop_ht_afr,
         qc_metrics={
-            metric: pop_ht.sample_qc[metric] for metric in qc_metrics
+            metric: pop_ht_afr.sample_qc[metric] for metric in qc_metrics
         },
-        strata={"qc_pop": pop_ht.assigned_pop},
+        metric_threshold={'heterozygosity_rate': (100, 4),
+                          'r_het_hom_var': (100, 5)},
+
+        strata={"qc_pop": pop_ht_afr.assigned_pop},
     )
 
-    pop_ht = pop_ht.annotate_globals(**pop_filter_ht.index_globals())
+    pop_filter_ht_nonafr = compute_stratified_metrics_filter(
+        pop_ht_nonafr,
+        qc_metrics={
+            metric: pop_ht_nonafr.sample_qc[metric] for metric in qc_metrics
+        },
+        metric_threshold={'heterozygosity_rate': (100, 4),
+                          'r_het_hom_var': (100, 4)},
+
+        strata={"qc_pop": pop_ht_nonafr.assigned_pop},
+    )
+
+    pop_filter_ht = pop_filter_ht_afr.union(pop_filter_ht_nonafr)
+    globals1 = hl.eval(pop_filter_ht_nonafr.globals.qc_metrics_stats)
+    globals2 = hl.eval(pop_filter_ht_afr.globals.qc_metrics_stats)
+    globals1.update(globals2)
+
+    pop_ht = pop_ht.annotate_globals(qc_metrics_stats=globals1)
     pop_ht = pop_ht.annotate(**pop_filter_ht[pop_ht.key]).persist()
     checkpoint = pop_ht.aggregate(hl.agg.count_where(
         hl.len(pop_ht.qc_metrics_filters) == 0))
@@ -80,6 +102,9 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
 
     output_text_file = annotdir + "sample_qc_by_pop.tsv.bgz"
     pop_ht.export(output_text_file, delimiter="\t")
+
+    output_globals_json = annotdir + "sample_qc_by_pop.globals.json"
+    pop_ht.globals.export(output_globals_json)
 
 
 def main():

@@ -1,9 +1,11 @@
 #compare different combinations of hard filters
+import os.path
 import hail as hl
 import pyspark
 import datetime
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
+from utils.utils import select_founders, collect_pedigree_samples
 
 
 def get_options():
@@ -89,19 +91,16 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     :param str cqfile: Most severe consequence annotation from VEP
     :return: hl.MatrixTable
     '''
-    ht=hl.import_table(cqfile,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'}, no_header=True)
-    ht=ht.annotate(chr=ht.f0)
-    ht=ht.annotate(pos=ht.f1)
-    ht=ht.annotate(rs=ht.f2)
-    ht=ht.annotate(ref=ht.f3)
-    ht=ht.annotate(alt=ht.f4)
-    ht=ht.annotate(consequence=ht.f5)
-    ht = ht.key_by(
-    locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref,ht.alt])
-    ht=ht.drop(ht.f0,ht.f1,ht.f2,ht.f3,ht.f4,ht.chr,ht.pos,ht.ref,ht.alt)
-    ht = ht.key_by(ht.locus, ht.alleles)
+    ht = hl.import_table(cqfile, types={'f1': 'int32'}, no_header=True)
+    ht = ht.rename({'f0': 'chr', 'f1': 'pos', 'f2': 'rs',
+                    'f3': 'ref', 'f4': 'alt', 'f5': 'consequence'})
 
-    mt=mt.annotate_rows(consequence=ht[mt.row_key].consequence)
+    ht = ht.key_by(
+        locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref, ht.alt]
+    )
+    ht = ht.drop(ht.chr, ht.pos, ht.ref, ht.alt)
+
+    mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
 
     return mt
 
@@ -133,11 +132,9 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     results['indel_total_tp'] = indel_total_tps
     results['indel_total_fp'] = indel_total_fps
 
-    snp_bins = list(range(35,46))
-    indel_bins = list(range(58,69))
+    snp_bins = [80, 82, 84, 86, 88, 90]
+    indel_bins = [58, 60, 62, 64, 66, 68]
     gq_vals = [10, 15, 20]
-    # dp_vals = [4, 5, 6, 10]
-    # ab_vals = [0.2, 0.25, 0.3]
     dp_vals = [5, 10]
     ab_vals = [0.2, 0.3]
 
@@ -192,8 +189,6 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                     indel_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn, mt_prec_recall_tmp, ht_giab, pedfile, dp, gq, ab, 'indel', mtdir)
                     results['indel'][filter_name] = indel_counts
 
-
-
     return results
 
 
@@ -215,9 +210,6 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     '''
     results = {}
     pedigree = hl.Pedigree.read(pedfile)
-    #list of samples in trios
-    trio_sample_ht = hl.import_fam(pedfile)
-    sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
 
     #genotype hard filters - should put this in a different method
     now = datetime.datetime.now()
@@ -281,7 +273,7 @@ def filter_mt_count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_s
     results['TP'] = counts[0]
     results['FP'] = counts[1]
     if var_type == 'snv':
-        ratio = get_trans_untrans(mt_syn_tmp, pedigree, sample_list, mtdir)
+        ratio = get_trans_untrans(mt_syn_tmp, pedigree, mtdir)
         prec, recall = get_prec_recall(ht_prec_recall_tmp, ht_giab, 'snv', mtdir)
         results['t_u_ratio'] = ratio
         results['prec'] = prec
@@ -369,36 +361,40 @@ def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple
     return precision, recall
 
 
-def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, sample_list: list, mtdir: str) -> float:
-    '''
+def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> float:
+    """
     get transmitted/untransmitted ratio
     :param hl.MatrixTable mt: matrixtable
     :param hl.Pedigree pedigree: Hail Pedigree
-    :param list sample_list: List of samples in trios
     :param str mtdir: matrixtable directory
     :return float:
-    '''
-    #filter to synonymous
+    """
+    # list of samples in trios
+    sample_list = collect_pedigree_samples(pedigree)
+
+    # filter to synonymous
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')
-        #restrict to samples in trios, annotate with AC and filter to trio AC == 1 or 2
+
+    # restrict to samples in trios, annotate with AC and filter to AC == 1 in parents
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
-    mt2 = hl.variant_qc(mt2, name='varqc_trios')
-    tmpmt3 = mtdir + "tmp3x.mt"
-    mt2 = mt2.checkpoint(tmpmt3, overwrite = True)
-    #split to potentially transitted/untransmitted
-    untrans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt4 = mtdir + "tmp4x.mt"
-    untrans_mt = untrans_mt.checkpoint(tmpmt4, overwrite = True)
-    trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 2)
-    tmpmt5 = mtdir + "tmp5x.mt"
-    trans_mt = trans_mt.checkpoint(tmpmt5, overwrite = True)
-        #run tdt function for potential trans and untrans
-    tdt_ht_trans = hl.transmission_disequilibrium_test(trans_mt, pedigree)
-    tdt_ht_untrans = hl.transmission_disequilibrium_test(untrans_mt, pedigree)
-    trans_sing = tdt_ht_trans.filter((tdt_ht_trans.t == 1) & (tdt_ht_trans.u == 0))
-    trans = trans_sing.count()
-    untrans_sing = tdt_ht_untrans.filter((tdt_ht_untrans.t == 0) & (tdt_ht_untrans.u == 1))
-    untrans = untrans_sing.count()
+
+    founders = select_founders(pedigree)
+    mt_founders = mt2.filter_cols(hl.set(founders).contains(mt2.s))
+    mt_founders = hl.variant_qc(mt_founders, name='varqc_founders')
+
+    mt2 = mt2.annotate_rows(varqc_trios=hl.Struct(AC=mt_founders.index_rows(mt2.row_key).varqc_founders.AC))
+    tmpmt3 = os.path.join(mtdir, "tmp3x.mt")
+    mt2 = mt2.checkpoint(tmpmt3, overwrite=True)
+
+    # split to potentially transmitted/untransmitted
+    trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
+    tmpmt5 = os.path.join(mtdir, "tmp5x.mt")
+    trans_mt = trans_mt.checkpoint(tmpmt5, overwrite=True)
+
+    # run tdt function for potential trans and untrans
+    tdt_ht = hl.transmission_disequilibrium_test(trans_mt, pedigree)
+    trans = tdt_ht.aggregate(hl.agg.sum(tdt_ht.t))
+    untrans = tdt_ht.aggregate(hl.agg.sum(tdt_ht.u))
     if untrans > 0:
         ratio = trans/untrans
     else:
@@ -431,7 +427,7 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
     mt_true = mt.filter_rows(mt.TP == True)#TP variants
     mt_false = mt.filter_rows(mt.FP == True)#FP variants
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')#synonymous for transmitted/unstransmitted
-    sample = 'EGAN00003332049'#GIAB12878/HG001
+    sample = 'EGAN00004265526'#GIAB12878/HG001
     mt_prec_recall = mt.filter_cols(mt.s == sample)#GIAB sample for precision/recall
     mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
     mt_prec_recall = hl.variant_qc(mt_prec_recall)
@@ -513,7 +509,7 @@ def main():
     rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = resourcedir + "all_consequences.txt"
-    pedfile = resourcedir + "trios.ped"
+    pedfile = "file:///lustre/scratch123/qc/BiB/trios.EGAN.complete.ped"
 
     mt = hl.read_matrix_table(mtfile)
     mt_annot = annotate_with_rf(mt, rf_htfile)
@@ -521,8 +517,8 @@ def main():
     mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_annot, mtdir)
     results = filter_and_count(mt_tp, mt_fp, mt_syn, mt_prec_recall, giab_ht, plot_dir, pedfile, mtdir)
 
-    outfile_snv = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_snv_fewer_combs_v2.txt"
-    outfile_indel = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_indel_fewer_combs_v2.txt"
+    outfile_snv = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_snv.txt"
+    outfile_indel = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_indel.txt"
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 

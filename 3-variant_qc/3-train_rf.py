@@ -5,8 +5,8 @@ import uuid
 import json
 from pathlib import Path
 from typing import Dict, List, Tuple
-import wes_qc.utils.constants as constants
-from wes_qc.utils.utils import parse_config, get_rf
+import utils.constants as constants
+from utils.utils import parse_config, get_rf
 from gnomad.utils.file_utils import file_exists
 from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model

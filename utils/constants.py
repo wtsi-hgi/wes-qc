@@ -25,7 +25,6 @@ FEATURES = [
     "MQRankSum",
     "SOR",
     "ReadPosRankSum",
-    "is_CA",
     "meanHetAB"
 ]
 

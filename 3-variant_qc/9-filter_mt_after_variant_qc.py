@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -73,7 +73,7 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
 
     nvars = mt.count_rows()
     nvar_filtered = mt_filtered.count_rows()
-    print(str(nvars) + " variants befofre filtering, " + str(nvar_filtered) + " variants after filtering")
+    print(str(nvars) + " variants before filtering, " + str(nvar_filtered) + " variants after filtering")
 
 
 def main():

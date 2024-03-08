@@ -1,22 +1,20 @@
 #!/bin/bash
 
 sample=$1
-chr=$2
 
-bcftools=/nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools
-bcfdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/gatk_vcfs/per_chromosome/
-outdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/mutation_spectra/
-tmpdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/mutation_spectra/tmp/
+module add common-apps/bcftools
+bcfdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/BiB/gatk_vcfs_per_chromosome
+outdir=/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/BiB/mutation_spectra
 
-outfile=${outdir}${sample}_${chr}.stats
-bcf=${bcfdir}chr${chr}.bcf
+for chr in {1..22} X Y
+do
 
-echo "Running with sample:"$1" chromosome:chr"$2
+  outfile=${outdir}/${sample}_${chr}.stats
+  bcf=${bcfdir}/chr${chr}.bcf
 
-#$cmd=${bcftools}" view -s "${sample}" --trim-alt-alleles -Ou "${bcfdir}"chr"${chr}".bcf | "${bcftools}" stats  -i 'N_ALT>0' "${tmpbcf}" > "${outdir}${sample}"_chr"${chr}".stats"
+  echo "Running with sample: $1 chromosome:chr$2"
 
-#eval "${cmd}"
+  bcftools view -s ${sample} --trim-alt-alleles -Ou ${bcf} | bcftools stats -i 'N_ALT>0' > ${outfile}
+  bgzip ${outfile}
 
-/nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools view -s ${sample} --trim-alt-alleles -Ou ${bcf} | /nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools stats  -i 'N_ALT>0' > ${outfile}
-bgzip -c ${outfile} > ${outfile}.gz
-rm ${outfile}
+done
