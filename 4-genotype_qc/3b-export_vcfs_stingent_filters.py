@@ -2,7 +2,8 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+import os.path
+from utils.utils import parse_config
 
 
 def get_options():
@@ -36,12 +37,14 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     mt = mt.filter_cols(~set_to_remove.contains(mt['s']))
     # filter to remove rows where all variants fail the most stringent filters, 
     mt = mt.filter_rows(mt.info.fraction_pass_stringent_filters > 0)
+    mt = mt.filter_entries(mt.stringent_filters == 'Pass')
 
     # drop unwanted fields
-    mt = mt.drop(mt.a_index, mt.was_split, mt.stringent_pass_count, mt.stringent_fail_count,
-                 mt.medium_pass_count, mt.medium_fail_count, mt.relaxed_pass_count, mt.relaxed_fail_count,
-                 mt.batch, mt.adj, mt.assigned_pop, mt.sum_AD,
-                 mt.medium_filters, mt.relaxed_filters)
+    mt = mt.drop(
+        mt.a_index, mt.was_split, mt.variant_qc,
+        mt.stringent_pass_count, mt.medium_pass_count, mt.relaxed_pass_count,
+        mt.adj, mt.assigned_pop, mt.sum_AD
+    )
     mt = mt.annotate_rows(info=mt.info.drop('fraction_pass_medium_filters', 'fraction_pass_relaxed_filters'))
 
     # info for header
@@ -75,9 +78,6 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
             'rf_bin': {'Description': 'Variant QC random forest bin, model id ' + run_hash,
                        'Number': 'A',
                        'Type': 'Integer'},
-            'CSQ': {'Description': 'Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|ALLELE_NUM|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE_SELECT|MANE_PLUS_CLINICAL|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|UNIPROT_ISOFORM|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|AA_AF|EA_AF|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MAX_AF|MAX_AF_POPS|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS|SpliceRegion|GeneSplicer|existing_InFrame_oORFs|existing_OutOfFrame_oORFs|existing_uORFs|five_prime_UTR_variant_annotation|five_prime_UTR_variant_consequence|CADD_PHRED|CADD_RAW|Ensembl_transcriptid|LRT_pred|MutationTaster_pred|Polyphen2_HDIV_pred|Polyphen2_HVAR_pred|SIFT_pred|Uniprot_acc|VEP_canonical|DisGeNET_PMID|DisGeNET_SCORE|PHENOTYPES|Conservation|LoF|LoF_filter|LoF_flags|LoF_info|REVEL|SpliceAI_pred_DP_AG|SpliceAI_pred_DP_AL|SpliceAI_pred_DP_DG|SpliceAI_pred_DP_DL|SpliceAI_pred_DS_AG|SpliceAI_pred_DS_AL|SpliceAI_pred_DS_DG|SpliceAI_pred_DS_DL|SpliceAI_pred_SYMBOL',
-                    'Number': 'A',
-                    'Type': 'String'},
             'consequence': {'Description': 'Most severe consequence from VEP104',
                             'Number': 'A',
                             'Type': 'String'},
@@ -97,7 +97,7 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         print("Exporting " + chromosome)
         mt_chrom = mt.annotate_globals(chromosome=chromosome)
         mt_chrom = mt_chrom.filter_rows(mt_chrom.locus.contig == mt_chrom.chromosome)
-        outfile = filtered_vcf_dir + "/stringent_filters/" + chromosome + "_hard_filters.vcf.bgz"
+        outfile = os.path.join(filtered_vcf_dir,  f"{chromosome}_stringent_filters.vcf.bgz")
         hl.export_vcf(mt_chrom, outfile, metadata = metadata)
 
 
@@ -107,7 +107,7 @@ def main():
     args = get_options()
     mtdir = inputs['matrixtables_lustre_dir']
     hard_filters = inputs['hard_filters']
-    filtered_vcf_dir = inputs['vcf_output_dir']
+    filtered_vcf_dir = 'file:///lustre/scratch123/qc/BiB/filtered_vcfs_stringent/'
 
     # initialise hail
     tmp_dir = "hdfs://spark-master:9820/"

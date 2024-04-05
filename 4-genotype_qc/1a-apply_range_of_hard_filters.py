@@ -3,7 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def get_options():
@@ -67,7 +67,8 @@ def annotate_cq_rf(mt: hl.MatrixTable, rf_htfile: str, cqfile: str) -> hl.Matrix
     cq_ht = cq_ht.annotate(gene=cq_ht.f7)
     cq_ht = cq_ht.annotate(hgnc_id=cq_ht.f8)
     cq_ht = cq_ht.key_by(
-        locus=hl.locus(cq_ht.chr, cq_ht.pos), alleles=[cq_ht.ref, cq_ht.alt])
+        locus=hl.locus(cq_ht.chr, cq_ht.pos), alleles=[cq_ht.ref, cq_ht.alt]
+    )
     cq_ht = cq_ht.drop(cq_ht.f0, cq_ht.f1, cq_ht.f2, cq_ht.f3, cq_ht.f4, cq_ht.chr, cq_ht.pos, cq_ht.ref, cq_ht.alt)
     cq_ht = cq_ht.key_by(cq_ht.locus, cq_ht.alleles)
     mt = mt.annotate_rows(
@@ -81,6 +82,24 @@ def annotate_cq_rf(mt: hl.MatrixTable, rf_htfile: str, cqfile: str) -> hl.Matrix
     return mt
 
 
+def annotate_ac(mt: hl.MatrixTable, filter_name: str) -> hl.MatrixTable:
+    assert filter_name in ('stringent', 'medium', 'relaxed')
+    filter_field = f'{filter_name}_filters'
+
+    mt_filtered = mt.filter_entries(mt[filter_field] == 'Pass')
+    mt_filtered = hl.variant_qc(mt_filtered, name='vqc')
+
+    vqc = mt_filtered.index_rows(mt.row_key).vqc
+    annotation = {
+        f'{filter_name}_AN': vqc.AN,
+        f'{filter_name}_AC': vqc.AC[1:],
+        f'{filter_name}_AC_Hom': 2 * vqc.homozygote_count[1:],
+        f'{filter_name}_AC_Het': vqc.AC[1:] - 2*vqc.homozygote_count[1:]
+    }
+    mt = mt.annotate_rows(**annotation)
+    return mt
+
+
 def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable:
     '''
     Apply hard filters and annotate missingness
@@ -88,59 +107,6 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
     :param dict hard_filters: Filters to apply
     :return hl.MatrixTable:
     '''
-
-    # stringent_condition = ( (
-    #                             (hl.is_snp(mt.alleles[0], mt.alleles[1])) 
-    #                             & (mt.info.rf_bin <= hard_filters['snp']['stringent']['bin'])
-    #                             & (mt.DP < hard_filters['snp']['stringent']['dp']) 
-    #                             & (mt.GQ < hard_filters['snp']['stringent']['gq']) 
-    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['stringent']['ab'])) )
-    #                             ) |
-    #                             (
-    #                             (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
-    #                             & (mt.info.rf_bin <= hard_filters['indel']['stringent']['bin'])
-    #                             & (mt.DP < hard_filters['indel']['stringent']['dp']) 
-    #                             & (mt.GQ < hard_filters['indel']['stringent']['gq']) 
-    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['stringent']['ab'])) )
-    #                             )   
-    #                         )
-
-
-    # medium_condition = ( ((hl.is_snp(mt.alleles[0], mt.alleles[1])) 
-    #                             & (mt.info.rf_bin <= hard_filters['snp']['medium']['bin'])
-    #                             & (mt.DP < hard_filters['snp']['medium']['dp']) 
-    #                             & (mt.GQ < hard_filters['snp']['medium']['gq']) 
-    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['medium']['ab'])) ) 
-    #                             ) | 
-    #                             (
-    #                             (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
-    #                             & (mt.info.rf_bin <= hard_filters['indel']['medium']['bin'])
-    #                             & (mt.DP < hard_filters['indel']['medium']['dp']) 
-    #                             & (mt.GQ < hard_filters['indel']['medium']['gq']) 
-    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['medium']['ab'])) )
-    #                             )
-    #                         )
-    
-    # relaxed_condition = ( ((hl.is_snp(mt.alleles[0], mt.alleles[1])) 
-    #                             & (mt.info.rf_bin <= hard_filters['snp']['relaxed']['bin'])
-    #                             & (mt.DP < hard_filters['snp']['relaxed']['dp']) 
-    #                             & (mt.GQ < hard_filters['snp']['relaxed']['gq']) 
-    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['snp']['relaxed']['ab'])) )
-    #                             ) |
-    #                             (
-    #                             (hl.is_indel(mt.alleles[0], mt.alleles[1])) 
-    #                             & (mt.info.rf_bin <= hard_filters['indel']['relaxed']['bin'])
-    #                             & (mt.DP < hard_filters['indel']['relaxed']['dp']) 
-    #                             & (mt.GQ < hard_filters['indel']['relaxed']['gq']) 
-    #                             & ( (mt.GT.is_het() & (mt.HetAB < hard_filters['indel']['relaxed']['ab'])) ) 
-    #                             )                               
-    #                         )
-
-    # mt = mt.annotate_entries(
-    #     stringent_filters = hl.if_else(stringent_condition, 'Fail', 'Pass'),
-    #     medium_filters = hl.if_else(medium_condition, 'Fail', 'Pass'),
-    #     relaxed_filters = hl.if_else(relaxed_condition, 'Fail', 'Pass')
-    # )
 
     stringent_condition = (
         (
@@ -229,18 +195,47 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
         medium_filters = hl.if_else(medium_condition, 'Pass', 'Fail'),
         relaxed_filters = hl.if_else(relaxed_condition, 'Pass', 'Fail')
     )
+
+    mt = apply_missingness(
+        mt=mt,
+        call_rate_relaxed=hard_filters['missingness'],
+        call_rate_medium=hard_filters['missingness'],
+        call_rate_stringent=hard_filters['missingness']
+    )
+
     #annotate variants with fraction passing/failing each set of filters
+    n_samples = mt.count_cols()
     mt = mt.annotate_rows(stringent_pass_count = hl.agg.count_where(mt.stringent_filters == 'Pass'))
-    mt = mt.annotate_rows(stringent_fail_count = hl.agg.count_where(mt.stringent_filters == 'Fail'))
-    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_stringent_filters = mt.stringent_pass_count/(mt.stringent_pass_count + mt.stringent_fail_count)))
-    
+    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_stringent_filters = mt.stringent_pass_count/n_samples))
+
     mt = mt.annotate_rows(medium_pass_count = hl.agg.count_where(mt.medium_filters == 'Pass'))
-    mt = mt.annotate_rows(medium_fail_count = hl.agg.count_where(mt.medium_filters == 'Fail'))
-    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_medium_filters = mt.medium_pass_count/(mt.medium_pass_count + mt.medium_fail_count)))
+    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_medium_filters = mt.medium_pass_count/n_samples))
     
     mt = mt.annotate_rows(relaxed_pass_count = hl.agg.count_where(mt.relaxed_filters == 'Pass'))
-    mt = mt.annotate_rows(relaxed_fail_count = hl.agg.count_where(mt.relaxed_filters == 'Fail'))
-    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_relaxed_filters = mt.relaxed_pass_count/(mt.relaxed_pass_count + mt.relaxed_fail_count)))
+    mt = mt.annotate_rows(info=mt.info.annotate(fraction_pass_relaxed_filters = mt.relaxed_pass_count/n_samples))
+
+    for filter_name in ('stringent', 'medium', 'relaxed'):
+        mt = annotate_ac(mt, filter_name=filter_name)
+
+    return mt
+
+
+def apply_missingness(mt: hl.MatrixTable, call_rate_stringent: float, call_rate_medium: float, call_rate_relaxed: float) -> hl.MatrixTable:
+    n = mt.count_cols()
+
+    mt = mt.annotate_rows(
+        stringent_pass_count=hl.agg.count_where(mt.stringent_filters == 'Pass'),
+        medium_pass_count=hl.agg.count_where(mt.medium_filters == 'Pass'),
+        relaxed_pass_count=hl.agg.count_where(mt.relaxed_filters == 'Pass')
+    )
+
+    mt = mt.annotate_entries(
+        stringent_filters=hl.if_else(mt.stringent_pass_count > n * call_rate_stringent, mt.stringent_filters, 'Fail'),
+        medium_filters=hl.if_else(mt.medium_pass_count > n * call_rate_medium, mt.medium_filters, 'Fail'),
+        relaxed_filters=hl.if_else(mt.relaxed_pass_count > n * call_rate_relaxed, mt.relaxed_filters, 'Fail')
+    )
+
+    mt = mt.drop(mt.stringent_pass_count, mt.medium_pass_count, mt.relaxed_pass_count)
 
     return mt
 
@@ -270,7 +265,7 @@ def main():
     mt = hl.read_matrix_table(mtfile)
 
     #remove unwanted samples
-    mt = remove_samples(mt, exclude_file)
+    # mt = remove_samples(mt, exclude_file)
 
     #annotate mt with consequence, gene, rf bin
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)
