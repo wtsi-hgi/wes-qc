@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+script="${1}"
+repo="wes_qc"
+local_path="/Users/gz3/programming"
+remote_path="/home/ubuntu/temprun"
+
+echo "Syncing local repo to Hail cluster ${hail_cluster}"
+rsync -avz "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
+
+echo "Running script ${script} on the Hail cluster ${hail_cluster}"
+ssh ${hail_cluster} "${remote_path}/${repo}/scripts/hlrun_local ${remote_path}/${repo}/${script}"
