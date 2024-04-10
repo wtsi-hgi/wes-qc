@@ -1,27 +1,30 @@
 ---
 cromwell_base_dir: /lustre/scratch119/realdata/mdt3/projects/birth_cohort_wes/alspac/gatk/joint_call/cromwell/cromwell-executions/JointCalling/
-target_dir: /lustre/scratch123/hgi/mdt2/projects/birth_cohort_wes/qc/gatk_vcfs/
+target_dir: /lustre/scratch123/gz3-wes-qc/gatk_vcfs/
 regions:
   chr1_3_dir: 303af8c0-4b7b-4388-98b5-2f552584a8f7
   chr4_8_dir: 5b20ad2f-9f35-4713-b171-a7f8f0b0aebc
   chr9_14_dir: 679738e5-0a41-4196-8b4e-f1e01d80b077
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
-gatk_vcf_header: file:///lustre/scratch123/qc/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/gatk_vcfs/
-load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/
+
+
+gatk_vcf_header: file:///lustre/scratch123/gz3-wes-qc/gatk_vcf_header.txt
+gatk_import_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/gatk_vcfs/
+#load_matrixtables_lustre_dir: /home/ubuntu/matrixtables/  
+load_matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
 #load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-annotation_lustre_dir: file:///lustre/scratch123/qc/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/qc/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/
+annotation_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/annotations/
+annotation_lustre_dir_local: /lustre/scratch123/gz3-wes-qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-plots_lustre_dir: file:///lustre/scratch123/qc/plots/
-plots_dir_local: /lustre/scratch123/qc/plots/
-resource_dir: file:///lustre/scratch123/qc/resources/
-resource_dir_local: /lustre/scratch123/qc/resources/
-training_set_dir: file:///lustre/scratch123/qc/training_sets/
-var_qc_rf_dir: file:///lustre/scratch123/qc/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/qc/filtered_vcfs/20230425/
+plots_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/plots
+plots_dir_local: /lustre/scratch123/gz3-wes-qc/plots
+resource_dir: file:///lustre/scratch123/gz3-wes-qc/resources
+resource_dir_local: /lustre/scratch123/gz3-wes-qc/resources
+training_set_dir: file:///lustre/scratch123/gz3-wes-qc/training_sets/
+var_qc_rf_dir: file:///lustre/scratch123/gz3-wes-qc/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch123/gz3-wes-qc/filtered_vcfs/20230425/
 
 rf_test_interval: chr20
 

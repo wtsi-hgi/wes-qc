@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export PYTHONPATH=/home/ubuntu/:$PYTHONPATH
+
+#PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit --driver-memory 30G --driver-cores 4 "$@"
+
+PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit "$@"

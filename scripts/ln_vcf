@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Make link for the vcf files from source to the current folder
+# Used to make a subset of vcf's without copying it and loosing additional space
+
+for vcf in "$@"; do
+    ln -s "${vcf}" .
+done
