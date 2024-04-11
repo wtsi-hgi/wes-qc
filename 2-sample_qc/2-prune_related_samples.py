@@ -17,7 +17,7 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     mtin = mtin.filter_rows(mtin.locus.in_autosome())
     print("Splitting multiallelic sites")
     # mtin = hl.split_multi(mtin)
-    mtin = hl.split_multi_hts(mtin)#this shouldn't do anything as only biallelic sites are used
+    mtin = hl.split_multi_hts(mtin)  # this shouldn't do anything as only biallelic sites are used
     print("Performing LD pruning")
     pruned_ht = hl.ld_prune(mtin.GT, r2=0.2)
     pruned_mt = mtin.filter_rows(hl.is_defined(pruned_ht[mtin.row_key]))
@@ -39,12 +39,13 @@ def run_pc_relate(pruned_mt_file: str, relatedness_ht_file: str, samples_to_remo
     scores.write(scores_file, overwrite=True)
 
     print("Calculating relatedness")
-    relatedness_ht = hl.pc_relate(pruned_mt.GT, min_individual_maf=0.05, scores_expr=scores[pruned_mt.col_key].scores, block_size=4096, min_kinship=0.05, statistics='kin2')
+    relatedness_ht = hl.pc_relate(pruned_mt.GT, min_individual_maf=0.05, scores_expr=scores[pruned_mt.col_key].scores,
+                                  block_size=4096, min_kinship=0.05, statistics='kin2')
     relatedness_ht.write(relatedness_ht_file, overwrite=True)
-    #prune individuals to be left with unrelated - creates a table containing one column - samples to remove
+    # prune individuals to be left with unrelated - creates a table containing one column - samples to remove
     pairs = relatedness_ht.filter(relatedness_ht['kin'] > 0.125)
     related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, keep=False)
-    related_samples_to_remove.write(samples_to_remove_file, overwrite=True)   
+    related_samples_to_remove.write(samples_to_remove_file, overwrite=True)
 
 
 def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdir: str, samples_to_remove_file: str):
@@ -67,15 +68,15 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
 
     plink_mt = pca_mt.annotate_cols(uid=pca_mt.s).key_cols_by('uid')
     plinkfile = mtdir + "mt_unrelated.plink"
-    hl.export_plink(plink_mt, plinkfile,fam_id=plink_mt.uid, ind_id=plink_mt.uid)
+    hl.export_plink(plink_mt, plinkfile, fam_id=plink_mt.uid, ind_id=plink_mt.uid)
 
     print("Running PCA")
     pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=20, compute_loadings=True)
     pca_af_ht = pca_mt.annotate_rows(pca_af=hl.agg.mean(pca_mt.GT.n_alt_alleles()) / 2).rows()
     pca_loadings = pca_loadings.annotate(pca_af=pca_af_ht[pca_loadings.key].pca_af)
-    pca_scores_file = mtdir + "mt_pca_scores.ht"#table of pca scores per sample
+    pca_scores_file = mtdir + "mt_pca_scores.ht"  # table of pca scores per sample
     pca_scores.write(pca_scores_file, overwrite=True)
-    pca_loadings_file = mtdir + "mt_pca_loadings.ht"#table of SNPs, PCA loadings and AF
+    pca_loadings_file = mtdir + "mt_pca_loadings.ht"  # table of SNPs, PCA loadings and AF
     pca_loadings.write(pca_loadings_file, overwrite=True)
     pca_mt = pca_mt.annotate_cols(scores=pca_scores[pca_mt.col_key].scores)
     pca_mt.write(pca_mt_file, overwrite=True)
@@ -86,37 +87,36 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     save(p)
 
 
-
 def main():
-    #set up
+    # set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     plotdir = inputs['plots_lustre_dir']
 
-    #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    # initialise hail
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    #load input mt
+    # load input mt
     mtfile = mtdir + "mt_sex_annotated.mt"
     mt = hl.read_matrix_table(mtfile)
 
-    #ld prune to get a table of variants which are not correlated
+    # ld prune to get a table of variants which are not correlated
     pruned_mt_file = mtdir + "mt_ldpruned.mt"
     prune_mt(mt, pruned_mt_file)
 
-    #run pcrelate
+    # run pcrelate
     relatedness_ht_file = mtdir + "mt_relatedness.ht"
     samples_to_remove_file = mtdir + "mt_related_samples_to_remove.ht"
     scores_file = mtdir + "mt_pruned.pca_scores.ht"
     run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
-    #run PCA
+    # run PCA
     pca_mt_file = mtdir + "mt_pca.mt"
     run_population_pca(pruned_mt_file, pca_mt_file, mtdir, plotdir, samples_to_remove_file)
 
 
 if __name__ == '__main__':
-    main() 
+    main()

@@ -10,7 +10,7 @@ def get_options():
     Get options from the command line
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--kg_to_mt", 
+    parser.add_argument("-k", "--kg_to_mt",
         help="convert 1kg data to matrixtable", action="store_true")
     parser.add_argument("-m", "--merge",
         help="merge alspac mt with 1kg mt", action="store_true")
@@ -25,7 +25,7 @@ def get_options():
     args = parser.parse_args()
 
     return args
-    
+
 
 def create_1kg_mt(resourcedir: str, mtdir: str):
     '''
@@ -74,7 +74,7 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
     '''
     print("Adding population annotation for 1kg samples")
-    mt = hl.read_matrix_table(merged_mt_file)   
+    mt = hl.read_matrix_table(merged_mt_file)
 
     # The following annotates by population
     # pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
@@ -153,7 +153,7 @@ def main():
     mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -188,4 +188,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main() 
+    main()
