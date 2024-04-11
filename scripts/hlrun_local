@@ -1,7 +1,14 @@
 #!/bin/bash
 
-source /etc/profile
-export PYTHONPATH=/home/ubuntu/:$PYTHONPATH
+# This script runs the python code in the local Hail/Spark environment
+# Should be executed on a Hail cluster
 
-#PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit --driver-memory 30G --driver-cores 4 "$@"
-PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit "$@"
+source /etc/profile
+
+# FIXME: # A hack to make all imports in wes-qc utils correct
+export PYTHONPATH=/home/ubuntu/temprun:$PYTHONPATH
+
+echo "Running the job with spark-submit"
+echo "$@"
+export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
+spark-submit "$@"

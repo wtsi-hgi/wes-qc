@@ -1,7 +1,18 @@
 #!/bin/bash
-set -e
 
+# This script runs the Python code form the repository on the remote Hail cluster
+# It does the following things
+#     1. Syncs local repository to the remove cluster
+#     2. Substitutes the local Python file path to the corresponding path on the remote cluster
+#     3. Starts the detached tmux session
+#     4. Runs the Python file in the detached session
+#     5. Connects to the session to see the progress
+# The running process should continue even if the SSH connection breaks.
+
+set -e
 script="${1}"
+args="${*:2}"
+
 repo="wes_qc"
 local_path="/Users/gz3/programming"
 remote_path="/home/ubuntu/temprun"
@@ -10,4 +21,17 @@ echo "Syncing local repo to Hail cluster ${hail_cluster}"
 rsync -avz "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
 
 echo "Running script ${script} on the Hail cluster ${hail_cluster}"
-ssh ${hail_cluster} "${remote_path}/${repo}/scripts/hlrun_local ${remote_path}/${repo}/${script}"
+script_local_path=$( readlink -f "${script}" )
+script_repo_path=$( echo "${script_local_path}" | sed "s|[A-z0-9/]*/${repo}/||" )
+script_remote_path="${remote_path}/${repo}/${script_repo_path}"
+echo "Remote run path changed to ${script_remote_path}"
+
+# Simple run via SSH. Use in case of some issues
+#ssh ${hail_cluster} "${remote_path}/${repo}/scripts/hlrun_local ${script_remote_path}"
+
+# Run via tmux session. Should remain even is connection has been closed.
+echo "Creating detached session and running script"
+#ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d && tmux send-keys -t HailBatch ${remote_path}/${repo}/scripts/hlrun_local Space ${script_remote_path} Space ${args} Enter"
+ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d && tmux send-keys -t HailBatch ${remote_path}/${repo}/scripts/hlrun_local Space ${script_remote_path} Space ${args} Enter"
+echo "Attaching to the session"
+ssh -t ${hail_cluster} tmux attach -t HailBatch
