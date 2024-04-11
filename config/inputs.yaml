@@ -7,8 +7,8 @@ regions:
   chr9_14_dir: 679738e5-0a41-4196-8b4e-f1e01d80b077
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
-
-
+#tmp_dir: "hdfs://spark-master:9820/"
+tmp_dir: file:///lustre/scratch123/gz3-wes-qc/tmp
 gatk_vcf_header: file:///lustre/scratch123/gz3-wes-qc/gatk_vcf_header.txt
 gatk_import_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/gatk_vcfs/
 #load_matrixtables_lustre_dir: /home/ubuntu/matrixtables/  
@@ -20,8 +20,8 @@ matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
 plots_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/plots
 plots_dir_local: /lustre/scratch123/gz3-wes-qc/plots
-resource_dir: file:///lustre/scratch123/gz3-wes-qc/resources
-resource_dir_local: /lustre/scratch123/gz3-wes-qc/resources
+resource_dir: file:///lustre/scratch123/gz3-wes-qc/resources/
+resource_dir_local: /lustre/scratch123/gz3-wes-qc/resources/
 training_set_dir: file:///lustre/scratch123/gz3-wes-qc/training_sets/
 var_qc_rf_dir: file:///lustre/scratch123/gz3-wes-qc/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch123/gz3-wes-qc/filtered_vcfs/20230425/
