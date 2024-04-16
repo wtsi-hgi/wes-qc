@@ -12,8 +12,8 @@ tmp_dir: file:///lustre/scratch123/gz3-wes-qc/tmp
 gatk_vcf_header: file:///lustre/scratch123/gz3-wes-qc/gatk_vcf_header.txt
 gatk_import_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/gatk_vcfs/
 #load_matrixtables_lustre_dir: /home/ubuntu/matrixtables/  
-load_matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
-#load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
+#load_matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
+load_matrixtables_lustre_dir: /lustre/scratch123/gz3-wes-qc/matrixtables/  # Writing using direct Python no need the name without file:// prefix
 annotation_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/annotations/
 annotation_lustre_dir_local: /lustre/scratch123/gz3-wes-qc/annotations/
 matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/

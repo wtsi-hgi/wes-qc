@@ -65,7 +65,7 @@ def main():
     annotdir = inputs['annotation_lustre_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")

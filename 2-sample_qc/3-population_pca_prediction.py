@@ -96,6 +96,9 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
     long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
     mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
+    # After merging two datasets, especially if they are in a plink format
+    # we can’t be sure they are the same mutations across different datasets because of potential strand inconsistencies
+    # For PCA it's ok to just remove the mutations that can cause issues.
     mt_non_pal = mt_vqc_filtered.filter_rows((mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False)
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "C") & (mt_non_pal.alleles[1] == "G"), keep=False)
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "A") & (mt_non_pal.alleles[1] == "T"), keep=False)
