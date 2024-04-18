@@ -26,15 +26,16 @@ script_repo_path=$( echo "${script_local_path}" | sed "s|[A-z0-9/]*/${repo}/||" 
 script_remote_path="${remote_path}/${repo}/${script_repo_path}"
 echo "Remote run path changed to ${script_remote_path}"
 
-# Simple run via SSH. Use in case of some issues
-#ssh ${hail_cluster} "${remote_path}/${repo}/scripts/hlrun_local ${script_remote_path}"
-
 # Run via tmux session. Should remain even is connection has been closed.
+command="./scripts/hlrun_local ${script_remote_path} ${args}"
+
 echo "Creating detached session and running command"
+ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d"
+ssh ${hail_cluster} "tmux send-keys -t HailBatch cd Space ${remote_path}/${repo} Enter"
 
-command="$cd {remote_path}/${repo} ; ./scripts/hlrun_local ${script_remote_path} ${args}"
-command_subs=$( echo $command | sed 's| | Space |g' )
+echo "Sending command ${command}"
+command_subs=$(echo $command | sed 's| | Space |g' )
+ssh ${hail_cluster} "tmux send-keys -t HailBatch ${command_subs} Enter"
 
-ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d && tmux send-keys -t HailBatch ${command_subs} Enter"
-echo "Attaching to the session"
+echo "Attaching to the tmux session"
 ssh -t ${hail_cluster} tmux attach -t HailBatch
