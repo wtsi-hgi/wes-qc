@@ -30,8 +30,11 @@ echo "Remote run path changed to ${script_remote_path}"
 #ssh ${hail_cluster} "${remote_path}/${repo}/scripts/hlrun_local ${script_remote_path}"
 
 # Run via tmux session. Should remain even is connection has been closed.
-echo "Creating detached session and running script"
-#ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d && tmux send-keys -t HailBatch ${remote_path}/${repo}/scripts/hlrun_local Space ${script_remote_path} Space ${args} Enter"
-ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d && tmux send-keys -t HailBatch ${remote_path}/${repo}/scripts/hlrun_local Space ${script_remote_path} Space ${args} Enter"
+echo "Creating detached session and running command"
+
+command="$cd {remote_path}/${repo} ; ./scripts/hlrun_local ${script_remote_path} ${args}"
+command_subs=$( echo $command | sed 's| | Space |g' )
+
+ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d && tmux send-keys -t HailBatch ${command_subs} Enter"
 echo "Attaching to the session"
 ssh -t ${hail_cluster} tmux attach -t HailBatch
