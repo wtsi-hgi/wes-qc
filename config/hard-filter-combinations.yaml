@@ -1,0 +1,8 @@
+hard_filters_combinations:
+    runhash: "fef0f446"
+    snp_bins:   [35, 37, 39, 41, 43, 45 ] #list(range(35,46))
+    indel_bins: [58, 60, 62, 64, 66, 68 ]  #list(range(58,69))
+    gq_vals: [10, 15, 20]
+    dp_vals: [5, 10]
+    ab_vals: [0.2, 0.3]
+    missing_vals: [0, 0.5, 0.9, 0.95]

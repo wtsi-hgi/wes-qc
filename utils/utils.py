@@ -2,17 +2,11 @@
 import os
 import sys
 import yaml
-import pyspark
 import hail as hl
 import pandas as pd
 from shutil import rmtree
 from typing import Optional, Union, Set
 from gnomad.resources.resource_utils import TableResource
-
-def init_hl(tmp_dir: str) -> None:
-    sc = pyspark.SparkContext()
-    hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
 def get_script_path():
     #returns the path of the script that is being run

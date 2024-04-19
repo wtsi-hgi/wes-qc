@@ -1,17 +1,30 @@
 #compare different combinations of hard filters
 import os.path
+from dataclasses import dataclass
+
 import hail as hl
 import pyspark
 import datetime
 import argparse
 import json
-from utils.utils import parse_config
+from typing import List
+#from utils.utils import parse_config
 from utils.utils import select_founders, collect_pedigree_samples
 
 
 snp_label = 'snp'
 indel_label = 'indel'
 
+
+@dataclass
+class HardFilterCombinationParams:
+    runhash: str
+    snp_bins: List[int]
+    indel_bins: List[int]
+    gq_vals: List[int]
+    dp_vals: List[int]
+    ab_vals: List[float]
+    missing_vals: List[float]
 
 def get_options():
     '''
@@ -119,7 +132,12 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     return mt
 
 
-def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) -> dict:
+def filter_and_count(
+        mt_path: str,
+        ht_giab: hl.Table,
+        pedfile: str,
+        mtdir: str,
+        filters: HardFilterCombinationParams) -> dict:
     '''
     Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
     :param hl.MatrixTable mt_tp: Input TP MatrixTable
@@ -132,7 +150,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
     :return: dict
     '''
     results = {'snv': {}, 'indel': {}}
-
+    print(f"=== Preparing SNP and InDel tables ===")
     mt = hl.read_matrix_table(mt_path)
     pedigree = hl.Pedigree.read(pedfile)
 
@@ -142,20 +160,30 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
     mt_snp_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp.mt')
     mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
 
+    print(f"=== splitting table for TP, FP, and synonyms ===")
     snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, mtdir=mtdir)
     results['snv_total_tp'] = snp_mt_tp.count_rows()
     results['snv_total_fp'] = snp_mt_fp.count_rows()
 
+    print(f"=== Starting parameter combinations ===")
+    snp_bins = filters.snp_bins
+    indel_bins = filters.indel_bins
+    gq_vals = filters.gq_vals
+    dp_vals = filters.dp_vals
+    ab_vals = filters.ab_vals
+    missing_vals = filters.missing_vals
+
+    '''
     snp_bins = [80, 82, 84, 86, 88, 90]
     indel_bins = [58, 60, 62, 64, 66, 68]
     gq_vals = [10, 15, 20]
     dp_vals = [5, 10]
     ab_vals = [0.2, 0.3]
     missing_vals = [0, 0.5, 0.9, 0.95]
-
+    '''
     for bin in snp_bins:
         bin_str = "bin_" + str(bin)
-        print("bin " + str(bin))
+        print(f"=== Processing SNP bin: {bin} ===")
         mt_snp_bin = mt_snp.filter_rows(mt_snp.info.rf_bin <= bin)
 
         for dp in dp_vals:
@@ -166,7 +194,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
                     ab_str = 'AB_' + str(ab)
                     for call_rate in missing_vals:
                         missing_str = f'missing_{call_rate}'
-                        print(dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
+                        print("--- SNP filter combination: " + dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_snp_hard = apply_hard_filters(mt_snp_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
@@ -190,7 +218,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
 
     for bin in indel_bins:
         bin_str = "bin_" + str(bin)
-        print("bin " + str(bin))
+        print(f"=== Processing INDEL bin: {bin} ===")
         mt_indel_bin = mt_indel.filter_rows(mt_indel.info.rf_bin <= bin)
 
         for dp in dp_vals:
@@ -201,7 +229,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
                     ab_str = 'AB_' + str(ab)
                     for call_rate in missing_vals:
                         missing_str = f'missing_{call_rate}'
-                        print(dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
+                        print("--- Indel filter combination: " + dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_indel_hard = apply_hard_filters(mt_indel_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
@@ -485,7 +513,7 @@ def print_results(results: dict, outfile: str, vartype: str):
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
+    inputs = {} #parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     rf_dir = inputs['var_qc_rf_dir']
     resourcedir = inputs['resource_dir']
