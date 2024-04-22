@@ -5,10 +5,13 @@
 
 source /etc/profile
 
+date=$( date '+%Y%m%d_%H%M%S' )
+log="hlrun_local_${date}"
+
 # FIXME: # A hack to make all imports in wes-qc utils correct
 export PYTHONPATH=/home/ubuntu/temprun:$PYTHONPATH
 
 echo "Running the job with spark-submit"
 echo "$@"
 export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
-spark-submit "$@"
+spark-submit "$@" 2>&1 | tee "${log}"
