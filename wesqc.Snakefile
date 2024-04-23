@@ -1,6 +1,7 @@
 # This is the pipeline definition file for WES-QC
 
 import os
+import json
 import hail as hl
 
 from evaluation import compare_hard_filter_combinations
@@ -28,7 +29,8 @@ is_hail_running = False
 
 rule default:
     input:
-        outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel_5.txt")
+        outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snp_5.txt")
+        #outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel_5.txt")
 
 rule generate_giab:
     input:
@@ -76,28 +78,35 @@ rule filter_var_type:
         )
         stop_hl(sc)
 
-
 rule evaluate_filter_combinations:
     input:
-        mt_snp_path = os.path.join(mtdir,"tmp.hard_filters_combs.snp.mt"),
-        mt_indel_path = os.path.join(mtdir,"tmp.hard_filters_combs.indel.mt"),
+        mt_path = os.path.join(mtdir,"tmp.hard_filters_combs.{label}.mt"),
         giab_ht_path= rules.generate_giab.output.giab_ht_path,
         pedfile= os.path.join(resourcedir, config["pedfile_name"])
     output:
-        outfile_snv= os.path.join(plot_dir,runhash + "_genotype_hard_filter_comparison_snv_5.txt"),
-        outfile_indel=os.path.join(plot_dir,runhash + "_genotype_hard_filter_comparison_indel_5.txt")
+        json_dump_file=os.path.join(wd, 'evaluation.{label}.json')
     run:
         sc = init_hl(tmp_dir)
         giab_ht = hl.read_table(f"file://{input.giab_ht_path}")
-        results = compare_hard_filter_combinations.filter_and_count(
-            mt_snp_path=f"file://{input.mt_snp_path}",
-            mt_indel_path=f"file://{input.mt_indel_path}",
+        results = compare_hard_filter_combinations.filter_and_count_by_type(
+            mt_path=f"file://{input.mt_path}",
             ht_giab=giab_ht,
             pedfile=f"file://{input.pedfile}",
             mtdir=f"file://{wd}",
-            filters=filterCombinationParams
+            filters=filterCombinationParams,
+            var_type=wildcards.label,
+            json_dump_file=output.json_dump_file
         )
-
-        compare_hard_filter_combinations.print_results(results,output.outfile_snv,'snv')
-        compare_hard_filter_combinations.print_results(results,output.outfile_indel,'indel')
+        with open(output.json_dump_file,'w') as f:
+            json.dump(results,f)
         stop_hl(sc)
+
+rule filter_combination_stats:
+    input:
+        json_dump_file = os.path.join(wd, 'evaluation.{label}.json')
+    output:
+        outfile = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_{label}_5.txt"),
+    run:
+        with open(input.json_dump_file) as f:
+            results = json.load(f)
+        compare_hard_filter_combinations.print_results(results,output.outfile,wildcards.label)

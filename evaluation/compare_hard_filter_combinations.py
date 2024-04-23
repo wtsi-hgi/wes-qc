@@ -121,7 +121,77 @@ def filter_var_type(mt_path:str, mt_filtered_path: str, var_label: str):
     mt_filtered = mt.filter_rows(mt.type == var_label)
     mt_filtered.write(mt_filtered_path, overwrite=True)
 
-def filter_and_count(
+
+def filter_and_count_by_type(
+        mt_path: str,
+        ht_giab: hl.Table,
+        pedfile: str,
+        mtdir: str,
+        filters: HardFilterCombinationParams,
+        var_type: str, # Variable type snp or indel
+        json_dump_file: str # path to dump results in json
+) -> dict:
+
+    # TODO: a hack to make corrent naming in results json. Need to refactor
+    if var_type == 'snp':
+        bins = filters.snp_bins
+        var_type = 'snv'
+    elif var_type == 'indel':
+        bins = filters.indel_bins
+    else:
+        exit(-1)
+
+    results = {var_type: {}}
+    pedigree = hl.Pedigree.read(pedfile)
+
+    print(f"=== splitting {var_type} table for TP, FP, and synonyms ===")
+    mt = hl.read_matrix_table(mt_path)
+    mt_tp, mt_fp, _, _ = filter_mts(mt, mtdir=mtdir, giab_sample=filters.giab_sample)
+    results[f'{var_type}_total_tp'] = mt_tp.count_rows()
+    results[f'{var_type}_total_fp'] = mt_fp.count_rows()
+
+    gq_vals = filters.gq_vals
+    dp_vals = filters.dp_vals
+    ab_vals = filters.ab_vals
+    missing_vals = filters.missing_vals
+
+    n_step = 0
+    total_steps = len(bins) * len(dp_vals) * len(gq_vals) * len(ab_vals) * len(missing_vals)
+    print(f"=== Starting parameter combination evaluation: {total_steps} combinations ===")
+
+    for bin in bins:
+        bin_str = "bin_" + str(bin)
+        print(f"=== Processing {var_type} bin: {bin} ===")
+        mt_bin = mt.filter_rows(mt.info.rf_bin <= bin)
+
+        for dp in dp_vals:
+            dp_str = 'DP_' + str(dp)
+            for gq in gq_vals:
+                gq_str = 'GQ_' + str(gq)
+                for ab in ab_vals:
+                    ab_str = 'AB_' + str(ab)
+                    for call_rate in missing_vals:
+                        missing_str = f'missing_{call_rate}'
+                        print(f"--- {var_type} filter combination: " + bin_str + " " + dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
+                        filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
+
+                        mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
+                        mt_hard_path = os.path.join(mtdir, f'tmp.hard_filters_combs.{var_type}-hard.mt')
+                        mt_hard = mt_hard.checkpoint(mt_hard_path, overwrite=True)
+
+                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_hard, mtdir=mtdir, giab_sample=filters.giab_sample)
+
+                        var_counts = count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp, ht_giab, pedigree, var_type, mtdir)
+                        results[var_type][filter_name] = var_counts
+
+                        with open(json_dump_file, 'w') as f:
+                            json.dump(results, f)
+                        n_step += 1
+                        print(f"--- Step {n_step}/{total_steps} completed. Temporary results dumped to JSON.")
+    return results
+
+
+def filter_and_count(       # TODO: remove after generalized version will work
         mt_snp_path: str,
         mt_indel_path: str,
         ht_giab: hl.Table,
@@ -245,7 +315,15 @@ def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rat
     return mt_tmp
 
 
-def count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, mt_prec_recall: hl.Table, ht_giab: hl.Table, pedigree: hl.Pedigree, var_type: str, mtdir: str):
+def count_tp_fp_t_u(
+        mt_tp: hl.MatrixTable,
+        mt_fp: hl.MatrixTable,
+        mt_syn: hl.MatrixTable,
+        mt_prec_recall: hl.Table,
+        ht_giab: hl.Table,
+        pedigree: hl.Pedigree,
+        var_type: str,
+        mtdir: str):
     '''
     Filter mt by each rf bin in a list, then genotype hard filters and count remaining TP and P variants
     :param hl.MatrixTable mt_tp: Input TP MatrixTable
