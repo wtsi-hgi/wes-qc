@@ -9,22 +9,25 @@ regions:
 
 #tmp_dir: "hdfs://spark-master:9820/"
 tmp_dir: file:///lustre/scratch123/gz3-wes-qc/tmp
-gatk_vcf_header: file:///lustre/scratch123/gz3-wes-qc/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/gatk_vcfs/
-#load_matrixtables_lustre_dir: /home/ubuntu/matrixtables/  
-#load_matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
-load_matrixtables_lustre_dir: /lustre/scratch123/gz3-wes-qc/matrixtables/  # Writing using direct Python no need the name without file:// prefix
-annotation_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/gz3-wes-qc/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/matrixtables/
+
+data_root: /lustre/scratch123/gz3-wes-qc # Root folder for all input and analysis data
+dataset_name: gz3-wes-qc  # Used in automatically created files and folders
+
+gatk_vcf_header: gatk_vcf_header.txt
+gatk_import_lustre_dir: gatk_vcfs
+load_matrixtables_lustre_dir: matrixtables  # Writing using direct Python no need the name without file:// prefix
+annotation_lustre_dir: annotations
+annotation_lustre_dir_local: undefined
+matrixtables_lustre_dir: matrixtables
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-plots_lustre_dir: file:///lustre/scratch123/gz3-wes-qc/plots
-plots_dir_local: /lustre/scratch123/gz3-wes-qc/plots
-resource_dir: file:///lustre/scratch123/gz3-wes-qc/resources/
-resource_dir_local: /lustre/scratch123/gz3-wes-qc/resources/
-training_set_dir: file:///lustre/scratch123/gz3-wes-qc/training_sets/
-var_qc_rf_dir: file:///lustre/scratch123/gz3-wes-qc/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/gz3-wes-qc/filtered_vcfs/20230425/
+plots_lustre_dir: plots
+plots_dir_local: plots
+resource_dir: resources
+resource_dir_local: resources
+training_set_dir: training_sets
+var_qc_rf_dir: variant_qc_random_forest
+vcf_output_dir: filtered_vcfs/20230425
+pedfile_name: trios.ped
 
 rf_test_interval: chr20
 
