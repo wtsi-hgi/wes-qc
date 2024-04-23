@@ -18,7 +18,7 @@ local_path="/Users/gz3/programming"
 remote_path="/home/ubuntu/temprun"
 
 echo "Syncing local repo to Hail cluster ${hail_cluster}"
-rsync -avz "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
+rsync -avz --exclude '.git' --exclude '.idea' --exclude '.snakemake' "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
 
 echo "Running script ${script} on the Hail cluster ${hail_cluster}"
 script_local_path=$( readlink -f "${script}" )
