@@ -16,8 +16,9 @@ mtdir:str = os.path.join(data_root, config['matrixtables_lustre_dir'])
 
 rf_dir:str = os.path.join(data_root, config['var_qc_rf_dir'])
 resourcedir:str = os.path.join(data_root, config['resource_dir'])
-
+stats_dir:str = os.path.join(data_root, config['stats_dir'])
 plot_dir:str = os.path.join(data_root, config['plots_dir_local'])
+
 tmp_dir:str = config["tmp_dir"]
 
 filterCombinationParams = compare_hard_filter_combinations.HardFilterCombinationParams(**config["hard_filters_combinations"])
@@ -26,11 +27,10 @@ wd = os.path.join(mtdir, runhash)
 
 is_hail_running = False
 
-
 rule default:
     input:
-        outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snp_5.txt")
-        #outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel_5.txt")
+        outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snv.txt")
+        #outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel.txt")
 
 rule generate_giab:
     input:
@@ -88,6 +88,8 @@ rule evaluate_filter_combinations:
     run:
         sc = init_hl(tmp_dir)
         giab_ht = hl.read_table(f"file://{input.giab_ht_path}")
+        json_dump_folder = os.path.join(stats_dir,'json_dump', runhash)
+        os.makedirs(json_dump_folder, exist_ok=True)
         results = compare_hard_filter_combinations.filter_and_count_by_type(
             mt_path=f"file://{input.mt_path}",
             ht_giab=giab_ht,
@@ -95,17 +97,26 @@ rule evaluate_filter_combinations:
             mtdir=f"file://{wd}",
             filters=filterCombinationParams,
             var_type=wildcards.label,
-            json_dump_file=output.json_dump_file
+            json_dump_folder=json_dump_folder,
         )
         with open(output.json_dump_file,'w') as f:
             json.dump(results,f)
         stop_hl(sc)
 
+rule rename_snp_snv: # FIXME: A quich fix to address naming inconsistency
+    input:
+        json_dump_snp = os.path.join(wd, 'evaluation.snp.json')
+    output:
+        json_dump_snv = os.path.join(wd, 'evaluation.snv.json')
+    shell:
+        "ln -s {input} {output}"
+
+
 rule filter_combination_stats:
     input:
         json_dump_file = os.path.join(wd, 'evaluation.{label}.json')
     output:
-        outfile = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_{label}_5.txt"),
+        outfile = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_{label}.txt"),
     run:
         with open(input.json_dump_file) as f:
             results = json.load(f)

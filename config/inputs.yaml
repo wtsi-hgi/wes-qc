@@ -20,6 +20,7 @@ annotation_lustre_dir: annotations
 annotation_lustre_dir_local: undefined
 matrixtables_lustre_dir: matrixtables
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
+stats_dir: stats
 plots_lustre_dir: plots
 plots_dir_local: plots
 resource_dir: resources
