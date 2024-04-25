@@ -8,6 +8,15 @@ from shutil import rmtree
 from typing import Optional, Union, Set
 from gnomad.resources.resource_utils import TableResource
 
+def str_timedelta(delta):
+    seconds_in_hr = 60*60
+    seconds_in_day = seconds_in_hr * 24
+    seconds = int(delta.total_seconds())
+    days = seconds // seconds_in_day
+    hours = (seconds % seconds_in_day) // seconds_in_hr
+    return f"{days} days and {hours} hr"
+
+
 def get_script_path():
     #returns the path of the script that is being run
     return os.path.dirname(os.path.realpath(sys.argv[0]))

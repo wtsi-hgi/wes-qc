@@ -5,18 +5,18 @@ import hail as hl
 
 
 def clear_temp_folder(tmp_dir: str):
+    if not tmp_dir.startswith('file://'):
+        return
+    tmp_dir = tmp_dir.replace('file://', '')
+    print(f"=== Cleaning up temporary folder {tmp_dir}")
     for root, dirs, files in os.walk(tmp_dir):
         for f in files:
             os.unlink(os.path.join(root, f))
         for d in dirs:
             shutil.rmtree(os.path.join(root, d))
 
-
 def init_hl(tmp_dir: str) -> pyspark.SparkContext:
-    if tmp_dir.startswith('file://'):
-        print("=== Cleaning up temporary folder ===")
-        clear_temp_folder(tmp_dir.replace('file://', ''))
-
+    clear_temp_folder(tmp_dir)
     print("=== Checking for SparkContext ===")
     sc = pyspark.SparkContext()
     # conf = pyspark.SparkConf().setAppName("HailBatch")

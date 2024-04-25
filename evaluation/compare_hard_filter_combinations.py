@@ -1,12 +1,15 @@
 #compare different combinations of hard filters
 import os.path
 from dataclasses import dataclass
+import datetime
 
 import hail as hl
-import datetime
 import json
 from typing import List
+
+import utils.utils
 from utils.utils import select_founders, collect_pedigree_samples
+from utils.hail import clear_temp_folder
 
 snp_label = 'snp'
 indel_label = 'indel'
@@ -88,9 +91,6 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
 
     mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
     giab_vars = mt.rows()
-    # Don't nee to do it since we're writing the table at the end of the step
-    #tmphtg = os.path.join(mtdir, "tmphtgx.ht")
-    #giab_vars = giab_vars.checkpoint(tmphtg, overwrite = True)
     return giab_vars
 
 
@@ -127,6 +127,7 @@ def filter_and_count_by_type(
         var_type: str, # Variable type snp or indel
         json_dump_folder: str # path to dump results in json
 ) -> dict:
+    start_time = datetime.datetime.now()
 
     if var_type == 'snp':
         bins = filters.snp_bins
@@ -153,6 +154,9 @@ def filter_and_count_by_type(
     n_step = 0
     total_steps = len(bins) * len(dp_vals) * len(gq_vals) * len(ab_vals) * len(missingness_vals)
     print(f"=== Starting parameter combination evaluation: {total_steps} combinations ===")
+
+    n_steps_run = 0
+    stop_time = datetime.datetime.now()
 
     for bin in bins:
         bin_str = "bin_" + str(bin)
@@ -183,6 +187,11 @@ def filter_and_count_by_type(
                                 json.dump({filter_name: var_counts}, f)
                             print(f"--- Temporary results dumped to JSON: {json_dump_file}")
                             results[var_type][filter_name] = var_counts
+                            # Cleaning up Hail temporary folder to avoid exceeding inodes limit.
+                            clear_temp_folder(hl.tmp_dir())
+
+                            stop_time = datetime.datetime.now()
+                            n_steps_run += 1
                         else:
                             with open(json_dump_file, 'r') as f:
                                 checkpoint = json.load(f)
@@ -191,6 +200,13 @@ def filter_and_count_by_type(
 
                         n_step += 1
                         print(f"--- Step {n_step}/{total_steps} completed.")
+                        if n_steps_run > 0:
+                            total_time = stop_time - start_time
+                            print(f"--- Spend {total_time.days} days ({total_time.seconds/3600:4.3f} hr) to process {n_steps_run} steps")
+                            step_avg_time = total_time / n_steps_run
+                            est_time = step_avg_time * (total_steps - n_step)
+                            print(f"--- Estimated to complete: {utils.utils.str_timedelta(est_time)}.")
+
     return results
 
 def merge_json_stats(json_files: List[str], var_type: str, final_json_file:str):
