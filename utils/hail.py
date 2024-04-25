@@ -1,7 +1,7 @@
-import os
-import shutil
 import pyspark
 import hail as hl
+import shutil
+import os
 
 
 def clear_temp_folder(tmp_dir: str):
@@ -9,11 +9,8 @@ def clear_temp_folder(tmp_dir: str):
         return
     tmp_dir = tmp_dir.replace('file://', '')
     print(f"=== Cleaning up temporary folder {tmp_dir}")
-    for root, dirs, files in os.walk(tmp_dir):
-        for f in files:
-            os.unlink(os.path.join(root, f))
-        for d in dirs:
-            shutil.rmtree(os.path.join(root, d))
+    shutil.rmtree(tmp_dir)
+    os.makedirs(tmp_dir)
 
 def init_hl(tmp_dir: str) -> pyspark.SparkContext:
     clear_temp_folder(tmp_dir)

@@ -7,7 +7,7 @@ regions:
   chr9_14_dir: 679738e5-0a41-4196-8b4e-f1e01d80b077
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
-#tmp_dir: "hdfs://spark-master:9820/"
+#tmp_dir: "hdfs://spark-master:9820/tmp/gz3/"
 tmp_dir: file:///lustre/scratch123/gz3-wes-qc/tmp
 
 data_root: /lustre/scratch123/gz3-wes-qc # Root folder for all input and analysis data

@@ -140,11 +140,8 @@ def filter_and_count_by_type(
     results = {var_type: {}}
     pedigree = hl.Pedigree.read(pedfile)
 
-    print(f"=== splitting {var_type} table for TP, FP, and synonyms ===")
+
     mt = hl.read_matrix_table(mt_path)
-    mt_tp, mt_fp, _, _ = filter_mts(mt, mtdir=mtdir, giab_sample=filters.giab_sample, calculate_syn_pr=False)
-    results[f'{var_type}_total_tp'] = mt_tp.count_rows()
-    results[f'{var_type}_total_fp'] = mt_fp.count_rows()
 
     gq_vals = filters.gq_vals
     dp_vals = filters.dp_vals
@@ -206,6 +203,11 @@ def filter_and_count_by_type(
                             step_avg_time = total_time / n_steps_run
                             est_time = step_avg_time * (total_steps - n_step)
                             print(f"--- Estimated to complete: {utils.utils.str_timedelta(est_time)}.")
+
+    print(f"=== splitting {var_type} table for TP, FP, and synonyms ===")
+    mt_tp, mt_fp, _, _ = filter_mts(mt, mtdir=mtdir, giab_sample=filters.giab_sample, calculate_syn_pr=False)
+    results[f'{var_type}_total_tp'] = mt_tp.count_rows()
+    results[f'{var_type}_total_fp'] = mt_fp.count_rows()
 
     return results
 
