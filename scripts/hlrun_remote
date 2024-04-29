@@ -16,6 +16,7 @@ args="${*:2}"
 repo="wes_qc"
 local_path="/Users/gz3/programming"
 remote_path="/home/ubuntu/temprun"
+session_name="HailBatch"
 
 echo "Syncing local repo to Hail cluster ${hail_cluster}"
 rsync -avz --exclude '.git' --exclude '.idea' --exclude '.snakemake' "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
@@ -30,12 +31,12 @@ echo "Remote run path changed to ${script_remote_path}"
 command="./scripts/hlrun_local ${script_remote_path} ${args}"
 
 echo "Creating detached session and running command"
-ssh ${hail_cluster} "tmux new-session -A -s HailBatch -d"
-ssh ${hail_cluster} "tmux send-keys -t HailBatch cd Space ${remote_path}/${repo} Enter"
+ssh ${hail_cluster} "tmux new-session -A -s ${session_name} -d"
 
 echo "Sending command ${command}"
 command_subs=$(echo $command | sed 's| | Space |g' )
-ssh ${hail_cluster} "tmux send-keys -t HailBatch ${command_subs} Enter"
+ssh ${hail_cluster} "tmux send-keys -t ${session_name} cd Space ${remote_path}/${repo} Enter"
+ssh ${hail_cluster} "tmux send-keys -t ${session_name} ${command_subs} Enter"
 
 echo "Attaching to the tmux session"
-ssh -t ${hail_cluster} tmux attach -t HailBatch
+ssh -t ${hail_cluster} tmux attach -t "${session_name}"

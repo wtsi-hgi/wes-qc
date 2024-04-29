@@ -29,8 +29,8 @@ is_hail_running = False
 
 rule default:
     input:
-        outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snv.txt")
-        #outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel.txt")
+        outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snv.txt"),
+        outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel.txt")
 
 rule generate_giab:
     input:
