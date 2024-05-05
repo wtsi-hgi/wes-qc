@@ -11,7 +11,7 @@ configfile: "config/inputs.yaml"
 configfile: "config/hard-filter-combinations.yaml"
 
 data_root:str = config['data_root']
-
+dataset_name: str = config['dataset_name']
 mtdir:str = os.path.join(data_root, config['matrixtables_lustre_dir'])
 
 rf_dir:str = os.path.join(data_root, config['var_qc_rf_dir'])
@@ -30,7 +30,7 @@ is_hail_running = False
 rule default:
     input:
         outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snv.txt"),
-        outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel.txt")
+        #outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel.txt")
 
 rule generate_giab:
     input:
@@ -38,6 +38,7 @@ rule generate_giab:
         giab_cqfile = os.path.join(resourcedir, "all.interval.illumina.vep.info.txt"),
     output:
         giab_ht_path = directory(os.path.join(mtdir, "giab_annotated.ht"))
+    benchmark: os.path.join(stats_dir, 'benchmark_generate_giab.txt')
     run:
         sc = init_hl(tmp_dir)
         giab_ht = compare_hard_filter_combinations.prepare_giab_ht(
@@ -55,6 +56,7 @@ rule annotate_mt:
         cqfile = os.path.join(resourcedir, "all_consequences.txt")
     output:
         mt_annot_path = directory(os.path.join(wd, 'tmp.hard_filters_combs.mt'))
+    benchmark: os.path.join(stats_dir,'benchmark_annotate_mt.txt')
     run:
         sc = init_hl(tmp_dir)
         mt = hl.read_matrix_table(f"file://{input.mtfile}")
@@ -69,6 +71,7 @@ rule filter_var_type:
         mt_annot_path = rules.annotate_mt.output.mt_annot_path,
     output:
         mt_filtered_path = directory(os.path.join(mtdir,'tmp.hard_filters_combs.{label}.mt'))
+    benchmark: os.path.join(stats_dir,'benchmark_{label}_filter_var_type.txt')
     run:
         sc = init_hl(tmp_dir)
         compare_hard_filter_combinations.filter_var_type(
@@ -85,6 +88,7 @@ rule evaluate_filter_combinations:
         pedfile= os.path.join(resourcedir, config["pedfile_name"])
     output:
         json_dump_file=os.path.join(wd, 'evaluation.{label}.json')
+    benchmark: os.path.join(stats_dir,'benchmark_{label}_evaluate_filter_combinations.txt')
     run:
         sc = init_hl(tmp_dir)
         giab_ht = hl.read_table(f"file://{input.giab_ht_path}")
@@ -103,7 +107,7 @@ rule evaluate_filter_combinations:
             json.dump(results,f)
         stop_hl(sc)
 
-rule rename_snp_snv: # FIXME: A quich fix to address naming inconsistency
+rule rename_snp_snv: # FIXME: A quick fix to address naming inconsistency
     input:
         json_dump_snp = os.path.join(wd, 'evaluation.snp.json')
     output:
