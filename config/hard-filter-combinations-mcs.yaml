@@ -1,0 +1,9 @@
+hard_filters_combinations:
+    runhash: 0e5d073b
+    giab_sample: bibkidex13159884 # For MCS
+    snp_bins: [82, 84, 86 ]
+    indel_bins: [58, 62, 64]
+    dp_vals: [5, 10]
+    gq_vals: [10, 15, 20]
+    ab_vals: [0.2, 0.3]
+    missingness_vals: [0, 0.5, 0.9, 0.95]
