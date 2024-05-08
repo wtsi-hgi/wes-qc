@@ -1,11 +1,13 @@
-# This is the pipeline definition file for WES-QC
+"""
+The main pipeline definition file for the WES-QC
+"""
 
 import os
 import json
 import hail as hl
 
-from evaluation import compare_hard_filter_combinations
-from utils.hail import init_hl, stop_hl
+from wes_qc import compare_hardfilter
+from wes_qc import hail_utils
 
 configfile: "config/inputs.yaml"
 configfile: "config/hard-filter-combinations.yaml"
@@ -14,6 +16,7 @@ data_root:str = config['data_root']
 dataset_name: str = config['dataset_name']
 mtdir:str = os.path.join(data_root, config['matrixtables_lustre_dir'])
 
+annot_dir:str = os.path.join(data_root, config['annotation_lustre_dir'])
 rf_dir:str = os.path.join(data_root, config['var_qc_rf_dir'])
 resourcedir:str = os.path.join(data_root, config['resource_dir'])
 stats_dir:str = os.path.join(data_root, config['stats_dir'])
@@ -21,7 +24,7 @@ plot_dir:str = os.path.join(data_root, config['plots_dir_local'])
 
 tmp_dir:str = config["tmp_dir"]
 
-filterCombinationParams = compare_hard_filter_combinations.HardFilterCombinationParams(**config["hard_filters_combinations"])
+filterCombinationParams = compare_hardfilter.HardFilterCombinationParams(**config["hard_filters_combinations"])
 runhash:str = filterCombinationParams.runhash
 wd = os.path.join(mtdir, runhash)
 
@@ -40,14 +43,14 @@ rule generate_giab:
         giab_ht_path = directory(os.path.join(mtdir, "giab_annotated.ht"))
     benchmark: os.path.join(stats_dir, 'benchmark_generate_giab.txt')
     run:
-        sc = init_hl(tmp_dir)
-        giab_ht = compare_hard_filter_combinations.prepare_giab_ht(
+        sc = hail_utils.init_hl(tmp_dir)
+        giab_ht = compare_hardfilter.prepare_giab_ht(
             f"file://{input.giab_vcf}",
             f"file://{input.giab_cqfile}",
             f"file://{mtdir}"
         )
         giab_ht.write(f"file://{output.giab_ht_path}")
-        stop_hl(sc)
+        hail_utils.stop_hl(sc)
 
 rule annotate_mt:
     input:
@@ -58,13 +61,13 @@ rule annotate_mt:
         mt_annot_path = directory(os.path.join(wd, 'tmp.hard_filters_combs.mt'))
     benchmark: os.path.join(stats_dir,'benchmark_annotate_mt.txt')
     run:
-        sc = init_hl(tmp_dir)
+        sc = hail_utils.init_hl(tmp_dir)
         mt = hl.read_matrix_table(f"file://{input.mtfile}")
-        mt = compare_hard_filter_combinations.clean_mt(mt)
-        mt_annot = compare_hard_filter_combinations.annotate_with_rf(mt, f"file://{input.rf_htfile}")
-        mt_annot = compare_hard_filter_combinations.annotate_cq(mt_annot, f"file://{input.cqfile}")
+        mt = compare_hardfilter.clean_mt(mt)
+        mt_annot = compare_hardfilter.annotate_with_rf(mt,f"file://{input.rf_htfile}")
+        mt_annot = compare_hardfilter.annotate_cq(mt_annot,f"file://{input.cqfile}")
         mt_annot.write(f"file://{output.mt_annot_path}", overwrite=True)
-        stop_hl(sc)
+        hail_utils.stop_hl(sc)
 
 rule filter_var_type:
     input:
@@ -73,28 +76,28 @@ rule filter_var_type:
         mt_filtered_path = directory(os.path.join(mtdir,'tmp.hard_filters_combs.{label}.mt'))
     benchmark: os.path.join(stats_dir,'benchmark_{label}_filter_var_type.txt')
     run:
-        sc = init_hl(tmp_dir)
-        compare_hard_filter_combinations.filter_var_type(
+        sc = hail_utils.init_hl(tmp_dir)
+        compare_hardfilter.filter_var_type(
             f"file://{input.mt_annot_path}",
             f"file://{output.mt_filtered_path}",
             wildcards.label
         )
-        stop_hl(sc)
+        hail_utils.stop_hl(sc)
 
 rule evaluate_filter_combinations:
     input:
         mt_path = os.path.join(mtdir,"tmp.hard_filters_combs.{label}.mt"),
         giab_ht_path= rules.generate_giab.output.giab_ht_path,
-        pedfile= os.path.join(resourcedir, config["pedfile_name"])
+        pedfile= os.path.join(annot_dir, config["pedfile_name"])
     output:
         json_dump_file=os.path.join(wd, 'evaluation.{label}.json')
     benchmark: os.path.join(stats_dir,'benchmark_{label}_evaluate_filter_combinations.txt')
     run:
-        sc = init_hl(tmp_dir)
+        sc = hail_utils.init_hl(tmp_dir)
         giab_ht = hl.read_table(f"file://{input.giab_ht_path}")
         json_dump_folder = os.path.join(stats_dir,'json_dump', runhash)
         os.makedirs(json_dump_folder, exist_ok=True)
-        results = compare_hard_filter_combinations.filter_and_count_by_type(
+        results = compare_hardfilter.filter_and_count_by_type(
             mt_path=f"file://{input.mt_path}",
             ht_giab=giab_ht,
             pedfile=f"file://{input.pedfile}",
@@ -105,7 +108,7 @@ rule evaluate_filter_combinations:
         )
         with open(output.json_dump_file,'w') as f:
             json.dump(results,f)
-        stop_hl(sc)
+        hail_utils.stop_hl(sc)
 
 rule rename_snp_snv: # FIXME: A quick fix to address naming inconsistency
     input:
@@ -124,4 +127,4 @@ rule filter_combination_stats:
     run:
         with open(input.json_dump_file) as f:
             results = json.load(f)
-        compare_hard_filter_combinations.print_results(results,output.outfile,wildcards.label)
+        compare_hardfilter.print_results(results,output.outfile,wildcards.label)

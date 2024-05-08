@@ -1,43 +1,46 @@
 # useful functions
+import datetime
 import os
 import sys
 import yaml
 import hail as hl
 import pandas as pd
 from shutil import rmtree
-from typing import Optional, Union, Set
+from typing import Optional, Union, Set, Dict, Any
 from gnomad.resources.resource_utils import TableResource
 
-def str_timedelta(delta):
-    seconds_in_hr = 60*60
+
+def str_timedelta(delta: datetime.timedelta) -> str:
+    seconds_in_hr = 60 * 60
     seconds_in_day = seconds_in_hr * 24
     seconds = int(delta.total_seconds())
     days = seconds // seconds_in_day
-    hours = (seconds % seconds_in_day) // seconds_in_hr
-    return f"{days} days and {hours} hr"
+    hours = (seconds % seconds_in_day) / seconds_in_hr
+    return f"{days} days and {hours:4.2f} hr"
 
 
-def get_script_path():
-    #returns the path of the script that is being run
+def get_script_path() -> str:
+    # returns the path of the script that is being run
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
-def parse_config():
+
+def parse_config() -> Dict[str, Any]:
     script_dir = get_script_path()
-    input_yaml = script_dir + '/../config/inputs.yaml'
+    input_yaml = script_dir + "/../config/inputs.yaml"
     if not os.path.exists(input_yaml):
-        input_yaml = script_dir + '/../../config/inputs.yaml'
-    with open(input_yaml, 'r') as y:
-        inputs = yaml.load(y, Loader=yaml.FullLoader)
+        input_yaml = script_dir + "/../../config/inputs.yaml"
+    with open(input_yaml, "r") as y:
+        inputs: Dict[str, Any] = yaml.load(y, Loader=yaml.FullLoader)
 
     return inputs
 
 
 def expand_pd_array_col(
-        df: pd.DataFrame,
-        array_col: str,
-        num_out_cols: int = 0,
-        out_cols_prefix=None,
-        out_1based_indexing: bool = True
+    df: pd.DataFrame,
+    array_col: str,
+    num_out_cols: int = 0,
+    out_cols_prefix: Optional[str] = None,
+    out_1based_indexing: bool = True,
 ) -> pd.DataFrame:
     """
     Expands a Dataframe column containing an array into multiple columns.
@@ -57,7 +60,7 @@ def expand_pd_array_col(
     if num_out_cols < 1:
         num_out_cols = min([len(x) for x in df[array_col].values.tolist()])
 
-    cols = ['{}{}'.format(out_cols_prefix, i + out_1based_indexing) for i in range(num_out_cols)]
+    cols = ["{}{}".format(out_cols_prefix, i + out_1based_indexing) for i in range(num_out_cols)]
     df[cols] = pd.DataFrame(df[array_col].values.tolist())[list(range(num_out_cols))]
 
     return df
@@ -66,7 +69,7 @@ def expand_pd_array_col(
 def get_rf(
     rf_dir: str,
     data: str = "rf_result",
-    run_hash: Optional[str] = None,
+    run_hash: str = "",
 ) -> Union[str, TableResource]:
     """
     Gets the path to the desired RF data.
@@ -87,12 +90,18 @@ def get_rf(
         return TableResource(data_file)
 
 
-def rm_mt(path: str):
-    rmtree(path.replace('file:/', '/'))
+def rm_mt(path: str) -> None:
+    """
+    Removes folder provided by path
+    """
+    rmtree(path.replace("file:/", "/"))
 
 
 def collect_pedigree_samples(ped: hl.Pedigree) -> Set[str]:
-    samples = {getattr(trio, member) for trio in ped.trios for member in ('mat_id', 'pat_id', 's')}
+    """
+    Converts Hail pedigree table to the list of sample IDs
+    """
+    samples = {getattr(trio, member) for trio in ped.trios for member in ("mat_id", "pat_id", "s")}
     samples.discard(None)
     return samples
 

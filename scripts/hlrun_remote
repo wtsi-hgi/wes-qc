@@ -19,7 +19,7 @@ remote_path="/home/ubuntu/temprun"
 session_name="HailBatch"
 
 echo "Syncing local repo to Hail cluster ${hail_cluster}"
-rsync -avz --exclude '.git' --exclude '.idea' --exclude '.snakemake' "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
+rsync -avz --exclude '.git' --exclude '.idea' --exclude '.snakemake' --exclude '.mypy_cache' "${local_path}/${repo}" "${hail_cluster}:${remote_path}"
 
 echo "Running script ${script} on the Hail cluster ${hail_cluster}"
 script_local_path=$( readlink -f "${script}" )

@@ -1,19 +1,24 @@
+"""
+A service module to work with Hail and Spark - spin up, shut down, work with temporary folders
+"""
+
 import pyspark
 import hail as hl
 import shutil
 import os
 
 
-def clear_temp_folder(tmp_dir: str):
-    if not tmp_dir.startswith('file://'):
+def clear_temp_folder(tmp_dir: str) -> None:
+    if not tmp_dir.startswith("file://"):
         return
-    tmp_dir = tmp_dir.replace('file://', '')
+    tmp_dir = tmp_dir.replace("file://", "")
     print(f"=== Cleaning up temporary folder {tmp_dir}")
     try:
         shutil.rmtree(tmp_dir)
     except FileNotFoundError:
         print("TMP folder was cleaned up by Spark. Proceeding to the next step.")
     os.makedirs(tmp_dir, exist_ok=True)
+
 
 def init_hl(tmp_dir: str) -> pyspark.SparkContext:
     clear_temp_folder(tmp_dir)
