@@ -32,8 +32,10 @@ is_hail_running = False
 
 rule default:
     input:
-        outfile_snp = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_snv.txt"),
-        #outfile_indel = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_indel.txt")
+        out_file_snv=os.path.join(wd, 'evaluation.snv.json'),
+        out_file_indel=os.path.join(wd, 'evaluation.indel.json')
+        #outfile_snp = os.path.join(plot_dir, runhash, "evaluation.snv.csv"),
+        #outfile_indel = os.path.join(plot_dir, runhash, "evaluation.indel.csv")
 
 rule generate_giab:
     input:
@@ -90,7 +92,7 @@ rule evaluate_filter_combinations:
         giab_ht_path= rules.generate_giab.output.giab_ht_path,
         pedfile= os.path.join(annot_dir, config["pedfile_name"])
     output:
-        json_dump_file=os.path.join(wd, 'evaluation.{label}.json')
+        json_dump_file=protected(os.path.join(wd, 'evaluation.{label}.json'))
     benchmark: os.path.join(stats_dir,'benchmark_{label}_evaluate_filter_combinations.txt')
     run:
         sc = hail_utils.init_hl(tmp_dir)
@@ -123,8 +125,21 @@ rule filter_combination_stats:
     input:
         json_dump_file = os.path.join(wd, 'evaluation.{label}.json')
     output:
-        outfile = os.path.join(plot_dir, runhash + "_genotype_hard_filter_comparison_{label}.txt"),
-    run:
-        with open(input.json_dump_file) as f:
-            results = json.load(f)
-        compare_hardfilter.print_results(results,output.outfile,wildcards.label)
+        #outfile = os.path.join(wd, 'evaluation.{label}.csv'),
+        outfile = os.path.join(plot_dir, runhash, "evaluation.{label}.csv")
+    # For the BiB version we use the R script to make final graphs and tables instead of Python code
+    params:
+        var_type = "{label}",
+        basename = 'evaluation.{label}',
+        target_dir = os.path.join(plot_dir, runhash)
+    shell:
+        """Rscript scripts/plot_hardfilter.r {input} {params.var_type}
+        mkdir -p {params.target_dir}
+        cp {params.basename}.csv {params.target_dir}
+        cp {params.basename}.*.png {params.target_dir}
+        """
+
+#    run:
+#        with open(input.json_dump_file) as f:
+#            results = json.load(f)
+#        compare_hardfilter.print_results(results,output.outfile,wildcards.label)
