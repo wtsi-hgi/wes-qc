@@ -9,7 +9,7 @@ date=$( date '+%Y%m%d_%H%M%S' )
 log="hlrun_local_${date}"
 
 # FIXME: # A hack to make all imports in wes-qc utils correct
-export PYTHONPATH=/home/ubuntu/temprun:$PYTHONPATH
+export PYTHONPATH=/home/ubuntu/temprun/wes_qc:$PYTHONPATH
 
 echo "Running the job with spark-submit"
 echo "$@"

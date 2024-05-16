@@ -32,6 +32,10 @@ pedfile_name: trios_only.ped
 
 rf_test_interval: chr20
 
+runhash: 0e5d073b
+
+samples_to_exclude: MCS_samples_failing_additional_qc_mock.txt
+
 hard_filters:
   missingness: 0.5
   snp:
