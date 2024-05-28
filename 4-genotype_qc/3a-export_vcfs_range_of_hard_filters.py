@@ -1,6 +1,6 @@
 # export to VCF after annotating with a range of hard filters
 import datetime
-import os.path
+import os
 from typing import Any
 
 import hail as hl
@@ -13,7 +13,9 @@ pass_medium_string = "PASS_MEDIUM"
 pass_stringent_string = "PASS_STRINGENT"
 
 
-def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict[str, Any], run_hash: str) -> None:
+def export_vcfs(
+    mtfile: str, filtered_vcf_dir: str, hard_filters: dict[str, Any], run_hash: str, export_trace: bool = True
+) -> None:
     """
     Export VCFs annotated with a range of hard filters
     :param str mtfile: matrixtable file
@@ -22,6 +24,7 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict[str, Any]
     :param str run_hash: random forest run hash used
     """
     mt = hl.read_matrix_table(mtfile)
+    print(f"Exporting VCfs from matrixtable {mtfile}")
 
     # filter to remove rows where all variants fail the most relaxed filters
     mt = mt.filter_rows(mt.info.fraction_pass_relaxed_filters > 0)
@@ -202,15 +205,40 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict[str, Any]
         },
     }
 
+    if export_trace:
+        # Prepairing step annotation:
+        # Extract the analysis_steps from the MatrixTable globals
+        analysis_steps = mt.globals.analysis_steps.collect()[0]
+
+        # Prepare the analysis_steps to be included in the VCF header
+        analysis_steps_str = [
+            f'##analysis_step=<step_name="{step.step_name}", step_description="{step.step_description}">'
+            for step in analysis_steps
+        ]
+
+        # Write the list to a temporary file to use as part of the VCF header
+        filtered_vcf_dir_python = filtered_vcf_dir.replace("file://", "")
+        os.makedirs(filtered_vcf_dir_python, exist_ok=True)
+        analysis_header_file = os.path.join(filtered_vcf_dir_python, "vcf_analysis_steps_header.txt")
+        with open(analysis_header_file, "w") as f:
+            for step_str in analysis_steps_str:
+                f.write(step_str + "\n")
+        trace_header_file_name = "file://" + analysis_header_file
+        print(f"=== VCF header written to the file: {analysis_header_file}")
+    else:
+        trace_header_file_name = None
+
     # export per chromosome
     chroms = [*[str(i) for i in range(1, 23)], "X", "Y"]
     chromosomes = ["chr" + chr for chr in chroms]
     for chromosome in chromosomes:
-        print("Exporting " + chromosome)
+        print(f"=== Exporting chromosme {chromosome} to VCF")
+        print()
         mt_chrom = mt.annotate_globals(chromosome=chromosome)
         mt_chrom = mt_chrom.filter_rows(mt_chrom.locus.contig == mt_chrom.chromosome)
         outfile = os.path.join(filtered_vcf_dir, f"{chromosome}_hard_filters.vcf.bgz")
-        hl.export_vcf(mt_chrom, outfile, metadata=metadata)
+        # Export the MatrixTable to a VCF file, including the custom header lines
+        hl.export_vcf(mt_chrom, outfile, metadata=metadata, append_to_header=trace_header_file_name)
 
 
 def main() -> None:
@@ -232,7 +260,7 @@ def main() -> None:
     sc = hail_utils.init_hl(tmp_dir)
 
     mtfile = os.path.join(mtdir, "mt_hard_filter_combinations.mt")
-    export_vcfs(mtfile, filtered_vcf_dir, hard_filters, runhash)
+    export_vcfs(mtfile, filtered_vcf_dir, hard_filters, runhash, export_trace=False)
     hail_utils.stop_hl(sc)
 
 

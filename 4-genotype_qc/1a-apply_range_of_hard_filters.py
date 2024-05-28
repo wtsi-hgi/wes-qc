@@ -1,11 +1,12 @@
 # apply a range of different hard filters (RF bin and genotype) to SNPs and indels, also add gene and consequence
 # removes samples which fail identity checks
+import json
 import os
 from typing import Any, Union
 
 import hail as hl
 from utils.utils import parse_config
-from wes_qc import hail_utils
+from wes_qc import hail_utils, annotation
 
 # TODO: change the dictionary structure to allow typing
 HardFiltersDict = dict[str, Any]
@@ -19,7 +20,11 @@ def remove_samples(mt: hl.MatrixTable, exclude_file: str) -> hl.MatrixTable:
     :return: hl.MatrixTable
     """
 
-    excl_ht = hl.import_table(exclude_file, types={"s": "str"}, comment="#", key="s")
+    excl_ht = hl.import_table(exclude_file, no_header=True, types={"f0": "str"}, comment="#")
+    excl_ht = excl_ht.rename({"f0": "s"})
+    excl_ht = excl_ht.key_by(s=excl_ht.s)
+
+    mt = hail_utils.trace_analysis_step(mt, f"List to remove: {exclude_file}")
     mt = mt.filter_cols(hl.is_defined(excl_ht[mt.s]), keep=False)
 
     return mt
@@ -38,6 +43,7 @@ def annotate_cq_rf(mt: hl.MatrixTable, rf_htfile: str, cqfile: str) -> hl.Matrix
     # keep only vars with rank_id = rank
     rf_ht = rf_ht.filter(rf_ht.rank_id == "rank")
     # annotate mt with score and bin
+    mt = hail_utils.trace_analysis_step(mt, f"rf_htfile:{rf_htfile}, cqfile:{cqfile}")
     mt = mt.annotate_rows(info=mt.info.annotate(rf_score=rf_ht[mt.row_key].score))
     mt = mt.annotate_rows(info=mt.info.annotate(rf_bin=rf_ht[mt.row_key].bin))
 
@@ -105,6 +111,8 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: HardFiltersDict) -> hl.
     :param dict hard_filters: Filters to apply
     :return hl.MatrixTable:
     """
+
+    mt = hail_utils.trace_analysis_step(mt, "Filters: " + json.dumps(hard_filters))
 
     stringent_condition = (
         (hl.is_snp(mt.alleles[0], mt.alleles[1]))
@@ -205,6 +213,11 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: HardFiltersDict) -> hl.
 def apply_missingness(
     mt: hl.MatrixTable, call_rate_stringent: float, call_rate_medium: float, call_rate_relaxed: float
 ) -> hl.MatrixTable:
+
+    mt = hail_utils.trace_analysis_step(
+        mt, f"stringent:{call_rate_stringent:5.3f}, medium:{call_rate_medium:5.3f}, relaxed:{call_rate_relaxed:5.3f}"
+    )
+
     n = mt.count_cols()
 
     mt = mt.annotate_rows(
@@ -254,6 +267,11 @@ def main() -> None:
 
     # remove unwanted samples
     mt = remove_samples(mt, exclude_file)
+
+    if inputs["samples_rename_map"] != "":
+        # Renaming sample according to the map
+        map_file_name = os.path.join(annotdir, inputs["samples_rename_map"])
+        mt = annotation.rename_samples(mt, map_file_name)
 
     # annotate mt with consequence, gene, rf bin
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)

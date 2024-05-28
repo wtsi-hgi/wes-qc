@@ -7,8 +7,8 @@ regions:
   chr9_14_dir: 679738e5-0a41-4196-8b4e-f1e01d80b077
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
-#tmp_dir: "hdfs://spark-master:9820/tmp/gz3/"
-tmp_dir: file:///lustre/scratch123/gz3/tmp
+tmp_dir: "hdfs://spark-master:9820/user/ubuntu/hail-tmp"
+#tmp_dir: file:///lustre/scratch123/gz3/tmp
 
 data_root: /lustre/scratch123/gz3/gz3-wes-qc-mcs # Root folder for all input and analysis data
 dataset_name: gz3-wes-qc-mcs  # Used in automatically created files and folders
@@ -27,14 +27,15 @@ resource_dir: resources
 resource_dir_local: resources
 training_set_dir: training_sets
 var_qc_rf_dir: variant_qc_random_forest
-vcf_output_dir: filtered_vcfs/20230425
+vcf_output_dir: filtered_vcfs  # A timestamp will be added automatically by the script
 pedfile_name: trios_only.ped
 
 rf_test_interval: chr20
 
 runhash: 0e5d073b
 
-samples_to_exclude: MCS_samples_failing_additional_qc_mock.txt
+samples_to_exclude: Birth_Cohorts_MCS_458_samples_to_remove.txt
+samples_rename_map: "MCS_BIBKIDEX_2_EGA.tsv"
 
 hard_filters:
   missingness: 0.5

@@ -33,7 +33,7 @@ is_hail_running = False
 rule default:
     input:
         out_file_snv=os.path.join(wd, 'evaluation.snv.json'),
-        out_file_indel=os.path.join(wd, 'evaluation.indel.json')
+        #out_file_indel=os.path.join(wd, 'evaluation.indel.json')
         #outfile_snp = os.path.join(plot_dir, runhash, "evaluation.snv.csv"),
         #outfile_indel = os.path.join(plot_dir, runhash, "evaluation.indel.csv")
 

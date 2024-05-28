@@ -7,8 +7,8 @@ regions:
   chr9_14_dir: 679738e5-0a41-4196-8b4e-f1e01d80b077
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
-#tmp_dir: "hdfs://spark-master:9820/tmp/gz3/"
-tmp_dir: "file:///lustre/scratch123/gz3/tmp"
+tmp_dir: "hdfs://spark-master:9820/user/ubuntu/hail-tmp"
+#tmp_dir: "file:///lustre/scratch123/gz3/tmp"
 
 data_root: /lustre/scratch123/gz3/gz3-wes-qc-alspac # Root folder for all input and analysis data
 dataset_name: gz3-wes-qc-alspac  # Used in automatically created files and folders
@@ -27,14 +27,15 @@ resource_dir: resources
 resource_dir_local: resources
 training_set_dir: training_sets
 var_qc_rf_dir: variant_qc_random_forest
-vcf_output_dir: filtered_vcfs  # Timestamp is added automatically by the script
+vcf_output_dir: filtered_vcfs  # A timestamp will be added automatically by the script
 pedfile_name: trios.ped
 
 rf_test_interval: chr20
 
 runhash: fef0f446
 
-samples_to_exclude: ALSPAC_samples_failing_additional_qc_01052024.txt
+samples_to_exclude: Birth_Cohorts_Data_Note_ALSPAC_348_samples_removed.txt
+samples_rename_map: ""
 
 #hard filter
 hard_filters:

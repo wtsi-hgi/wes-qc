@@ -16,7 +16,7 @@ from typing import List, Dict, Union, Optional, Any
 
 import utils.utils
 from utils.utils import select_founders, collect_pedigree_samples
-from wes_qc.hail_utils import clear_temp_folder
+from wes_qc.hail_utils import clear_temp_folder, trace_analysis_step
 
 snp_label = "snp"
 indel_label = "indel"
@@ -38,6 +38,7 @@ ResultsDict = dict[str, Any]
 
 
 def clean_mt(mt: hl.MatrixTable) -> hl.MatrixTable:
+    mt = trace_analysis_step(mt)
     mt = mt.select_entries(mt.GT, mt.HetAB, mt.DP, mt.GQ)
     mt = mt.drop(mt.assigned_pop, *mt.row_value)
     mt = mt.annotate_rows(info=hl.Struct())
@@ -57,6 +58,8 @@ def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
     :param str rf_htfile: Random forest ht file
     :return: hl.MatrixTable
     """
+    mt = trace_analysis_step(mt, f"rf_htfile: {rf_htfile}")
+
     rf_ht = hl.read_table(rf_htfile)
 
     # keep only vars with rank_id = rank
@@ -81,6 +84,7 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
     :return: hl.Table
     """
     mt = hl.import_vcf(giab_vcf, force_bgz=True, reference_genome="GRCh38")
+    mt = trace_analysis_step(mt, f"GIAB-cqfile: {giab_cqfile}")
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
@@ -112,6 +116,8 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     :param str cqfile: Most severe consequence annotation from VEP
     :return: hl.MatrixTable
     """
+    mt = trace_analysis_step(mt, f"cqfile: {cqfile}")
+
     ht = hl.import_table(cqfile, types={"f1": "int32"}, no_header=True)
     ht = ht.rename({"f0": "chr", "f1": "pos", "f2": "rs", "f3": "ref", "f4": "alt", "f5": "consequence"})
     ht = ht.key_by(locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref, ht.alt])
@@ -123,6 +129,9 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
 def filter_var_type(mt_path: str, mt_filtered_path: str, var_label: str) -> None:
     print(f"=== Filtering for variations labeled {var_label} ===")
     mt = hl.read_matrix_table(mt_path)
+
+    mt = trace_analysis_step(mt, f"var_label: {var_label}")
+
     mt_filtered = mt.filter_rows(mt.type == var_label)
     mt_filtered.write(mt_filtered_path, overwrite=True)
 
@@ -150,6 +159,8 @@ def filter_and_count_by_type(
     pedigree = hl.Pedigree.read(pedfile)
 
     mt = hl.read_matrix_table(mt_path)
+
+    mt = trace_analysis_step(mt, f"var_type:{var_type}")
 
     gq_vals = filters.gq_vals
     dp_vals = filters.dp_vals
@@ -249,6 +260,9 @@ def merge_json_stats(json_files: List[str], var_type: str, final_json_file: str)
 
 
 def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rate: float) -> hl.MatrixTable:
+
+    mt = trace_analysis_step(mt, f"dp:{dp}, gq:{gq}, ab:{ab:4.2f}, call_rate:{call_rate:4.2f}")
+
     filter_condition = (mt.GT.is_het() & (mt.HetAB < ab)) | (mt.DP < dp) | (mt.GQ < gq)
     mt_tmp = mt.annotate_entries(hard_filters=hl.if_else(filter_condition, "Fail", "Pass"))
     mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == "Pass")
@@ -454,6 +468,9 @@ def filter_mts(
     :param calculate_syn_pr: calculate synonymus and precisin
     :return: tuple of 4 hl.MatrixTable objects
     """
+
+    mt = trace_analysis_step(mt, f"giab_sample:{giab_sample}")
+
     tmpmtt = os.path.join(mtdir, "tp.mt")
     tmpmtf = os.path.join(mtdir, "fp.mt")
     mt_true = mt.filter_rows(mt.TP == True)  # TP variants
