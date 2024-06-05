@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 import utils.constants as constants
-from utils.utils import parse_config, get_rf
+from utils.utils import parse_config, get_rf, clear_temp_folder
 from gnomad.utils.file_utils import file_exists
 from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
@@ -130,7 +130,8 @@ def main():
     test_interval = inputs['rf_test_interval']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -166,6 +167,7 @@ def main():
     save_model(
             rf_model, get_rf(rf_dir, data="model", run_hash=run_hash), overwrite=True)
 
+    clear_temp_folder(tmp_dir)
 
 if __name__ == '__main__':
     main()

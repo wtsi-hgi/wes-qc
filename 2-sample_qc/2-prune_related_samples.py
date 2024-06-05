@@ -2,11 +2,11 @@
 # use mt with hard filters and sex annotation from 2-sample_qc/1-hard_filters_sex_annotation.py
 import hail as hl
 import pyspark
-from utils.utils import parse_config
+from utils.utils import parse_config, clear_temp_folder
 from bokeh.plotting import save, output_file
 
 
-def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
+def prune_mt(mtin: hl.MatrixTable, mtoutfile: str, long_range_ld_file: str):
     '''
     Splits multiallelic sites and runs ld pruning
     Filter to autosomes before LD pruning to decrease sample size - autosomes only wanted for later steps
@@ -22,6 +22,9 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     pruned_ht = hl.ld_prune(mtin.GT, r2=0.2)
     pruned_mt = mtin.filter_rows(hl.is_defined(pruned_ht[mtin.row_key]))
     pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
+    #it is better to have this filter here
+    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
+    pruned_mt = pruned_mt.filter_rows(hl.is_defined(long_range_ld_to_exclude[pruned_mt.locus]), keep=False)
     pruned_mt.write(mtoutfile, overwrite=True)
 
 
@@ -71,10 +74,10 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
         (pca_mt.variant_QC_Hail.AF[1] >= 0.05) &
         (pca_mt.variant_QC_Hail.p_value_hwe >= 1e-5)
     )
-
-    long_range_ld_file = "file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/long_ld_regions.hg38.bed"
-    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
-    pca_mt = pca_mt.filter_rows(hl.is_defined(long_range_ld_to_exclude[pca_mt.locus]), keep=False)
+    ###moved to prune_mt
+    #long_range_ld_file = "file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/long_ld_regions.hg38.bed"
+    #long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
+    #pca_mt = pca_mt.filter_rows(hl.is_defined(long_range_ld_to_exclude[pca_mt.locus]), keep=False)
 
     pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=20, compute_loadings=True)
     pca_af_ht = pca_mt.annotate_rows(pca_af=hl.agg.mean(pca_mt.GT.n_alt_alleles()) / 2).rows()
@@ -100,7 +103,9 @@ def main():
     plotdir = inputs['plots_lustre_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    ###replace tmp_dir
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -110,6 +115,7 @@ def main():
     mt = hl.read_matrix_table(mtfile)
 
     #ld prune to get a table of variants which are not correlated
+    long_range_ld_file = inputs["long_range_ld"]
     pruned_mt_file = mtdir + "mt_ldpruned.mt"
     prune_mt(mt, pruned_mt_file)
 
@@ -123,6 +129,7 @@ def main():
     pca_mt_file = mtdir + "mt_pca.mt"
     run_population_pca(pruned_mt_file, pca_mt_file, mtdir, plotdir, samples_to_remove_file)
 
+    clear_temp_folder(tmp_dir)
 
 if __name__ == '__main__':
     main()

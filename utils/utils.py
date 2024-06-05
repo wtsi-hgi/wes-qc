@@ -112,3 +112,16 @@ def remove_samples(mt: hl.MatrixTable, exclude_file: Union[Path, str], sample_co
 
     mt = mt.filter_cols(samples_to_remove.contains(mt.s), keep=False)
     return mt
+
+
+def clear_temp_folder(tmp_dir: str) -> None:
+    if not tmp_dir.startswith("file://"):
+        return
+    tmp_dir = tmp_dir.replace("file://", "")
+    print(f"=== Cleaning up temporary folder {tmp_dir}")
+    try:
+        rmtree(tmp_dir)
+    except FileNotFoundError:
+        print("TMP folder was cleaned up by Spark. Proceeding to the next step.")
+    os.makedirs(tmp_dir, exist_ok=True)
+

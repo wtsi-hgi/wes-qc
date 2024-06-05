@@ -193,7 +193,7 @@ def main():
 
     htfile = rf_dir + args.runhash + "/rf_result.ht"
     #annotate with synonymous CQs
-    synonymous_file = resourcedir + "synonymous_variants.txt"
+    synonymous_file = inputs['synonymous_variants']
     ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht"
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
     #annotate with family stats and DNMs
@@ -217,7 +217,8 @@ def main():
 
     #annotate with gnomad AF
     final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+    #gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+    gnomad_htfile =  inputs['gnomad_exomes']
     annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
 
 

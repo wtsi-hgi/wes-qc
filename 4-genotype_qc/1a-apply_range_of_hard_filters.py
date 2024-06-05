@@ -255,16 +255,16 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    exclude_file = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/david_samples_to_remove.txt'
+    exclude_file = inputs['exclude_samples']
     rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    cqfile = resourcedir + "all_consequences_with_gene_and_csq.txt"
+    cqfile = inputs['all_consequences2']
     mtfile_annot = mtdir + "mt_hard_filter_combinations.mt"
 
     mt = hl.read_matrix_table(mtfile)
 
     #remove unwanted samples
-    mt = remove_samples(mt, exclude_file)
+    #mt = remove_samples(mt, exclude_file)
 
     #annotate mt with consequence, gene, rf bin
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)

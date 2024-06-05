@@ -4,7 +4,7 @@ import pyspark
 import argparse
 from typing import Optional, Dict
 from pprint import pformat
-from utils.utils import parse_config
+from utils.utils import parse_config, clear_temp_folder
 
 
 def get_options():
@@ -277,7 +277,8 @@ def main():
     resourcedir = inputs['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -306,6 +307,7 @@ def main():
     bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
     ht_bins.write(bin_htfile, overwrite=True)
 
+    clear_temp_folder(tmp_dir)
 
 if __name__ == '__main__':
     main()

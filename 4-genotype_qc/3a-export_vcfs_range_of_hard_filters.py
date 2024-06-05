@@ -136,7 +136,7 @@ def annotate_ac(mt: hl.MatrixTable, filter_name: str) -> hl.MatrixTable:
 
 
 def export_vcfs(mtfile: str, mtrawfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash: str,
-                samples_failing_qc_path: Union[Path, str], samples_to_remove_path: Union[Path, str]):
+                samples_failing_qc_path: Union[Path, str], samples_to_remove_path: Union[Path, str], chroms):
     '''
     Export VCFs annotated with a range of hard filters
     :param str mtfile: matrixtable file
@@ -243,8 +243,8 @@ def export_vcfs(mtfile: str, mtrawfile: str, filtered_vcf_dir: str, hard_filters
     mt = mt.checkpoint(temppath)
 
     #export per chromosome
-    # chroms=[*range(1,23),"X","Y"]
-    chroms = ['X']
+    #chroms=[*range(1,23),"X","Y"]
+    #chroms = ['X']
     chromosomes=["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
@@ -272,13 +272,18 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtraw_file = mtdir + 'gatk_unprocessed.mt'
-    mtfile = mtdir + "mt_hard_filter_combinations.chrX.mt"
+    mtfile = mtdir + "mt_hard_filter_combinations.mt"
+#    mtfile = mtdir + "mt_hard_filter_combinations.chrX.mt"
     samples_failing_qc = annotation_dir / 'samples_failing_qc.tsv'
-    samples_to_remove = annotation_dir.parent.parent / 'david_samples_to_remove.txt'
+    samples_to_remove = inputs['exclude_samples']
     filtered_vcf_dir = Path(filtered_vcf_dir).parent / 'annotated_vcfs'
+    chroms=[*range(1,23),"Y"]
     export_vcfs(mtfile, mtraw_file, str(filtered_vcf_dir), hard_filters, args.runhash,
-                samples_failing_qc, samples_to_remove)
-
+                samples_failing_qc, samples_to_remove, chroms)
+    mtfile = mtdir + "mt_hard_filter_combinations.chrX.mt"
+    chroms=["X"]
+    export_vcfs(mtfile, mtraw_file, str(filtered_vcf_dir), hard_filters, args.runhash,
+                samples_failing_qc, samples_to_remove, chroms)
 
 if __name__ == '__main__':
     main()

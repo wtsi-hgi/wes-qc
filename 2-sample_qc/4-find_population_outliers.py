@@ -1,7 +1,7 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
 import hail as hl
 import pyspark
-from utils.utils import parse_config
+from utils.utils import parse_config, clear_temp_folder
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
 
@@ -35,9 +35,9 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     mt = mt.filter_rows(mt.locus.in_autosome())
 
     # filter MT by depth/gq/vaf
-    min_dp = 0
-    min_gq = 0
-    min_vaf = 0
+    min_dp = 20
+    min_gq = 20
+    min_vaf = 0.25
     if min_dp > 0 or min_gq > 0 or min_vaf > 0:
         vaf = mt.AD[1] / hl.sum(mt.AD)
         print("Filtering input MT by depth: DP=" + str(min_dp) +
@@ -94,7 +94,8 @@ def main():
     resourcesdir = inputs['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -113,6 +114,7 @@ def main():
     stratified_sample_qc(annotated_mt_file, mt_qc_outfile,
                          ht_qc_cols_outfile, qc_filter_file, annotdir)
 
+    clear_temp_folder(tmp_dir)
 
 if __name__ == '__main__':
     main()

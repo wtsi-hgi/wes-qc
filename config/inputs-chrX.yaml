@@ -1,9 +1,9 @@
 ---
 
-matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/
-var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/variant_qc_random_forest/
+matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/
+var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/variant_qc_random_forest/
 resource_dir: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/
-annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/
+annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/annotations/
 
 #hard filter
 hard_filters:

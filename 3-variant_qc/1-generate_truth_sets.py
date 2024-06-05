@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import argparse
 from typing import Tuple
-from utils.utils import parse_config, rm_mt
+from utils.utils import parse_config, rm_mt, clear_temp_folder
 from gnomad.utils.filtering import filter_to_adj, filter_to_autosomes
 from gnomad.utils.annotations import unphase_call_expr, bi_allelic_site_inbreeding_expr, add_variant_type, annotate_adj, bi_allelic_expr
 from gnomad.sample_qc.relatedness import generate_trio_stats_expr
@@ -330,7 +330,8 @@ def main():
     training_sets_dir = inputs['training_set_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -338,10 +339,11 @@ def main():
     # get truth set ht
     truth_ht_file = resourcedir + "truthset_table.ht"
     if args.truth or args.all:
-        omni = training_sets_dir + "1000G_omni2.5.hg38.ht"
-        mills = training_sets_dir + "Mills_and_1000G_gold_standard.indels.hg38.ht"
-        thousand_genomes = training_sets_dir + "1000G_phase1.snps.high_confidence.hg38.ht"
-        hapmap = training_sets_dir + "hapmap_3.3.hg38.ht"
+        htlist=inputs['training_hts'].split(";")
+        omni = training_sets_dir + htlist[0]
+        mills = training_sets_dir + htlist[1]
+        thousand_genomes = training_sets_dir + htlist[2]
+        hapmap = training_sets_dir + htlist[3]
         get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file)
 
     #add hail variant QC
@@ -351,7 +353,7 @@ def main():
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
         split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
-        pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.consistent.fam'
+        pedfile = inputs['pedigree_file']
 
         #get complete trios, family annotation, dnm annotation
         trio_mtfile = mtdir + "trios.mt"
@@ -359,7 +361,7 @@ def main():
         fam_stats_htfile = mtdir + "family_stats.ht"
         fam_stats_mtfile = mtdir + "family_stats.mt"
         fam_stats_gnomad_mtfile = mtdir + "family_stats_gnomad.mt"
-        gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+        gnomad_htfile =  inputs['gnomad_exomes']
         dnm_htfile = mtdir + "denovo_table.ht"
         trio_family_dnm_annotation(varqc_mtfile_split, pedfile, trio_mtfile, trio_stats_htfile, fam_stats_htfile, fam_stats_mtfile, fam_stats_gnomad_mtfile, gnomad_htfile, dnm_htfile)
 
@@ -370,6 +372,7 @@ def main():
         create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
         rm_mt(varqc_mtfile)
 
+    clear_temp_folder(tmp_dir)
 
 if __name__ == '__main__':
     main()

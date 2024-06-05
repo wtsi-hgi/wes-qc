@@ -17,7 +17,7 @@ rf_hash = 'fa8798b1'
 snp_bins = []
 # snp_bins = [80, 82, 83, 84]
 indel_bins = [44, 46, 48, 49, 50]
-gq_vals = [15]
+gq_vals = [15, 20]
 dp_vals = [5, 10]
 ab_vals = [0.2, 0.3]
 missing_vals = [0.5, 0.9, 0.95]
@@ -188,13 +188,14 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                 for ab in ab_vals:
                     ab_str = 'AB_' + str(ab)
                     for missing in missing_vals:
+                        if (bin == 80 and dp == 10 and gq == 20 and ab == 0.2 and missing == 0.95) or (bin == 82 and dp == 10 and gq == 15 and ab == 0.2 and missing == 0.9):
                         missing_str = f'missing_{missing}'
                         print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
                         # snp_counts = filter_mt_count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, pedfile, dp, gq, ab, missing, 'snv', mtdir)
                         # results['snv'][filter_name] = snp_counts
 
-                        if not os.path.exists(os.path.join(mtdir, f'{filter_name}.snp.roh_stat.tsv')):
+                        if not os.path.exists(os.path.join(mtdir, f'{filter_name}.[[snp.roh_stat.tsv')):
                             mt_roh_filtered = apply_hard_filters(mt_roh_tmp, dp=dp, gq=gq, ab=ab, call_rate=missing)
                             het_counts = count_hets_in_rohs(mt_roh_filtered, roh_path=roh_path)
                             write_out(het_counts, n_cores=240, out_prefix=os.path.join(mtdir, f'{filter_name}.snp.roh_stat'))
@@ -225,6 +226,7 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
                 for ab in ab_vals:
                     ab_str = 'AB_' + str(ab)
                     for missing in missing_vals:
+                        if (bin == 44 and dp == 10 and gq == 20 and ab == 0.3 and missing == 0.95) or (bin == 48 and dp == 10 and gq == 15 and ab == 0.3 and missing == 0.9):
                         missing_str = f'missing_{missing}'
                         print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
@@ -297,7 +299,16 @@ def main():
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
 
-    mt_tp, mt_fp, mt_syn, mt_roh = filter_mts(mt_annot, roh_path, mtdir=os.path.join(mtdir, rf_hash))
+    #mt_tp, mt_fp, mt_syn, mt_roh = filter_mts(mt_annot, roh_path, mtdir=os.path.join(mtdir, rf_hash))
+    mt_tp_f='file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/5c33a731/tp.mt'
+    mt_fp_f='file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/5c33a731/fp.mt'
+    mt_syn_f='file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/5c33a731/syn.mt'
+    mt_roh_f='file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/5c33a731/roh.mt'
+    mt_tp=hl.read_matrix_table(mt_tp_f),
+    mt_fp=hl.read_matrix_table(mt_fp_f),
+    mt_syn=hl.read_matrix_table(mt_syn_f),
+    mt_roh=hl.read_matrix_table(mt_roh_f),
+
     results = filter_and_count(
         # hl.read_matrix_table(mt_tp),
         # hl.read_matrix_table(mt_fp),
@@ -312,8 +323,8 @@ def main():
 
     outfile_snv = os.path.join(annodir, "genotype_hard_filter_comparison_snv.txt")
     outfile_indel = os.path.join(annodir, "genotype_hard_filter_comparison_indel.txt")
-    # print_results(results, outfile_snv, 'snv')
-    # print_results(results, outfile_indel, 'indel')
+     print_results(results, outfile_snv, 'snv')
+     print_results(results, outfile_indel, 'indel')
 
 
 if __name__ == '__main__':

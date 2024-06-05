@@ -19,7 +19,7 @@ def get_options():
     return args
 
 
-def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash: str):
+def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash: str, chroms):
     '''
     Export VCFs annotated with a range of hard filters
     :param str mtfile: matrixtable file
@@ -31,6 +31,7 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     # filter to remove rows where all variants fail the most relaxed filters
     mt = mt.filter_rows(mt.info.fraction_pass_stringent_filters > 0)
     mt = mt.filter_entries(mt.stringent_filters == 'Pass')
+
     # drop unwanted fields
     mt = mt.drop(mt.a_index, mt.was_split, mt.stringent_pass_count, mt.medium_pass_count,
                  mt.adj, mt.assigned_pop, mt.sum_AD,
@@ -39,10 +40,12 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                  mt.relaxed_AN, mt.relaxed_AC, mt.relaxed_AC_Hom, mt.relaxed_AC_Het)
     mt = mt.annotate_rows(info=mt.info.drop('CSQ', 'consequence', 'gene', 'hgnc_id',
                                             'fraction_pass_medium_filters', 'fraction_pass_relaxed_filters'))
-    mt = mt.annotate_rows(info=mt.info.annotate(stringent_AN=mt.stringent_AN,
-                                                stringent_AC=mt.stringent_AC,
+    mt = mt.annotate_rows(info=mt.info.annotate(AN=mt.stringent_AN,
+                                                AC=mt.stringent_AC,
                                                 stringent_AC_Hom=mt.stringent_AC_Hom,
                                                 stringent_AC_Het=mt.stringent_AC_Het))
+    mt = mt.filter_rows(mt.info.AC != [0])
+
     # info for header
     stringent_filters = "SNPs: RF bin<=" + \
         str(hard_filters['snp']['stringent']['bin']) + " & DP>=" + \
@@ -95,12 +98,6 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
             'rf_bin': {'Description': 'Variant QC random forest bin, model id ' + run_hash,
                        'Number': 'A',
                        'Type': 'Integer'},
-            'stringent_AN': {'Description': 'Total number of alleles in called genotypes',
-                             'Number': '1',
-                             'Type': 'Integer'},
-            'stringent_AC': {'Description': 'Allele count in genotypes',
-                             'Number': 'A',
-                             'Type': 'Integer'},
             'stringent_AC_Hom': {'Description': 'Allele counts in homozygous genotypes',
                                  'Number': 'A',
                                  'Type': 'Integer'},
@@ -111,8 +108,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     }
 
     #export per chromosome
-    # chroms = [*range(1,23),"X","Y"]
-    chroms = [22]
+    #chroms = [*range(1,23),"Y"]
+    #chroms = ["X"]
     chromosomes = ["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
@@ -137,7 +134,11 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_hard_filter_combinations.mt"
-    export_vcfs(mtfile, filtered_vcf_dir, hard_filters, args.runhash)
+    chroms = [*range(1,23),"Y"]
+    export_vcfs(mtfile, filtered_vcf_dir, hard_filters, args.runhash, chroms)
+    mtfile = mtdir + "mt_hard_filter_combinations.chrX.mt"
+    chroms = ["X"]
+    export_vcfs(mtfile, filtered_vcf_dir, hard_filters, args.runhash, chroms)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,8 @@ import os
 import argparse
 import pandas as pd
 from typing import Union, Dict, List, Set, Tuple
-from bokeh.models import Plot, Row, Span
+#from bokeh.models import Plot, Row, Span
+from bokeh.models import Plot, Row, Span, TabPanel
 from bokeh.plotting import output_file, save
 from gnomad.utils.plotting import *
 from hail.plot import show, output_notebook
@@ -166,7 +167,8 @@ def plot_metric(df: pd.DataFrame,
 
         # Compute cumulative values for each of the data columns
         for col in cols:
-            df[f'{col}_cumul'] = df.groupby('model').aggregate(np.cumsum)[col]
+            #df[f'{col}_cumul'] = df.groupby('model').aggregate(np.cumsum)[col]
+            df[f'{col}_cumul'] = df.groupby('model')[col].aggregate(np.cumsum)
         df['cumul'] = df[[f'{col}_cumul' for col in cols]].apply(y_fun, axis=1)
 
         # Create data ranges that are either shared or distinct depending on the y_cumul parameter
@@ -209,7 +211,8 @@ def plot_metric(df: pd.DataFrame,
                 print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(Panel(child=Column(children=children), title='All'))
+            #tabs.append(Panel(child=Column(children=children), title='All'))
+            tabs.append(TabPanel(child=Column(children=children), title='All'))
 
    
     if plot_singletons:
@@ -224,7 +227,8 @@ def plot_metric(df: pd.DataFrame,
                     print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(Panel(child=Column(children=children), title='Singletons'))
+            #tabs.append(Panel(child=Column(children=children), title='Singletons'))
+            tabs.append(TabPanel(child=Column(children=children), title='Singletons'))
 
     return Tabs(tabs=tabs)
 

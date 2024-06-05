@@ -8,22 +8,44 @@ regions:
   chr15_Y_dir: 75f0aeda-115f-46c0-bcfe-44344cd6fec9
 
 gatk_vcf_header: file:///lustre/scratch123/qc/dv_vcf/header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/part_three_stage2sampleQC_shardedvcfs/
-load_matrixtables_lustre_dir: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/
+gatk_import_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/part_one_outputs_16samplesremovedpostQC/
+load_matrixtables_lustre_dir: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/
 #load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/
+annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/annotations/
+annotation_lustre_dir_local: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/
 #matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-plots_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/plots/
-plots_dir_local: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/plots/
+plots_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/plots/
+plots_dir_local: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/plots/
 resource_dir: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/
 resource_dir_local: /lustre/scratch123/qc/resources/
-training_set_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/training_sets/
-var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/filtered_vcfs/
-vcfraw_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/annotated_vcfs/
+training_set_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/training_sets/
+var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/filtered_vcfs/
+vcfraw_output_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/annotated_vcfs/
+tmp_dir: file:///lustre/scratch126/teams/hgi/users/vo3/tmp/
 
+#referece files
+long_range_ld: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/resources/long_ld_regions.hg38.bed
+kg_dir: file:///lustre/scratch125/resources/1000g/release/20201028/
+kg_vcfheader: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/header.txt
+kg_pop: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/igsr_samples.tsv
+baits_file: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/Twist_Alliance_Clinical_Research_Exome_Covered_Targets_hg38-34.9MB.bed 
+training_hts: 1000G_omni2.5.hg38.ht;Mills_and_1000G_gold_standard.indels.hg38.ht;1000G_phase1.snps.high_confidence.hg38.ht;hapmap_3.3.hg38.ht
+gnomad_exomes: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht
+giabVCF: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/HG001_GRCh38_benchmark.interval.illumina.vcf.gz
+giab_cq_file: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/all.interval.illumina.vep.info.txt
+
+metadata_file: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/54353_BroadIDs_postQC_withGender.txt
+pedigree_file: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/resources/pedigree_with_new_IDs.fam
+
+synonymous_variants: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/synonymous_variants.txt
+all_consequences: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/all_consequences.txt 
+all_consequences2: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/all_consequences_with_gene_and_csq.txt
+
+exclude_samples: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/resources/david_samples_to_remove.txt
+control_samples: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/control_samples.txt
+populations_to_remove: /lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/no_this_pop.txt
 rf_test_interval: chr20
 
 #hard filter

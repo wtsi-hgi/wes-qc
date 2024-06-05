@@ -55,7 +55,7 @@ def impute_sex(filename: str, mtdir: str, annotdir: str, male_threshold: float =
     return sex_mt_file
 
 
-def identify_inconsistencies(filename: str, mtdir: str, annotdir: str, resourcedir: str):
+def identify_inconsistencies(filename: str, mtdir: str, annotdir: str, resourcedir: str, metadata_file: str):
     '''
     Find samples where annotated sex conflicts with the sex in our metadata
     Find samples where sex is not annotated
@@ -76,14 +76,13 @@ def identify_inconsistencies(filename: str, mtdir: str, annotdir: str, resourced
     qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-    metadata_file = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/plink.fam'
-    metadata_ht = hl.import_table(metadata_file, delimiter=" ", no_header=True)
-    metadata_ht = metadata_ht.rename({'f4': 'sex'})
-    metadata_ht = metadata_ht.annotate(sample_id='GNH-'+metadata_ht.f0).key_by('sample_id')
+    metadata_ht = hl.import_table(metadata_file, delimiter="\t", no_header=False)
+
     #we only want those from the metadata file where sex is known
     metadata_ht = metadata_ht.filter((metadata_ht.sex == '1') | (metadata_ht.sex == '2'))
 
     #annotate the sex-predictions with the manifest sex annotation - need to use a join here
+    metadata_ht = metadata_ht.key_by('sample_id')
     ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].sex)
 
     #identify samples where imputed sex and manifest sex conflict
@@ -121,7 +120,9 @@ def main():
     mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.79, female_threshold=0.55)
 
     # annotate_ambiguous_sex(mt_sex, mtdir)
-    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
+    metadata_file = inputs['metadata_file']
+    #the file has two columns 'sample_id' and 'sex'
+    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir, metadata_file)
 
 
 if __name__ == '__main__':

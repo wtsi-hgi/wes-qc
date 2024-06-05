@@ -118,8 +118,10 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
 
     # snp_bins = list(range(35,46))
     # indel_bins = list(range(58,69))
-    snp_bins = [40]
-    indel_bins = [45, 50, 55, 60, 65, 70, 75]
+    #snp_bins = [40]
+    #indel_bins = [45, 50, 55, 60, 65, 70, 75]
+    snp_bins = [68, 73, 74, 75, 76, 77, 78, 79, 80, 85]
+    indel_bins = [38, 43, 45, 47, 49, 51, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 80]
     gq_vals = [10, 15, 20]
     # dp_vals = [4, 5, 6, 10]
     # ab_vals = [0.2, 0.25, 0.3]
@@ -490,14 +492,14 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    giab_vcf = resourcedir + "HG001_GRCh38_benchmark.interval.illumina.vcf.gz"
-    giab_cqfile = resourcedir + "all.interval.illumina.vep.info.txt"
+    giab_vcf = inputs['giabVCF']
+    giab_cqfile = inputs['giab_cq_file']
     giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
 
     rf_htfile = rf_dir + "ce85819e" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    cqfile = resourcedir + "all_consequences.txt"
-    pedfile = resourcedir + "trios.ped"
+    cqfile = inputs['all_consequences']
+    pedfile = inputs['pedigree_file']
 
     mt = hl.read_matrix_table(mtfile)
     mt_annot = annotate_with_rf(mt, rf_htfile)
