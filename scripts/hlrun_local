@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# This script runs the python code in the local Hail/Spark environment
+# Should be executed on a Hail cluster
+
+source /etc/profile
+
+date=$( date '+%Y%m%d_%H%M%S' )
+log="hlrun_local_${date}"
+
+# FIXME: # A hack to make all imports in wes-qc utils correct
+export PYTHONPATH=/home/ubuntu/temprun/wes_qc:$PYTHONPATH
+
+echo "Running the job with spark-submit"
+echo "$@"
+export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
+spark-submit "$@" 2>&1 | tee "${log}"
