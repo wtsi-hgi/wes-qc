@@ -13,7 +13,10 @@ def load_vcfs_to_mt(indir: str, outdir: str, header: str) -> None:
     objects = hl.utils.hadoop_ls(indir)
     print("Collecting VCFs")
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
-    print("Loading VCFs")
+    print(f"Collected VCFs: {len(vcfs)}")
+    print("=== List of VCFs to load:  ")
+    print("\n".join(vcfs))
+
     # create and save MT
     mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file=header)
     print("Saving as hail mt")

@@ -8,7 +8,12 @@ data_root: /lustre/scratch126/teams/hgi/gz3-fenland # Root folder for all input 
 dataset_name: gz3-fenland  # Used in automatically created files and folders
 
 gatk_vcf_header: gatk_vcf_header.txt
-gatk_import_lustre_dir: gatk_vcfs
+#gatk_import_lustre_dir: gatk_vcfs_all # All VCFS from Sarek including altcontig on chr1 and mitochondrial chromosome
+#gatk_import_lustre_dir:   gatk_vcfs_no_altcontig_no_m # No chr1 altcontig and no M chromosome
+#gatk_import_lustre_dir:   gatk_vcfs_test # Ony 1-2 files
+gatk_import_lustre_dir:    gatk_vcfs_rmdup
+
+
 load_matrixtables_lustre_dir: matrixtables  # Writing using direct Python no need the name without file:// prefix
 annotation_lustre_dir: annotations
 annotation_lustre_dir_local: undefined
@@ -22,6 +27,10 @@ resource_dir_local: resources
 training_set_dir: training_sets
 var_qc_rf_dir: variant_qc_random_forest
 vcf_output_dir: filtered_vcfs  # A timestamp will be added automatically by the script
+
+fam_pedigree: ["Fenland_Axiom_UKB_Sanger_exomeid.fam","Fenland_core_exome_Sanger_exomeid.fam","Fenland_SNP5.0_Sanger_exomeid.fam"]
+sex_and_ethnicity_annotation_file: fenland_sex_and_ethnicity.csv
+file_id_remap:
 pedfile_name: trios.ped
 
 rf_test_interval: chr20
