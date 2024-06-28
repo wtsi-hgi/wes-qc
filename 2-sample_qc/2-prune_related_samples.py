@@ -19,6 +19,7 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     # mtin = hl.split_multi(mtin)
     mtin = hl.split_multi_hts(mtin)#this shouldn't do anything as only biallelic sites are used
     print("Performing LD pruning")
+    # TODO: r2 to config?
     pruned_ht = hl.ld_prune(mtin.GT, r2=0.2)
     pruned_mt = mtin.filter_rows(hl.is_defined(pruned_ht[mtin.row_key]))
     pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
@@ -35,7 +36,9 @@ def run_pc_relate(pruned_mt_file: str, relatedness_ht_file: str, samples_to_remo
     '''
     print("Running PC relate")
     pruned_mt = hl.read_matrix_table(pruned_mt_file)
-    eig, scores, _ = hl.hwe_normalized_pca(pruned_mt.GT, k=10, compute_loadings=False)
+    # TODO: DEBUG: k=10 didn't work for the small test dataset, throwing an error:
+    # "Error summary: IllegalArgumentException: requirement failed: Dimension mismatch!: _a.cols == _b.rows (11 != 10)"
+    eig, scores, _ = hl.hwe_normalized_pca(pruned_mt.GT, k=3, compute_loadings=False)
     scores.write(scores_file, overwrite=True)
 
     print("Calculating relatedness")
@@ -70,7 +73,10 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     hl.export_plink(plink_mt, plinkfile,fam_id=plink_mt.uid, ind_id=plink_mt.uid)
 
     print("Running PCA")
-    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=20, compute_loadings=True)
+
+    # TODO: DEBUG: k=20 didn't work for the small test dataset
+    # Error summary: IllegalArgumentException: requirement failed: Requested k singular values but got k=20 and numCols=9.
+    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=4, compute_loadings=True)
     pca_af_ht = pca_mt.annotate_rows(pca_af=hl.agg.mean(pca_mt.GT.n_alt_alleles()) / 2).rows()
     pca_loadings = pca_loadings.annotate(pca_af=pca_af_ht[pca_loadings.key].pca_af)
     pca_scores_file = mtdir + "mt_pca_scores.ht"#table of pca scores per sample
@@ -82,6 +88,8 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
 
     print("Plotting PC1 vs PC2")
     p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title='PCA', xlabel='PC1', ylabel='PC2')
+    # TODO: change to os.path.join
+    # TODO: add check if plotdir exists
     output_file(plotdir + "pca.html")
     save(p)
 
@@ -91,10 +99,15 @@ def main():
     #set up
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
-    plotdir = inputs['plots_lustre_dir']
+    plotdir = inputs['plots_dir_local']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    # TODO: clarify why these won't work for me
+    # tmp_dir = "hdfs://spark-master:9820/"
+    # tmp_dir = "hdfs://spark-master:9820/user/ubuntu/hail-tmp"
+
+    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
+
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")

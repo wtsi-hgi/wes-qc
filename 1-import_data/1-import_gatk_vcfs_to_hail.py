@@ -12,10 +12,14 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     load VCFs and save as hail mt
     '''
     objects = hl.utils.hadoop_ls(indir)
-    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
+
+    # TODO: add .bgz support
+    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.bgz"))]
     print("Loading VCFs")
     #create and save MT
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
+
+    # TODO: make header file parameter optional
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
     print("Saving as hail mt")
     mt_out_file = outdir + "gatk_unprocessed.mt"
     mt.write(mt_out_file, overwrite=True)

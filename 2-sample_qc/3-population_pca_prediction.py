@@ -34,8 +34,10 @@ def create_1kg_mt(resourcedir: str, mtdir: str):
     :param str resourcedir: resources directory
     :param str mtdir: matrixtable directory
     '''
+
+    # TODO: correct resource dir: /lustre/scratch126/WES_QC/resources/1000g_VCFs
     indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits/"
-    vcfheader = indir + "header.txt"
+    vcfheader = indir + "header_20201028.txt"
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
@@ -117,7 +119,9 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str,
     #exclude EGAN00004311029 this is a huge outlier on PCA and skews all the PCs
     to_exclude = ['EGAN00004311029']
     mt = mt.filter_cols(~hl.set(to_exclude).contains(mt.s)) 
-    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=10, compute_loadings=True)
+
+    # TODO: move k to config
+    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=4, compute_loadings=True)
     pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
     pca_scores.write(pca_scores_file, overwrite=True)
     pca_loadings.write(pca_loadings_file, overwrite=True)
@@ -174,7 +178,8 @@ def main():
     mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    # tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")

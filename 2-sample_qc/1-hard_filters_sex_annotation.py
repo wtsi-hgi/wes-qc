@@ -4,6 +4,11 @@ import hail as hl
 import pyspark
 from utils.utils import parse_config
 
+import os
+
+
+# TODO: change manual path joins to os.path.join() to enhance robustness
+
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''
     Applies hard filters and annotates samples in the filtered set with call rate
@@ -14,6 +19,8 @@ def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''
     print("Applying hard filters")
     filtered_mt_file = mtdir + "mt_hard_filters_annotated.mt"
+
+    # TODO: move these number to config
     mt = mt.filter_rows((hl.len(mt.alleles) == 2) & hl.is_snp(mt.alleles[0], mt.alleles[1]) &
         (hl.agg.mean(mt.GT.n_alt_alleles()) / 2 > 0.001) &
         (hl.agg.fraction(hl.is_defined(mt.GT)) > 0.99))
@@ -73,7 +80,8 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-    metadata_file =  resourcedir +  '/mlwh_sample_and_sex.txt'
+
+    metadata_file =  resourcedir + 'mlwh_sample_and_sex.txt'
     metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
     #we only want those from the metadata file where sex is known
     metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.gender == 'Female'))
@@ -84,11 +92,11 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     #identify samples where imputed sex and manifest sex conflict
     conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
         (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
-    conflicting_sex_ht.export(annotdir + '/conflicting_sex.txt.bgz')
+    conflicting_sex_ht.export(annotdir + 'conflicting_sex.txt.bgz')
 
     #identify samples where f stat is between 0.2 and 0.8
     f_stat_ht = qc_ht.filter( (qc_ht.f_stat > 0.2) & (qc_ht.f_stat < 0.8) )
-    f_stat_ht.export(annotdir + '/sex_annotation_f_stat_outliers.txt.bgz')
+    f_stat_ht.export(annotdir + 'sex_annotation_f_stat_outliers.txt.bgz')
     
 
 def main():
@@ -113,10 +121,15 @@ def main():
     mt_filtered = apply_hard_filters(mt_unfiiltered, mtdir)
 
     #impute sex
+    # TODO: move male_threshold to config?
     mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
 
     # annotate_ambiguous_sex(mt_sex, mtdir)
-    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
+    # TODO: make this optional and check how it affects the downstream steps
+    # there is no metadata for our contrived test datasets
+
+    if os.path.exists(resourcedir):
+        identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
 
 
 if __name__ == '__main__':
