@@ -36,13 +36,14 @@ def create_1kg_mt(resourcedir: str, mtdir: str):
     '''
 
     # TODO: correct resource dir: /lustre/scratch126/WES_QC/resources/1000g_VCFs
-    indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits/"
-    vcfheader = indir + "header_20201028.txt"
+    indir = resourcedir + "mini_1000G/"
+    vcfheader = indir + "header_20201028.txt" # TODO: DEBUG: not used during tests on small dataset
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
     #create and save MT
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = vcfheader)
+    # TODO: make header optional (don't have one for mini 1000g test)
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
     print("Saving as hail mt")
     mt_out_file = mtdir + "kg_wes_regions.mt"
     mt.write(mt_out_file, overwrite=True)
@@ -85,7 +86,9 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
 
     # The following is 1kg superpop
-    pops_file = resourcedir + "/igsr_samples.tsv"
+
+    # TODO: remove leading slash
+    pops_file = resourcedir + "igsr_samples.tsv"
     cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
     mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])
 
@@ -96,7 +99,8 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
         (mt_vqc.variant_QC_Hail.AF[1] >= 0.05) &
         (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
     )
-    long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
+    # TODO: this file must be .bed (?)
+    long_range_ld_file = resourcedir + "long_ld_regions.hg38.bed"
     long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
     mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
     mt_non_pal = mt_vqc_filtered.filter_rows((mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False)

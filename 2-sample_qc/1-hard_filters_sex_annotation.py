@@ -81,6 +81,7 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
 
+    # TODO: make filename as parameter in function
     metadata_file =  resourcedir + 'mlwh_sample_and_sex.txt'
     metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
     #we only want those from the metadata file where sex is known
@@ -128,8 +129,8 @@ def main():
     # TODO: make this optional and check how it affects the downstream steps
     # there is no metadata for our contrived test datasets
 
-    if os.path.exists(resourcedir):
-        identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
+    print(f'identifying inconsistencies DEBUG') # DEBUG
+    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@ import hail as hl
 import pyspark
 from utils.utils import parse_config
 
+# TODO: not used? make it optional and mention in cli help
 def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     '''
     param str annotated_mt_file: File containing MatrixTable annotated with sequencing location
@@ -53,7 +54,7 @@ def main():
     annotdir = inputs['annotation_lustre_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")

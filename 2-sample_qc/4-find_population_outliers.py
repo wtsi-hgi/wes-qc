@@ -35,6 +35,8 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     mt = mt.filter_rows(mt.locus.in_autosome())
 
     # filter MT by depth/gq/vaf
+
+    # TODO: move to config
     min_dp = 20
     min_gq = 20
     min_vaf = 0.25
@@ -116,7 +118,7 @@ def main():
     #mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp/"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
