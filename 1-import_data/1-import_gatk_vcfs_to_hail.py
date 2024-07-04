@@ -13,18 +13,20 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     '''
     objects = hl.utils.hadoop_ls(indir)
     
-    vcf_names = r'\file://.*vcf.b?gz\'
+    # for some reason, paths prefix is `file:`, not a `file://`
+    vcf_pattern = re.compile("file:.*vcf.b?gz")
     
     # TODO: add .bgz support
-    vcfs = [vcf["path"] for vcf in objects if vcf_names.match(vcf["path"])]
+    vcfs = [vcf["path"] for vcf in objects if vcf_pattern.match(vcf["path"])]
     #create and save MT
 
     # TODO: make header file parameter optional
+    print(f"info: Found {len(vcfs)} VCFs in {indir}")
     if header:
-        print("Loading VCFs with header")
+        print("info: Loading VCFs with header")
         mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
     else:
-        print("Loading VCFs WITHOUT header")
+        print("info: Loading VCFs WITHOUT header")
         mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
         
     print("Saving as hail mt")
@@ -36,7 +38,8 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
 def main():
     #set up input variables
     inputs = parse_config()
-    vcf_header = inputs['gatk_vcf_header']
+    # dict.get returns None on KeyError
+    vcf_header = inputs.get('gatk_vcf_header')
     import_vcf_dir = inputs['gatk_import_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
 

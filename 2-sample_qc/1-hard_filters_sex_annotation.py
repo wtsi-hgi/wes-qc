@@ -8,6 +8,7 @@ import os
 
 
 # TODO: change manual path joins to os.path.join() to enhance robustness
+# note: os.path.join arguments must not start from '/' unless you meant to start from the fs root
 
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''
@@ -49,7 +50,7 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     #imput sex on the unphased diploid GTs
     sex_ht = hl.impute_sex(mtx_unphased.GT, aaf_threshold=0.05, female_threshold=female_threshold, male_threshold=male_threshold)
     #export
-    sex_ht.export(os.path.join(annotdir, '/mk43_sex_annotated.sex_check.txt.bgz')) # output
+    sex_ht.export(os.path.join(annotdir, 'mk43_sex_annotated.sex_check.txt.bgz')) # output
     #annotate input (all chroms) mt with imputed sex and write to file
     sex_colnames = ['f_stat', 'is_female']
     sex_ht = sex_ht.select(*sex_colnames)
@@ -93,11 +94,11 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     #identify samples where imputed sex and manifest sex conflict
     conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
         (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
-    conflicting_sex_ht.export(os.path.join(annotdir, 'mk43_conflicting_sex.txt.bgz') # output
+    conflicting_sex_ht.export(os.path.join(annotdir, 'mk43_conflicting_sex.txt.bgz')) # output
 
     #identify samples where f stat is between 0.2 and 0.8
     f_stat_ht = qc_ht.filter( (qc_ht.f_stat > 0.2) & (qc_ht.f_stat < 0.8) )
-    f_stat_ht.export(annotdir + 'sex_annotation_f_stat_outliers.txt.bgz') # output
+    f_stat_ht.export(os.path.join(annotdir, 'mk43_sex_annotation_f_stat_outliers.txt.bgz')) # output
     
 
 def main():
@@ -114,7 +115,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mt_in_file = os.path.join(mtdir, "/mk43_gatk_unprocessed.mt") # input from 1.1
+    mt_in_file = os.path.join(mtdir, "mk43_gatk_unprocessed.mt") # input from 1.1
     print("Reading input matrix")
     mt_unfiiltered = hl.read_matrix_table(mt_in_file)
 
