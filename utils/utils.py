@@ -22,6 +22,19 @@ def parse_config():
 
     return inputs
 
+PATH_LOCAL, PATH_REMOTE, PATH_SAME = 1,2,4
+def get_path(directory, filename, variant=PATH_SAME, user_prefix=None):
+    dir_variant = PATH_REMOTE if directory.startswith('file://') else PATH_LOCAL
+    if user_prefix:
+        filename = f"{user_prefix}_" + filename
+    if variant == PATH_SAME:
+        pass
+    if variant == PATH_REMOTE and dir_variant == PATH_LOCAL:
+        directory = "file://" + directory
+    if variant == PATH_LOCAL and dir_variant == PATH_REMOTE:
+        directory = directory.replace("file://", "", count=1)
+    return os.path.join(directory, filename)
+        
 
 def expand_pd_array_col(
         df: pd.DataFrame,
