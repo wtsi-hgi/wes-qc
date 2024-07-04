@@ -29,8 +29,8 @@ var_qc_rf_dir: variant_qc_random_forest
 vcf_output_dir: filtered_vcfs  # A timestamp will be added automatically by the script
 
 fam_pedigree: ["Fenland_Axiom_UKB_Sanger_exomeid.fam","Fenland_core_exome_Sanger_exomeid.fam","Fenland_SNP5.0_Sanger_exomeid.fam"]
-sex_and_ethnicity_annotation_file: fenland_sex_and_ethnicity.csv
-file_id_remap:
+self_reported_sex: fenland_self_reported_sex.csv
+fam_id_remap: 7286_pedigree_name_map.csv
 pedfile_name: trios.ped
 
 rf_test_interval: chr20
