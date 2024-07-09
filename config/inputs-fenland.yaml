@@ -1,7 +1,7 @@
 ---
 
-tmp_dir: "hdfs://spark-master:9820/user/ubuntu/hail-tmp"
-#tmp_dir: "file:///lustre/scratch123/gz3/tmp"
+#tmp_dir: "hdfs://spark-master:9820/user/ubuntu/hail-tmp"
+tmp_dir: "file:///lustre/scratch126/teams/hgi/gz3-fenland/tmp"
 
 # === Root folders
 data_root: /lustre/scratch126/teams/hgi/gz3-fenland # Root folder for all input and analysis data
@@ -30,6 +30,7 @@ vcf_output_dir: filtered_vcfs  # A timestamp will be added automatically by the 
 
 fam_pedigree: ["Fenland_Axiom_UKB_Sanger_exomeid.fam","Fenland_core_exome_Sanger_exomeid.fam","Fenland_SNP5.0_Sanger_exomeid.fam"]
 self_reported_sex: fenland_self_reported_sex.csv
+exclude_variations_file: "variants_to_remove.vcf"
 fam_id_remap: 7286_pedigree_name_map.csv
 pedfile_name: trios.ped
 
