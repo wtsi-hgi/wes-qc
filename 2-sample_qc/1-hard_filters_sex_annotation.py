@@ -18,7 +18,7 @@ def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> None:
     :rtype: MatrixTable
     """
     print("Applying hard filters")
-    filtered_mt_file = "file://" + os.path.join(mtdir + "mt_hard_filters_annotated.mt")
+    filtered_mt_file = "file://" + os.path.join(mtdir, "mt_hard_filters_annotated.mt")
     # Keeping only variations that:
     mt = mt.filter_rows(
         (hl.len(mt.alleles) == 2)
@@ -133,7 +133,7 @@ def main() -> None:
 
     # impute sex
     if args.impute_sex or args.run:
-        filtered_mt_file = "file://" + os.path.join(mtdir + "mt_hard_filters_annotated.mt")
+        filtered_mt_file = "file://" + os.path.join(mtdir, "mt_hard_filters_annotated.mt")
         mt_filtered = hl.read_matrix_table(filtered_mt_file)
         impute_sex(mt_filtered, mtdir, annot_dir, male_threshold=0.6)
 
