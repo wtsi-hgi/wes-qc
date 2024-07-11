@@ -110,7 +110,6 @@ def main() -> None:
 
     mtdir: str = os.path.join(data_root, inputs["matrixtables_lustre_dir"])
     annot_dir: str = os.path.join(data_root, inputs["annotation_lustre_dir"])
-    resourcedir = inputs["resource_dir"]
 
     # initialise hail
     tmp_dir = inputs["tmp_dir"]
