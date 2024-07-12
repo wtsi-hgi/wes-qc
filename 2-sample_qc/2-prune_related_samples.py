@@ -5,8 +5,6 @@ import os
 
 import hail as hl
 from utils.utils import parse_config
-import bokeh.plotting
-
 from wes_qc import hail_utils, visualize
 
 
@@ -95,12 +93,6 @@ def run_population_pca(
     pca_mt = pca_mt.annotate_cols(scores=pca_scores[pca_mt.col_key].scores)
     pca_mt.write(pca_mt_file, overwrite=True)
 
-    print("Plotting PC1 vs PC2")
-    p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title="PCA", xlabel="PC1", ylabel="PC2")
-    print(f"Saving plot to the folder {plotdir}")
-    bokeh.plotting.output_file(os.path.join(plotdir, "PCA_population.html"))
-    bokeh.plotting.save(p)
-
 
 def main() -> None:
     # set up
@@ -131,6 +123,8 @@ def main() -> None:
         "Remove related samples from PC relate from pruned MT and run PCA",
         action="store_true",
     )
+    parser.add_argument("--pca-plot", help="run pca", action="store_true")
+
     parser.add_argument("-r", "--run", help="Run all steps", action="store_true")
     args = parser.parse_args()
 
@@ -168,9 +162,11 @@ def main() -> None:
             n_pca_components=20,
         )
 
-        pca_scores = hl.read_table("file://" + os.path.join(mtdir, "mt_pca_scores.ht"))
-
-        visualize.visualize_pca(pca_scores, os.path.join(plotdir, f"PCA_population_{n_pca}.png"), n_pca)
+    if args.pca_plot or args.run:
+        pca_scores_file = os.path.join(mtdir, "mt_pca_scores.ht")
+        print(f"Plotting PCA components for {pca_scores_file}")
+        pca_scores = hl.read_table("file://" + pca_scores_file)
+        visualize.plot_pca_bokeh(pca_scores, os.path.join(plotdir, f"PCA_population_{n_pca}.html"), n_pca, pop=None)
 
     hail_utils.stop_hl(sc)
 

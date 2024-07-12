@@ -10,6 +10,7 @@ dataset_name: gz3-fenland  # Used in automatically created files and folders
 gatk_vcf_header: gatk_vcf_header.txt
 gatk_import_lustre_dir:    gatk_vcfs_rmdup
 
+
 annotation_lustre_dir: annotations
 matrixtables_lustre_dir: matrixtables
 stats_dir: stats
@@ -24,7 +25,9 @@ self_reported_sex: fenland_self_reported_sex.csv
 exclude_variations_file: "variants_to_remove.vcf"
 fam_id_remap: 7286_pedigree_name_map.csv
 pedfile_name: trios.ped
-n_pca: 5
+n_pca: 3
+kg_dir: 1kg_vcf_nosv # "1kg_vcf" # Filter fr 100genomes VCFS inside `resources`
+kg_pop: igsr_samples.tsv # downloaded from https://www.internationalgenome.org/data-portal/sample
 
 rf_test_interval: chr20
 
