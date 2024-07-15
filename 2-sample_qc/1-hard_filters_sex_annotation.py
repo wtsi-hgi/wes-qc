@@ -5,39 +5,28 @@ import pyspark
 from utils.utils import parse_config
 
 import os
+from collections import namedtuple
 
-
-# TODO: change manual path joins to os.path.join() to enhance robustness
-# note: os.path.join arguments must not start from '/' unless you meant to start from the fs root
-
-def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
+def apply_hard_filters(mt: hl.MatrixTable) -> hl.MatrixTable:
     '''
     Applies hard filters and annotates samples in the filtered set with call rate
     :param MatrixTable mt: MT containing samples to be ascertained for sex
-    :param str mtdir: directory output matrix tables are written to
     :return: MatrixTable with hard filtering annotation
     :rtype: MatrixTable
     '''
-    print("Applying hard filters")
-    # User prefix
-    filtered_mt_file = os.path.join(mtdir, "mk43_mt_hard_filters_annotated.mt") # output
-
     # TODO: move these number to config
     mt = mt.filter_rows((hl.len(mt.alleles) == 2) & hl.is_snp(mt.alleles[0], mt.alleles[1]) &
         (hl.agg.mean(mt.GT.n_alt_alleles()) / 2 > 0.001) &
         (hl.agg.fraction(hl.is_defined(mt.GT)) > 0.99))
     mt = mt.annotate_cols(callrate=hl.agg.fraction(hl.is_defined(mt.GT)))
-    mt.write(filtered_mt_file, overwrite=True)
 
     return mt
 
-
-def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: float = 0.8, female_threshold: float = 0.5) -> hl.MatrixTable:
+ImputeSexResult = namedtuple('ImputeSexResult', 'mt, sex_ht')
+def impute_sex(mt: hl.MatrixTable, male_threshold: float = 0.8, female_threshold: float = 0.5) -> ImputeSexResult:
     '''
     Imputes sex, exports data, and annotates mt with this data
     :param MatrixTable mt: MT containing samples to be ascertained for sex
-    :param str mtdir: directory output matrix tables are written to
-    :param str annotdir: directory annotation files are written to
     :return: MatrixTable with imputed sex annotations stashed in column annotation 'sex_check'
     :rtype: MatrixTable
     '''
@@ -49,17 +38,12 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     mtx_unphased = mt1.select_entries(GT=hl.unphased_diploid_gt_index_call(mt1.GT.n_alt_alleles()))
     #imput sex on the unphased diploid GTs
     sex_ht = hl.impute_sex(mtx_unphased.GT, aaf_threshold=0.05, female_threshold=female_threshold, male_threshold=male_threshold)
-    #export
-    sex_ht.export(os.path.join(annotdir, 'mk43_sex_annotated.sex_check.txt.bgz')) # output
     #annotate input (all chroms) mt with imputed sex and write to file
     sex_colnames = ['f_stat', 'is_female']
     sex_ht = sex_ht.select(*sex_colnames)
     mt = mt.annotate_cols(**sex_ht[mt.col_key])
-    sex_mt_file = os.path.join(mtdir, "mk43_mt_sex_annotated.mt") # output
-    print("Writing to " + sex_mt_file)
-    mt.write(sex_mt_file, overwrite=True)
 
-    return mt
+    return mt, sex_ht
 
 
 def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, resourcedir: str):
@@ -102,29 +86,45 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     
 
 def main():
-    #set up
+    # set up
     inputs = parse_config()
     #importmtdir = inputs['load_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
     resourcedir = inputs['resource_dir']
 
-    #initialise hail
+    # initialise hail
     tmp_dir = inputs['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mt_in_file = os.path.join(mtdir, "mk43_gatk_unprocessed.mt") # input from 1.1
-    print("Reading input matrix")
-    mt_unfiiltered = hl.read_matrix_table(mt_in_file)
+    # read data from previous step
+    mt_in_file = os.path.join(mtdir, "gatk_unprocessed.mt") # input from 1.1
+    print("Reading input matrix from " + mt_in_file)
+    mt_unfiltered = hl.read_matrix_table(mt_in_file)
 
-    #apply hard fitlers
-    mt_filtered = apply_hard_filters(mt_unfiiltered, mtdir)
+    # apply hard fitlers
+    print("Applying hard filters")
+    mt_filtered = apply_hard_filters(mt_unfiltered, mtdir)
+    
+    # save hard filtered data
+    filtered_mt_file = os.path.join(mtdir, "mt_hard_filters_annotated.mt")
+    print("Saving to " + filtered_mt_file)
+    mt_filtered.write(filtered_mt_file, overwrite=True)
 
-    #impute sex
+    # impute sex
     # TODO: move male_threshold to config?
-    mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
+    print("Imputing sex data")
+    mt_sex, sex_ht = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
+    
+    # export sex data
+    sex_ht_outfile = os.path.join(annotdir, 'sex_annotated.sex_check.txt.bgz')
+    sex_mt_outpile = os.path.join(mtdir, "mt_sex_annotated.mt")
+    print("Writing sex_ht to " + sex_ht_outfile)
+    sex_ht.export(sex_ht_outfile)
+    print("Writing mt with sex data to " + sex_mt_outpile)
+    mt_sex.write(sex_mt_outpile, overwrite=True)
 
     # annotate_ambiguous_sex(mt_sex, mtdir)
     # TODO: make this optional and check how it affects the downstream steps
