@@ -13,15 +13,56 @@ def get_script_path():
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 def parse_config():
+    # with an option to get the config file path from env
+    
+    # find config dir
     script_dir = get_script_path()
-    input_yaml = script_dir + '/../config/inputs.yaml'
+    print("info: script_dir ", script_dir)
+    config_dir = '../config'
+    # to handle 3-variant_qc subdirs 
+    if not os.path.exists(os.path.join(script_dir, config_dir)):
+        config_dir = '../../config'
+    config_dir = os.path.join(script_dir, config_dir)
+    
+    # default values
+    input_yaml = os.path.join(config_dir, 'inputs.yaml')
+    config_type = 'default'
+    
+    # handle environmental variable
+    if 'WES_CONFIG' in os.environ:
+        config_path = os.environ['WES_CONFIG']
+        if config_path[0] == '/' or config_path.startswith('./'):
+            # an absolute path
+            input_yaml = config_path
+            config_type = 'WES_CONFIG absolute'
+        else:
+            # consider path as relative to the config dir!
+            input_yaml = os.path.join(config_dir, config_path)
+            config_type = 'WES_CONFIG relative to config dir'
+
+    # read config
     if not os.path.exists(input_yaml):
-        input_yaml = script_dir + '/../../config/inputs.yaml'
+        print(f"error: config {input_yaml} does not exist")
+    print(f"Loading config '{input_yaml}', {config_type}")
+        
     with open(input_yaml, 'r') as y:
         inputs = yaml.load(y, Loader=yaml.FullLoader)
 
     return inputs
 
+PATH_LOCAL, PATH_REMOTE, PATH_SAME = 1,2,4
+def get_path(directory, filename, variant=PATH_SAME, user_prefix=None):
+    dir_variant = PATH_REMOTE if directory.startswith('file://') else PATH_LOCAL
+    if user_prefix:
+        filename = f"{user_prefix}_" + filename
+    if variant == PATH_SAME:
+        pass
+    if variant == PATH_REMOTE and dir_variant == PATH_LOCAL:
+        directory = "file://" + directory
+    if variant == PATH_LOCAL and dir_variant == PATH_REMOTE:
+        directory = directory.replace("file://", "", count=1)
+    return os.path.join(directory, filename)
+        
 
 def expand_pd_array_col(
         df: pd.DataFrame,

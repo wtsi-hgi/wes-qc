@@ -6,6 +6,7 @@ import pyspark
 from utils.utils import parse_config
 
 # TODO: change manual path joins to os.path.join() to enhance robustness
+# note: os.path.join arguments must not start from '/' unless you meant to start from the fs root
 
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''
@@ -46,12 +47,12 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     #imput sex on the unphased diploid GTs
     sex_ht = hl.impute_sex(mtx_unphased.GT, aaf_threshold=0.05, female_threshold=female_threshold, male_threshold=male_threshold)
     #export
-    sex_ht.export(annotdir + '/sex_annotated.sex_check.txt.bgz')
+    sex_ht.export(os.path.join(annotdir, 'sex_annotated.sex_check.txt.bgz')) # output
     #annotate input (all chroms) mt with imputed sex and write to file
     sex_colnames = ['f_stat', 'is_female']
     sex_ht = sex_ht.select(*sex_colnames)
     mt = mt.annotate_cols(**sex_ht[mt.col_key])
-    sex_mt_file = mtdir + "mt_sex_annotated.mt"
+    sex_mt_file = os.path.join(mtdir, "mt_sex_annotated.mt") # output
     print("Writing to " + sex_mt_file)
     mt.write(sex_mt_file, overwrite=True)
 
@@ -80,7 +81,8 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
 
     # TODO: make filename as parameter in function
-    metadata_file =  resourcedir + 'mlwh_sample_and_sex.txt'
+    metadata_file =  os.path.join(resourcedir, 'mlwh_sample_and_sex.txt')  # resource
+
     metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
     #we only want those from the metadata file where sex is known
     metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.gender == 'Female'))
@@ -91,11 +93,11 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     #identify samples where imputed sex and manifest sex conflict
     conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
         (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
-    conflicting_sex_ht.export(annotdir + 'conflicting_sex.txt.bgz')
+    conflicting_sex_ht.export(os.path.join(annotdir, 'conflicting_sex.txt.bgz')) # output
 
     #identify samples where f stat is between 0.2 and 0.8
     f_stat_ht = qc_ht.filter( (qc_ht.f_stat > 0.2) & (qc_ht.f_stat < 0.8) )
-    f_stat_ht.export(annotdir + 'sex_annotation_f_stat_outliers.txt.bgz')
+    f_stat_ht.export(os.path.join(annotdir, 'sex_annotation_f_stat_outliers.txt.bgz')) # output
     
 
 def main():
@@ -107,12 +109,13 @@ def main():
     resourcedir = inputs['resource_dir']
 
     #initialise hail
-    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
+    tmp_dir = inputs['tmp_dir']
+
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mt_in_file = mtdir + "/gatk_unprocessed.mt"
+    mt_in_file = os.path.join(mtdir, "gatk_unprocessed.mt") # input from 1.1
     print("Reading input matrix")
     mt_unfiiltered = hl.read_matrix_table(mt_in_file)
 
@@ -127,7 +130,6 @@ def main():
     # TODO: make this optional and check how it affects the downstream steps
     # there is no metadata for our contrived test datasets
 
-    print(f'identifying inconsistencies DEBUG') # DEBUG
     identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
 
 

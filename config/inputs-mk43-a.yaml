@@ -1,0 +1,61 @@
+---
+
+user_prefix: mk43
+# tmp_dir: hdfs://spark-master:9820/
+tmp_dir: /lustre/scratch126/mk43/tmp/
+
+# --- Step 1.1 --- #
+# TODO: gatk_vcf_header: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+gatk_import_lustre_dir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+#   why no file:// prefix?
+
+# --- Step 2.1 --- #
+annotation_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/
+annotation_lustre_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
+plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
+resource_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/resources/
+resource_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
+training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
+var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
+
+rf_test_interval: chr20
+
+#hard filter
+hard_filters:
+  missingness: 0.5
+  snp:
+    relaxed:
+      bin: 92
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 88
+      dp: 5
+      gq: 10
+      ab: 0.2
+    stringent:
+      bin: 84
+      dp: 5
+      gq: 15
+      ab: 0.2
+  indel:
+    relaxed:
+      bin: 68
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 66
+      dp: 5
+      gq: 15
+      ab: 0.2
+    stringent:
+      bin: 58
+      dp: 5
+      gq: 20
+      ab: 0.3
