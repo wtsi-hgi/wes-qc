@@ -1,4 +1,8 @@
 ---
+
+# hail setup parameter
+tmp_dir: file:///lustre/scratch126/dh24_test/tmp
+
 # --- Step 1.1 --- #
 gatk_vcf_header: file:///lustre/scratch126/dh24_test/qc_test/BiB/gatk_vcf_header.txt # TODO: make optional
 gatk_import_lustre_dir: file:///lustre/scratch126/dh24_test/control_set_small # test with the small dataset
