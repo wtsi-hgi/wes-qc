@@ -16,11 +16,9 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     # for some reason, paths prefix is `file:`, not a `file://`
     vcf_pattern = re.compile("file:.*vcf.b?gz")
     
-    # TODO: add .bgz support
     vcfs = [vcf["path"] for vcf in objects if vcf_pattern.match(vcf["path"])]
     #create and save MT
 
-    # TODO: make header file parameter optional
     print(f"info: Found {len(vcfs)} VCFs in {indir}")
     if header:
         print("info: Loading VCFs with header")
@@ -30,8 +28,7 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
         mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
         
     print("Saving as hail mt")
-    # Using prefix mk43 to discern between my and Dmytro's data, as we are sharing an mt directory
-    mt_out_file = os.path.join(outdir, "mk43_gatk_unprocessed.mt")
+    mt_out_file = os.path.join(outdir, "gatk_unprocessed.mt")
     mt.write(mt_out_file, overwrite=True)
 
 
