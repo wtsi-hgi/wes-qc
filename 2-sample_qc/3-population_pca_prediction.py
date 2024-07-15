@@ -18,8 +18,9 @@ def get_options() -> Any:
     parser.add_argument("-m", "--merge", help="merge alspac mt with 1kg mt", action="store_true")
     parser.add_argument("-f", "--filter", help="annotate and filter merged mt", action="store_true")
     parser.add_argument("-p", "--pca", help="run pca", action="store_true")
-    parser.add_argument("--pca-plot", help="run pca", action="store_true")
+    parser.add_argument("--pca-plot", help="Plot PCA for 1000genomes", action="store_true")
     parser.add_argument("-a", "--assign_pops", help="assign populations", action="store_true")
+    parser.add_argument("--pca-plot-assigned", help="Plot PCA for assigned populations", action="store_true")
     parser.add_argument("-r", "--run", help="run all steps except kg_to_mt", action="store_true")
     args = parser.parse_args()
 
@@ -253,6 +254,14 @@ def main() -> None:
     pop_ht_file = os.path.join(mtdir, "pop_assignments.ht")
     if args.assign_pops or args.run:
         predict_pops("file://" + pca_scores_file, "file://" + pop_ht_file)
+
+    if args.pca_plot_assigned or args.run:
+        print(f"Plotting PCA components for assigned populations: {pca_scores_file}")
+        pop_ht = hl.read_table("file://" + pop_ht_file)
+        pop_ht = pop_ht.transmute(scores=pop_ht.pca_scores)
+        visualize.plot_pca_bokeh(
+            pop_ht, os.path.join(plotdir, f"PCA_assigned_populations_{n_pca}.html"), n_pca, pop="pop"
+        )
 
     hail_utils.stop_hl(sc)
 

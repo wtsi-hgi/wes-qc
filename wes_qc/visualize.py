@@ -31,10 +31,10 @@ def plot_pca_bokeh(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Op
             p = hl.plot.scatter(
                 pca_scores.scores[i],
                 pca_scores.scores[j],
-                xlabel=f"PC{i}",
-                ylabel=f"PC{j}",
+                xlabel=f"PC{i+1}",
+                ylabel=f"PC{j+1}",
                 label=label,
-                title=f"PC{i} vs PC{j}",
+                title=f"PC{i+1} vs PC{j+1}",
             )
             layout[i][j] = p
 
