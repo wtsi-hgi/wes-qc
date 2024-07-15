@@ -4,7 +4,7 @@ import pyspark
 import yaml
 import os
 import sys
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
@@ -21,7 +21,7 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
     # TODO: make header file parameter optional
     mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
     print("Saving as hail mt")
-    mt_out_file = outdir + "gatk_unprocessed.mt"
+    mt_out_file = os.path.join(outdir, "gatk_unprocessed.mt")
     mt.write(mt_out_file, overwrite=True)
 
 
@@ -32,8 +32,8 @@ def main():
     import_vcf_dir = inputs['gatk_import_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
 
-    #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    # initialise hail
+    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")

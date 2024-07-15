@@ -1,0 +1,66 @@
+---
+
+# === control_set_1000G === # 
+
+# WARNING: this test dataset is already QC'ed which means that steps 2.4-2.5 won't run #
+
+# --- Step 1.1 --- #
+gatk_vcf_header: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/gatk_vcf_header.txt # TODO: make optional
+gatk_import_lustre_dir: file:///lustre/scratch126/dh24_test/control_set_from_1000G
+load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/matrixtables/ # not used in this step
+# matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/matrixtables/ # used in this step 
+
+# --- Step 2.1 --- #
+#load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/matrixtables/mts_for_control_datasets/
+annotation_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/annotations/
+annotation_lustre_dir_local: /lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/annotations/ # TODO: clarify the purpose of these _local duplicates, not used in this step
+matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/matrixtables/
+resource_dir: file:///lustre/scratch126/dh24_test/resources/
+
+# --- Step 2.2 --- #
+#matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/matrixtables/mts_for_control_datasets/
+plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/plots/ # TODO: not used?
+plots_dir_local: /lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/plots/
+# resource_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/resources/
+resource_dir_local: /lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/resources/
+training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/training_sets/
+var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/control_set_from_1000G_qc/filtered_vcfs/
+
+rf_test_interval: chr20
+
+#hard filter
+hard_filters:
+  missingness: 0.5
+  snp:
+    relaxed:
+      bin: 92
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 88
+      dp: 5
+      gq: 10
+      ab: 0.2
+    stringent:
+      bin: 84
+      dp: 5
+      gq: 15
+      ab: 0.2
+  indel:
+    relaxed:
+      bin: 68
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 66
+      dp: 5
+      gq: 15
+      ab: 0.2
+    stringent:
+      bin: 58
+      dp: 5
+      gq: 20
+      ab: 0.3

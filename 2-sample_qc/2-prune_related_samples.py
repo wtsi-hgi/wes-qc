@@ -89,7 +89,7 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     print("Plotting PC1 vs PC2")
     p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title='PCA', xlabel='PC1', ylabel='PC2')
     # TODO: change to os.path.join
-    # TODO: add check if plotdir exists
+    # TODO: add check if plotdir exists, create if not
     output_file(plotdir + "pca.html")
     save(p)
 

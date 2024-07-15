@@ -1,11 +1,9 @@
 #apply gnomad's hard filters and impute sex
 #input gatk_unprocessed.mt from step 1.1
+import os
 import hail as hl
 import pyspark
 from utils.utils import parse_config
-
-import os
-
 
 # TODO: change manual path joins to os.path.join() to enhance robustness
 
@@ -18,7 +16,7 @@ def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     :rtype: MatrixTable
     '''
     print("Applying hard filters")
-    filtered_mt_file = mtdir + "mt_hard_filters_annotated.mt"
+    filtered_mt_file = os.path.join(mtdir, "mt_hard_filters_annotated.mt")
 
     # TODO: move these number to config
     mt = mt.filter_rows((hl.len(mt.alleles) == 2) & hl.is_snp(mt.alleles[0], mt.alleles[1]) &
@@ -109,7 +107,7 @@ def main():
     resourcedir = inputs['resource_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
