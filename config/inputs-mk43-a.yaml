@@ -1,26 +1,35 @@
 ---
 
-user_prefix: mk43
-# tmp_dir: hdfs://spark-master:9820/
-tmp_dir: /lustre/scratch126/mk43/tmp/
+general:
+  # tmp_dir: hdfs://spark-master:9820/
+  tmp_dir: /lustre/scratch126/mk43/tmp/
+
+  annotation_outdir: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/
+  annotation_outdir_local: /lustre/scratch126/dh24_test/qc_test/BiB/annotations/
+  matrixtables_outdir: file:///lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
 
 # --- Step 1.1 --- #
-# TODO: gatk_vcf_header: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
-gatk_import_lustre_dir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
-load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
-#   why no file:// prefix?
+step1_import:
+  gatk_vcf_header:
+  gatk_vcf_dir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
 
 # --- Step 2.1 --- #
-annotation_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/
-annotation_lustre_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+step2_hard_filters:
+  
+
+
 plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
 plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
+
 resource_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/resources/
 resource_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
 var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
+
+
+load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+
 
 rf_test_interval: chr20
 

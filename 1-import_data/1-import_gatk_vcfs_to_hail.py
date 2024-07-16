@@ -36,12 +36,12 @@ def main():
     #set up input variables
     inputs = parse_config()
     # dict.get returns None on KeyError
-    vcf_header = inputs.get('gatk_vcf_header')
-    import_vcf_dir = inputs['gatk_import_lustre_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
+    vcf_header = inputs['step1_import'].get('gatk_vcf_header')
+    import_vcf_dir = inputs['step1_import']['gatk_vcf_dir']
+    mtdir = inputs['general']['matrixtables_lustre_dir']
 
     #initialise hail
-    tmp_dir = inputs['tmp_dir']
+    tmp_dir = inputs['general']['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
