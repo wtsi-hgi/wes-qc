@@ -1,0 +1,65 @@
+---
+
+# hail setup parameter
+tmp_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/tmp_test
+
+# --- Step 1.1 --- #
+# gatk_vcf_header: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/gatk_vcf_header.txt # TODO: make optional
+gatk_import_lustre_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/control_set_small # test with the small dataset
+load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/matrixtables/ # not used in this step
+# matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/matrixtables/ # used in this step 
+
+# --- Step 2.1 --- #
+#load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/matrixtables/mts_for_control_datasets/
+annotation_lustre_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/annotations/
+annotation_lustre_dir_local: /lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/annotations/ # TODO: clarify the purpose of these _local duplicates, not used in this step
+matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/matrixtables/
+resource_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/resources
+
+# --- Step 2.2 --- #
+#matrixtables_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/matrixtables/mts_for_control_datasets/
+plots_lustre_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/plots/ # TODO: not used?
+plots_dir_local: /lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/plots/
+# resource_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/resources/
+resource_dir_local: /lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/resources/
+training_set_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/training_sets/
+var_qc_rf_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch126/dh24_test/wes-qc/tests/smoke_tests/filtered_vcfs/
+
+rf_test_interval: chr20
+
+#hard filter
+hard_filters:
+  missingness: 0.5
+  snp:
+    relaxed:
+      bin: 92
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 88
+      dp: 5
+      gq: 10
+      ab: 0.2
+    stringent:
+      bin: 84
+      dp: 5
+      gq: 15
+      ab: 0.2
+  indel:
+    relaxed:
+      bin: 68
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 66
+      dp: 5
+      gq: 15
+      ab: 0.2
+    stringent:
+      bin: 58
+      dp: 5
+      gq: 20
+      ab: 0.3
