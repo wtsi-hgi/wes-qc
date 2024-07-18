@@ -12,6 +12,7 @@ def get_script_path():
     #returns the path of the script that is being run
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
+# TODO: caching
 def parse_config():
     # with an option to get the config file path from env
     

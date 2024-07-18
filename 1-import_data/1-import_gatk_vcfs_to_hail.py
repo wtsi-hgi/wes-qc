@@ -7,9 +7,10 @@ import sys
 import re
 from wes_qc.utils.utils import parse_config
 
-def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
+def load_vcfs_to_mt(indir, outdir, header):
     '''
-    load VCFs and save as hail mt
+    load VCFs and save as hail mt.  
+    Save mt as outdir/gatk_unprocessed.mt
     '''
     objects = hl.utils.hadoop_ls(indir)
     
@@ -35,10 +36,12 @@ def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
 def main():
     #set up input variables
     inputs = parse_config()
-    # dict.get returns None on KeyError
-    vcf_header = inputs['step1_import'].get('gatk_vcf_header')
-    import_vcf_dir = inputs['step1_import']['gatk_vcf_dir']
-    mtdir = inputs['general']['matrixtables_lustre_dir']
+    
+    vcf_header, import_vcf_dir, mtdir = (
+        inputs['step1']['import_paths'].get('gatk_vcf_header'),
+        inputs['step1']['import_paths']['gatk_vcf_dir'],
+        inputs['general']['matrixtables_outdir']
+    )
 
     #initialise hail
     tmp_dir = inputs['general']['tmp_dir']
@@ -48,8 +51,7 @@ def main():
 
     #load VCFs
     load_vcfs_to_mt(indir=import_vcf_dir, 
-                    outdir=mtdir, 
-                    tmp_dir=tmp_dir, 
+                    outdir=mtdir,
                     header=vcf_header)
 
 

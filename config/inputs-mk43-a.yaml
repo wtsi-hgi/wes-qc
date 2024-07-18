@@ -9,14 +9,28 @@ general:
   matrixtables_outdir: file:///lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
 
 # --- Step 1.1 --- #
-step1_import:
-  gatk_vcf_header:
-  gatk_vcf_dir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+step1:
+  import_paths:
+    gatk_vcf_header:
+    gatk_vcf_dir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
 
 # --- Step 2.1 --- #
-step2_hard_filters:
-  
+step2:
+  sex_annotation_hard_filters:
+    n_alt_alleles_threshold: 0.001
+    defined_gt_frac_threshold: 0.99
 
+  impute_sex:
+    female_threshold: 0.5
+    male_threshold: 0.8
+    aaf_threshold: 0.05
+    
+  sex_inconsistencies:
+    sex_metadata_file: file:///lustre/scratch126/dh24_test/qc_test/BiB/resources/mlwh_sample_and_sex.txt
+    conflicting_sex_report_path: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/conflicting_sex.txt.bgz
+    fstat_outliers_report_path: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/sex_annotation_f_stat_outliers.txt.bgz
+    fstat_low: 0.2
+    fstat_high: 0.8
 
 plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
 plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
