@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+#module load HGI/common/VerifyBamID/2.0.1
+
+# The VerifyBamID forder - contains all recosurese file
+# Download from https://griffan.github.io/VerifyBamID/
+VERIFY_BAM_ID_HOME="/nfs/users/nfs_g/gz3/VerifyBamID"
+
+# Resources
+svd=$VERIFY_BAM_ID_HOME/resource/1000g.phase3.100k.b38.vcf.gz.dat
+ref=/lustre/scratch125/humgen/resources/ref/Homo_sapiens/HS38DH/hs38DH.fa
+# HS38DH reference includes alternate contigs, decoy regions and HLA genes
+
+cram=${1}
+sample=$( basename $cram )
+sample="${sample%.cram}"
+
+if [ ! -f $sample.selfSM ]; then
+    ${VERIFY_BAM_ID_HOME}/bin/VerifyBamID --SVDPrefix ${svd} --Reference ${ref} --NumThread 1  --DisableSanityCheck --BamFile ${cram} --Output $sample
+else
+    echo "BamID verification results file $sample.selfSM already exists"
+fi

@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+module load cellgen/plink/2.00
+plink=plink2
+
+bfile=${1%.fam}
+
+exome_regions="/lustre/scratch125/humgen/resources/exome/Homo_sapiens/Twist/Twist_Human_Core_Exome_BI-CTR_padded_merged.bed"
+
+outvcf="${bfile}"
+
+if [ ! -f "${outvcf}.vcf" ]; then
+    echo "Converting plink ${file} to vcf"
+    ${plink} --bfile ${bfile} --recode vcf --out ${outvcf}
+fi
+
+if [ ! -f ${outvcf}.vcf.gz ]; then
+    echo "Compressing VCF ${outvcf}.vcf"
+    bgzip -c ${outvcf}.vcf > ${outvcf}.vcf.gz
+    tabix ${outvcf}.vcf.gz
+fi

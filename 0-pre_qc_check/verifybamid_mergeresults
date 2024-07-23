@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+result="verify_bam_id_result_concat.selfSM"
+
+cat $( ls ${1}/*.selfSM ) | awk ' (NR==1) || ( ! /^#/ )' > "$result"
