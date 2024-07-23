@@ -24,6 +24,13 @@ def plot_pca_bokeh(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Op
     """
     Plots grid of n_pca PCA components
     """
+    # Making fixed color mapping for superpopulations
+    pops = ["EUR", "EAS", "AFR", "AMR", "SAS", "oth"]
+    colors = ["green", "goldenrod", "brown", "indigo", "red", "grey"]
+    pop_colors_mapper = bokeh.models.CategoricalColorMapper(factors=pops, palette=colors)
+
+    colors = pop_colors_mapper if pop is not None else None
+
     layout = [[None] * n_pca for i in range(n_pca)]
     label = pca_scores[pop] if pop is not None else None
     for i in range(n_pca):
@@ -34,6 +41,7 @@ def plot_pca_bokeh(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Op
                 xlabel=f"PC{i+1}",
                 ylabel=f"PC{j+1}",
                 label=label,
+                colors=colors,
                 title=f"PC{i+1} vs PC{j+1}",
             )
             layout[i][j] = p
