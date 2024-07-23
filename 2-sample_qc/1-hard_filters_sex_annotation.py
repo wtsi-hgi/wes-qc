@@ -6,6 +6,8 @@ from utils.utils import parse_config
 
 import os
 
+# TODO: make all functions accept config argument
+
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     '''
     Applies hard filters and annotates samples in the filtered set with call rate

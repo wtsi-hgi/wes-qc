@@ -35,12 +35,17 @@ step2:
 plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
 plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
 
+# TODO: document resource_dir
+# TODO: add option to override in `resources` config field
+# TODO: add Jira ticket
 resource_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/resources/
 resource_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
 var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
 
+resources:
+  1000g_dir:
 
 load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
 
