@@ -5,14 +5,27 @@ import yaml
 import os
 import sys
 import re
-from wes_qc.utils.utils import parse_config
+from wes_qc.utils.utils import parse_config, path_local, path_spark
 
-def load_vcfs_to_mt(indir, outdir, header):
+def load_vcfs_to_mt(config):
     '''
     load VCFs and save as hail mt.  
     Save mt as outdir/gatk_unprocessed.mt
+
+    ### Config fields
+    ```
+    step1.gatk_vcf_header_infile
+    step1.gatk_vcf_indir
+    step1.gatk_mt_outfile
+    ```
     '''
-    objects = hl.utils.hadoop_ls(indir)
+    indir, header, outfile = (
+        config['step1']['gatk_vcf_indir'], 
+        config['step1'].get('gatk_vcf_header_infile'), # optional
+        config['step1']['gatk_mt_outfile']
+    )
+
+    objects = hl.utils.hadoop_ls(path_spark(indir))
     
     # for some reason, paths prefix is `file:`, not a `file://`
     vcf_pattern = re.compile("file:.*vcf.b?gz")
@@ -28,31 +41,23 @@ def load_vcfs_to_mt(indir, outdir, header):
         print("info: Loading VCFs WITHOUT header")
         mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
         
-    print("Saving as hail mt")
-    mt_out_file = os.path.join(outdir, "gatk_unprocessed.mt")
+    mt_out_file = path_spark(outfile)
+    print(f"Saving as hail mt to {mt_out_file}")
     mt.write(mt_out_file, overwrite=True)
 
 
 def main():
     #set up input variables
-    inputs = parse_config()
+    config = parse_config()
     
-    vcf_header, import_vcf_dir, mtdir = (
-        inputs['step1']['import_paths'].get('gatk_vcf_header'),
-        inputs['step1']['import_paths']['gatk_vcf_dir'],
-        inputs['general']['matrixtables_outdir']
-    )
-
     #initialise hail
-    tmp_dir = inputs['general']['tmp_dir']
+    tmp_dir = config['general']['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     #load VCFs
-    load_vcfs_to_mt(indir=import_vcf_dir, 
-                    outdir=mtdir,
-                    header=vcf_header)
+    load_vcfs_to_mt(config)
 
 
 if __name__ == '__main__':
