@@ -53,6 +53,8 @@ def merge_with_1kg(pruned_mt_file: str, kg_mt_file: str, merged_mt_file: str) ->
     print("Merging with 1kg data")
     mt = hl.read_matrix_table(pruned_mt_file)
     kg_mt = hl.read_matrix_table(kg_mt_file)
+    print(f"=== Variations in cohort: {mt.count_rows()}")
+    print(f"=== Variations in 1kg: {kg_mt.count_rows()}")
     # in order to create a union dataset the entries and column fields must be
     # the same in each dataset. The following 2 lines take care of this.
     kg_mt = kg_mt.select_entries(kg_mt.GT)
@@ -60,9 +62,10 @@ def merge_with_1kg(pruned_mt_file: str, kg_mt_file: str, merged_mt_file: str) ->
     # union cols gives all samples and the rows which are found in both
     mt_joined = mt.union_cols(kg_mt)
     mt_joined.write(merged_mt_file, overwrite=True)
+    print(f"=== Variations in merged cohort & 1000genomes: {mt_joined.count_rows()}")
 
 
-def annotate_and_filter(merged_mt_file: str, filtered_mt_file: str, pops_file: str) -> None:
+def annotate_and_filter(merged_mt_file: str, filtered_mt_file: str, pops_file: str, long_range_ld_file: str) -> None:
     """
     Annotate with known pops for 1kg samples and filter to remove long range LD regions,
     rare variants, palidromic variants, low call rate and HWE filtering
@@ -83,10 +86,11 @@ def annotate_and_filter(merged_mt_file: str, filtered_mt_file: str, pops_file: s
         & (mt_vqc.variant_QC_Hail.AF[1] >= 0.05)
         & (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
     )
-    ##long_ld_regions removed on the previous stage
-    # long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
-    # long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
-    # mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
+
+    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome="GRCh38")
+    mt_vqc_filtered = mt_vqc_filtered.filter_rows(
+        hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False
+    )
     mt_non_pal = mt_vqc_filtered.filter_rows(
         (mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False
     )
@@ -95,25 +99,7 @@ def annotate_and_filter(merged_mt_file: str, filtered_mt_file: str, pops_file: s
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "T") & (mt_non_pal.alleles[1] == "A"), keep=False)
 
     mt_non_pal.write(filtered_mt_file, overwrite=True)
-
-
-# old version of run_pca without PC projection
-# def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str, pca_evals_file: str):
-#    '''
-#    Run PCA before population prediction
-#    :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
-#    :param str pca_sores_file: PCA scores HT file
-#    :param str pca_loadings_file: PCA scores HT file
-#    :param str pca_evals_file: PCA scores HT file
-#    '''
-#    mt = hl.read_matrix_table(filtered_mt_file)
-#    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=10, compute_loadings=True)
-#    pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
-#    pca_scores.write(pca_scores_file, overwrite=True)
-#    pca_loadings.write(pca_loadings_file, overwrite=True)
-#    with open(pca_evals_file, 'w') as f:
-#        for val in pca_evals:
-#            f.write(str(val) + "\n")
+    print(f"=== Variations after all filtrations : {mt_non_pal.count_rows()}")
 
 
 def run_pca(
@@ -210,16 +196,14 @@ def main() -> None:
     # annotate and filter
     filtered_mt_file = os.path.join(mtdir, "merged_with_1kg_filtered.mt")
     pops_file = os.path.join(resourcedir, inputs["kg_pop"])
+    long_range_ld_file = os.path.join(resourcedir, "long_ld_regions.hg38.bed")
     if args.filter or args.run:
-        annotate_and_filter("file://" + merged_mt_file, "file://" + filtered_mt_file, "file://" + pops_file)
-
-    # old version of run_pca without PC projection
-    #    #run pca
-    #    pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
-    #    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
-    #    pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
-    #    if args.pca or args.run:
-    #        run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
+        annotate_and_filter(
+            "file://" + merged_mt_file,
+            "file://" + filtered_mt_file,
+            "file://" + pops_file,
+            "file://" + long_range_ld_file,
+        )
 
     # run pca
     pca_scores_file = os.path.join(mtdir, "pca_scores_after_pruning.ht")

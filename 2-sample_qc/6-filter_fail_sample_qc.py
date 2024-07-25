@@ -58,6 +58,7 @@ def remove_sample_qc_fails(
     # filter the annotated_mt to remove samples that have failed
     fails = fails.key_by("s")
     annotated_mt = annotated_mt.filter_cols(hl.is_defined(fails[annotated_mt.s]), keep=False)
+    print(f"=== Survived after QC filtering: {annotated_mt.count_cols()} samples")
 
     # remove samples failing FREEMIX check
     verifybamid_ht = hl.import_table(verifybamid_file, impute=True)
@@ -68,10 +69,10 @@ def remove_sample_qc_fails(
     sample_table = annotated_mt.cols()
     missed_freemix = sample_table.filter(hl.is_defined(sample_table.freemix), keep=False)
     if missed_freemix.count() > 0:
-        print("Exporting list of missed samples")
+        print(f"=== WARNING: Found samples without freemix scores: {missed_freemix_file}")
         missed_freemix.export(missed_freemix_file)
     else:
-        print("All samples have freemix score")
+        print("=== All samples have freemix scores")
     annotated_mt = annotated_mt.filter_cols(hl.is_defined(annotated_mt.freemix))
     annotated_mt = annotated_mt.filter_cols(annotated_mt.freemix <= 0.05)
 
