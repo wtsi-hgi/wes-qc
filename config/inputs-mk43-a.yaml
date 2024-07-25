@@ -10,17 +10,20 @@ general:
 
 # --- Step 1.1 --- #
 step1:
-  import_paths:
-    gatk_vcf_header:
-    gatk_vcf_dir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+  gatk_vcf_header_infile:
+  gatk_vcf_indir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+  gatk_mt_outfile: {mtdir}/gatk_unprocessed.mt
 
 # --- Step 2.1 --- #
 step2:
   sex_annotation_hard_filters:
+    filtered_mt_outfile: {mtdir}/mt_hard_filters_annotated.mt
     n_alt_alleles_threshold: 0.001
     defined_gt_frac_threshold: 0.99
 
   impute_sex:
+    sex_ht_outfile: {anndir}/sex_annotated.sex_check.txt.bgz
+    sex_mt_outfile: {mtdir}/mt_sex_annotated.mt
     female_threshold: 0.5
     male_threshold: 0.8
     aaf_threshold: 0.05
