@@ -16,8 +16,9 @@ def get_script_path():
 
 special_cvars = {
     'tmpdir': 'general.tmp_dir',
-    'anndir': 'general.annotation_outdir_local',
-    'mtdir': 'general.matrixtables_outdir'
+    'anndir': 'general.annotation_dir',
+    'mtdir': 'general.matrixtables_dir',
+    'resdir': 'general.resource_dir',
 }
 
 

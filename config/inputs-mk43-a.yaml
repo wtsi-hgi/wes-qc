@@ -1,17 +1,26 @@
 ---
 
 general:
-  # tmp_dir: hdfs://spark-master:9820/
+  # CVAR tmpdir
   tmp_dir: /lustre/scratch126/mk43/tmp/
+  # tmp_dir: hdfs://spark-master:9820/
 
-  annotation_outdir: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/
-  annotation_outdir_local: /lustre/scratch126/dh24_test/qc_test/BiB/annotations/
-  matrixtables_outdir: file:///lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+  # CVAR anndir
+  annotation_dir: /lustre/scratch126/dh24_test/qc_test/BiB/annotations/
+  
+  # CVAR mtdir
+  matrixtables_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+
+  # TODO: document resource_dir
+  # TODO: add option to override in `resources` config field
+  # TODO: add Jira ticket
+  # CVAR resdir
+  resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 
 # --- Step 1.1 --- #
 step1:
   gatk_vcf_header_infile:
-  gatk_vcf_indir: file:///lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+  gatk_vcf_indir: /lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
   gatk_mt_outfile: {mtdir}/gatk_unprocessed.mt
 
 # --- Step 2.1 --- #
@@ -29,26 +38,21 @@ step2:
     aaf_threshold: 0.05
     
   sex_inconsistencies:
-    sex_metadata_file: file:///lustre/scratch126/dh24_test/qc_test/BiB/resources/mlwh_sample_and_sex.txt
-    conflicting_sex_report_path: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/conflicting_sex.txt.bgz
-    fstat_outliers_report_path: file:///lustre/scratch126/dh24_test/qc_test/BiB/annotations/sex_annotation_f_stat_outliers.txt.bgz
+    # TODO: specify structure of a sex metadata file
+    sex_metadata_file: {resdir}/mlwh_sample_and_sex.txt
+    conflicting_sex_report_path: {anndir}/conflicting_sex.txt.bgz
+    fstat_outliers_report_path: {anndir}/sex_annotation_f_stat_outliers.txt.bgz
     fstat_low: 0.2
     fstat_high: 0.8
+
+# unprocessed below this line
 
 plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
 plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
 
-# TODO: document resource_dir
-# TODO: add option to override in `resources` config field
-# TODO: add Jira ticket
-resource_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/resources/
-resource_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
 var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
-
-resources:
-  1000g_dir:
 
 load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
 
