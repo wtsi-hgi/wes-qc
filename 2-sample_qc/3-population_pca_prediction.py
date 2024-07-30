@@ -14,12 +14,12 @@ def get_options() -> Any:
     Get options from the command line
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--kg_to_mt", help="convert 1kg data to matrixtable", action="store_true")
+    parser.add_argument("-k", "--kg-to-mt", help="convert 1kg data to matrixtable", action="store_true")
     parser.add_argument("-m", "--merge", help="merge alspac mt with 1kg mt", action="store_true")
     parser.add_argument("-f", "--filter", help="annotate and filter merged mt", action="store_true")
     parser.add_argument("-p", "--pca", help="run pca", action="store_true")
     parser.add_argument("--pca-plot", help="Plot PCA for 1000genomes", action="store_true")
-    parser.add_argument("-a", "--assign_pops", help="assign populations", action="store_true")
+    parser.add_argument("-a", "--assign-pops", help="assign populations", action="store_true")
     parser.add_argument("--pca-plot-assigned", help="Plot PCA for assigned populations", action="store_true")
     parser.add_argument("-r", "--run", help="run all steps except kg_to_mt", action="store_true")
     args = parser.parse_args()
@@ -133,6 +133,7 @@ def run_pca(
             f.write(str(val) + "\n")
     pca_scores = pca_scores.drop(pca_scores.known_pop)
     # projection of samples on precomputed PCs and combining of two PCA_scores tables
+    print("=== Projecting PCA scores to the cohort samples ===")
     projection_PCA_scores = pc_project(mt_study, pca_loadings, loading_location="loadings", af_location="pca_af")
     union_PCA_scores = pca_scores.union(projection_PCA_scores)
     union_PCA_scores = union_PCA_scores.annotate(known_pop=mt.cols()[union_PCA_scores.s].known_pop)
@@ -148,6 +149,7 @@ def predict_pops(pca_scores_file: str, pop_ht_file: str) -> None:
     """
     pca_scores = hl.read_table(pca_scores_file)
     known_col = "known_pop"
+    print("=== Predicting populations from PCA scores ===")
     pop_ht, pop_clf = assign_population_pcs(
         pca_scores, pca_scores.scores, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5
     )
