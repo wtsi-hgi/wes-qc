@@ -45,9 +45,10 @@ def main():
     #initialise hail
     tmp_dir = inputs['tmp_dir']
 
-    sc = pyspark.SparkContext()
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     #load VCFs
     load_vcfs_to_mt(indir=import_vcf_dir, 

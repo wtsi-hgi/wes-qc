@@ -81,7 +81,7 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
 
     # TODO: make filename as parameter in function
-    metadata_file =  os.path.join(resourcedir, 'mlwh_sample_and_sex.txt')  # resource
+    metadata_file = os.path.join(resourcedir, 'mlwh_sample_and_sex.txt')  # resource
 
     metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
     #we only want those from the metadata file where sex is known
@@ -111,9 +111,10 @@ def main():
     #initialise hail
     tmp_dir = inputs['tmp_dir']
 
-    sc = pyspark.SparkContext()
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     mt_in_file = os.path.join(mtdir, "gatk_unprocessed.mt") # input from 1.1
     print("Reading input matrix")
@@ -126,7 +127,9 @@ def main():
     # TODO: move male_threshold to config?
     mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
 
+    # TODO: what's this function? 
     # annotate_ambiguous_sex(mt_sex, mtdir)
+
     # TODO: make this optional and check how it affects the downstream steps
     # there is no metadata for our contrived test datasets
 
