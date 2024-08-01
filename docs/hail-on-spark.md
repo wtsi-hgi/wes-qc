@@ -6,21 +6,6 @@
 This tutorial describes how to initiate a cluster on **Openstack** suitable for running **Hail**. 
 
 The command line tool [osdataproc](https://github.com/wtsi-hgi/osdataproc/) is used to create an openstack cluster with [Apache Spark](https://spark.apache.org/)  and [Apache Hadoop](https://hadoop.apache.org/) configured. The cluster is provisioned with [Jupyterlab](https://jupyter.org/) for interactive computing, [Hail](https://hail.is/) for genomic analysis, and [Netdata](https://www.netdata.cloud/) for monitoring. 
-<!--## Before you start
-
-Before you start, ensure that you have created an ssh keypair with [ssh-keygen](https://manpages.ubuntu.com/manpages/xenial/man1/ssh-keygen.1.html). Use the RSA key with blank password. See the [SSG confluence page](https://ssg-confluence.internal.sanger.ac.uk/display/FARM/All+things+SSH) for details.
-
-```shell
-ssh-keygen -t rsa
-```
-
-You need access to an OpenStack project in order to create a cluster. [ManageIQ is outdated]
-To obtain your OpenStack password, follow the [manual](https://ssg-confluence.internal.sanger.ac.uk/pages/viewpage.action?pageId=66031299).
-You don't need to reset the password, you can copy and use the auto-generated one.
-
-Upload your RSA ssh key to OpenStack following the 
-[manual](https://ssg-confluence.internal.sanger.ac.uk/display/OPENSTACK/Creating+your+first+machine%2C+using+manageIQ).
-You don't need to create a virtual machine, just upload your SSH key.  Load your public key to [Theta](https://theta.internal.sanger.ac.uk/project/) at  `Project / Compute / Key Pairs / Import Public Key`. -->
 ## Install `osdataproc`
 This part of work is done on your local machine.
 
@@ -37,16 +22,16 @@ The `osdataproc` utility requires python 3.9. Before proceeding, ensure that you
 > ``` 
 >or  install the correct Python version locally:
 >``` shell
-wget https://www.python.org/ftp/python/3.9.8/Python-3.9.8.tgz
-tar -zxvf Python-3.9.8.tgz
-cd Python-3.9.8/
-mkdir ~/.localpython
+>wget https://www.python.org/ftp/python/3.9.8/Python-3.9.8.tgz
+>tar -zxvf Python-3.9.8.tgz
+>cd Python-3.9.8/
+>mkdir ~/.localpython
 ># Prepare the environment for building
-./configure --prefix=$HOME/.localpython
+>./configure --prefix=$HOME/.localpython
 ># Building the system
-make
+> make
 > # Implement the installation
-make install
+>make install
 >```
 >Running the code above will install python 3.9.8 at `~/localpython/bin/python3.9`
 
@@ -94,7 +79,7 @@ Terraform stores all cluster configuration data in the  `./terraform/terraform.t
 >If when installing `osdataproc` the wheel fail to be built, try updating `wheel` and `setuptools` packages.
 >``` shell
 >pip install wheel -U # 0.43.0 version
-pip install setuptools -U # 71.1.0 version
+>pip install setuptools -U # 71.1.0 version
 >```
 
 ## Managing a cluster
