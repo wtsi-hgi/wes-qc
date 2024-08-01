@@ -1,6 +1,7 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
 import hail as hl
 import pyspark
+import os
 from utils.utils import parse_config
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
@@ -102,10 +103,10 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     print(f'{checkpoint} exome samples found passing pop filtering')
     pop_ht.write(qc_filter_file, overwrite=True)
 
-    output_text_file = annotdir + "sample_qc_by_pop.tsv.bgz"
+    output_text_file = os.path.join(annotdir, "sample_qc_by_pop.tsv.bgz")
     pop_ht.export(output_text_file, delimiter="\t")
 
-    output_globals_json = annotdir + "sample_qc_by_pop.globals.json"
+    output_globals_json = os.path.join(annotdir, "sample_qc_by_pop.globals.json")
     pop_ht.globals.export(output_globals_json)
 
 
@@ -118,22 +119,22 @@ def main():
     #mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     # initialise hail
-    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp/"
-    sc = pyspark.SparkContext()
+    tmp_dir = inputs['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     # annotate mt with runid and pop
-    raw_mt_file = mtdir + "gatk_unprocessed.mt"
-    pop_ht_file = mtdir + "pop_assignments.ht"
-    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"
-    pop_pandas_file = mtdir + "pop_assignemtnts.tsv"
+    raw_mt_file = os.path.join(mtdir, "gatk_unprocessed.mt")
+    pop_ht_file = os.path.join(mtdir, "pop_assignments.ht")
+    annotated_mt_file = os.path.join(mtdir, "gatk_unprocessed_with_pop.mt")
+    pop_pandas_file = os.path.join(mtdir, "pop_assignments.tsv")
     annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file, pop_pandas_file)
 
     # run sample QC and stratify by population
-    mt_qc_outfile = mtdir + "mt_pops_sampleqc.mt"
-    ht_qc_cols_outfile = mtdir + "mt_pops_sampleqc.ht"
-    qc_filter_file = mtdir + "mt_pops_QC_filters.ht"
+    mt_qc_outfile = os.path.join(mtdir, "mt_pops_sampleqc.mt")
+    ht_qc_cols_outfile = os.path.join(mtdir, "mt_pops_sampleqc.ht")
+    qc_filter_file = os.path.join(mtdir, "mt_pops_QC_filters.ht")
     stratified_sample_qc(annotated_mt_file, mt_qc_outfile,
                          ht_qc_cols_outfile, qc_filter_file, annotdir)
 

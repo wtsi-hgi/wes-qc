@@ -186,7 +186,7 @@ def main():
 
     #initialise hail
     # tmp_dir = "hdfs://spark-master:9820/"
-    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
+    tmp_dir = inputs['tmp_dir']
     # sc = pyspark.SparkContext()
     sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
@@ -197,26 +197,26 @@ def main():
         create_1kg_mt(resourcedir, mtdir)
 
     #combine with 1KG data
-    pruned_mt_file = mtdir + "mt_ldpruned.mt"
-    merged_mt_file = mtdir + "merged_with_1kg.mt"
+    pruned_mt_file = os.path.join(mtdir, "mt_ldpruned.mt")
+    merged_mt_file = os.path.join(mtdir, "merged_with_1kg.mt")
     if args.merge or args.run:
         merge_with_1kg(pruned_mt_file, mtdir, merged_mt_file)
 
     #annotate and filter
-    filtered_mt_file = mtdir + "merged_with_1kg_filtered.mt"
+    filtered_mt_file = os.path.join(mtdir, "merged_with_1kg_filtered.mt")
     if args.filter or args.run:
         annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
 
     #run pca
-    pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
-    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
-    pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
+    pca_scores_file = os.path.join(mtdir, "pca_scores_after_pruning.ht")
+    pca_loadings_file = os.path.join(mtdir, "pca_loadings_after_pruning.ht")
+    pca_evals_file = os.path.join(mtdir2, "pca_evals_after_pruning.txt") #text file may need to be without file///
     if args.pca or args.run:
         run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
 
     #assign pops
-    pop_ht_file = mtdir + "pop_assignments.ht"
-    pop_ht_tsv = mtdir2 + "pop_assignemtnts.tsv"
+    pop_ht_file = os.path.join(mtdir, "pop_assignments.ht")
+    pop_ht_tsv = os.path.join(mtdir2, "pop_assignments.tsv")
     if args.assign_pops or args.run:
         predict_pops(pca_scores_file, pop_ht_file, pop_ht_tsv)
 
