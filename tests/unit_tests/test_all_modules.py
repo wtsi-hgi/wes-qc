@@ -1,4 +1,5 @@
 import os
+import re
 import gzip
 import unittest
 import importlib
@@ -171,7 +172,7 @@ def compare_tables(ht1_path: str, ht2_path: str) -> bool:
         print(f'Tables {ht1_path}\n{ht2_path}\nare not equal: {num_differences} differing rows found') # DEBUG
         return False
 
-def compare_txts(path_1: str, path_2: str) -> bool:
+def compare_txts(path_1: str, path_2: str, replace_strings: list[list[str, str]] = None) -> bool:
     """
     Compare contents of two files based on their raw string content.
 
@@ -184,6 +185,11 @@ def compare_txts(path_1: str, path_2: str) -> bool:
     with open(path_2, 'r') as f_2:
         contents_2 = f_2.read()
 
+    if replace_strings:
+        for pattern, substitute in replace_strings:
+            contents_1 = re.sub(pattern, substitute, contents_1)
+            contents_2 = re.sub(pattern, substitute, contents_2)
+
     if contents_1 == contents_2:
         print(f'Files {path_1}\n{path_2}\n are equal') # DEBUG
     else:
@@ -191,9 +197,12 @@ def compare_txts(path_1: str, path_2: str) -> bool:
 
     return contents_1 == contents_2
 
-def compare_bgzed_txts(path_1: str, path_2: str) -> bool:
+def compare_bgzed_txts(path_1: str, path_2: str, replace_strings: list[list[str, str]] = None) -> bool:
     """
     Compare contents of two bgzed txt files. 
+    
+    Parameters:
+    replace_strings: list[list[str, str]] - regex and str to replace
 
     Returns:
     bool: True if files' contents are equal, False otherwise.
@@ -203,6 +212,11 @@ def compare_bgzed_txts(path_1: str, path_2: str) -> bool:
 
     with gzip.open(path_2, 'r') as f_2:
         contents_2 = f_2.read()
+    
+    if replace_strings:
+        for pattern, substitute in replace_strings:
+            contents_1 = re.sub(pattern, substitute, contents_1)
+            contents_2 = re.sub(pattern, substitute, contents_2)
 
     if contents_1 == contents_2:
         print(f'Files {path_1}\n{path_2}\n are equal') # DEBUG
@@ -227,6 +241,10 @@ def strip_prefix(path: str) -> str:
 qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
+qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
+qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
+qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
+
 
 class HailTestCase(unittest.TestCase):
     @classmethod
@@ -343,6 +361,86 @@ class TestQCSteps(HailTestCase):
         cls.ref_pca_output_path = strip_prefix(os.path.join(cls.ref_dataset_path, 'plots', 'pca.html'))
         cls.ref_pca_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_pca.mt')
 
+
+        # ===== QC Step 2.3 ===== #
+        # create_1kg_mt()
+        # reference inputs: no
+        # outputs
+        cls.kg_wes_regions = os.path.join(cls.mtdir, 'kg_wes_regions.mt')
+        # reference outputs
+        cls.ref_kg_wes_regions = os.path.join(cls.ref_dataset_path, 'matrixtables', 'kg_wes_regions.mt')
+
+        # merge_with_1kg()
+        # reference inputs: `cls.ref_mt_ldpruned_path`
+        cls.ref_mtdir = os.path.join(cls.ref_dataset_path, 'matrixtables')
+        # outputs
+        cls.merged_mt_path = os.path.join(cls.mtdir, 'merged_with_1kg.mt')
+        # reference outputs
+        cls.ref_merged_mt_path = os.path.join(cls.ref_mtdir, "merged_with_1kg.mt")
+
+        # annotate_and_filter()
+        # reference inputs: `cls.ref_merged_mt_path`, `cls.test_resourcedir`
+        # outputs
+        cls.filtered_mt_path = os.path.join(cls.mtdir, 'merged_with_1kg_filtered.mt')
+        # reference outputs
+        cls.ref_filtered_mt_path = os.path.join(cls.ref_mtdir, "merged_with_1kg_filtered.mt")
+
+        # run_pca()
+        # reference inputs: `cls.ref_filtered_mt_path`
+        # outputs
+        cls.pca_scores_path = os.path.join(cls.mtdir, 'pca_scores_after_pruning.ht')
+        cls.pca_loadings_path = os.path.join(cls.mtdir, 'pca_loadings_after_pruning.ht')
+        cls.pca_evals_path = strip_prefix(os.path.join(cls.mtdir, 'pca_evals_after_pruning.txt'))
+        # reference outputs
+        cls.ref_pca_scores_path = os.path.join(cls.ref_mtdir, 'pca_scores_after_pruning.ht')
+        cls.ref_pca_loadings_path = os.path.join(cls.ref_mtdir, 'pca_loadings_after_pruning.ht')
+        cls.ref_pca_evals_path = strip_prefix(os.path.join(cls.ref_mtdir, 'pca_evals_after_pruning.txt'))
+
+        # predict_pops()
+        # reference inputs: `cls.ref_pca_scores_path`
+        # outputs
+        cls.pop_ht_path = os.path.join(cls.mtdir, 'pop_assignments.ht')
+        cls.pop_ht_tsv = os.path.join(cls.mtdir, 'pop_assignments.tsv')
+        # reference outputs
+        cls.ref_pop_ht_path = os.path.join(cls.ref_mtdir, 'pop_assignments.ht')
+        cls.ref_pop_ht_tsv = os.path.join(cls.ref_mtdir, 'pop_assignments.tsv')
+
+
+        # ===== QC Step 2.4 ===== #
+        # annotate_mt()
+        # reference imputs: `cls.ref_pop_ht_path`, `cls.ref_pop_ht_tsv`, `cls.ref_mt_path`
+        # outputs
+        cls.annotated_mt_path = os.path.join(cls.mtdir, 'gatk_unprocessed_with_pop.mt')
+        # reference outputs
+        cls.ref_annotated_mt_path = os.path.join(cls.ref_mtdir, 'gatk_unprocessed_with_pop.mt')
+
+        # stratified_sample_qc()
+        # reference inputs: `cls.ref_annotated_mt_path`, `cls.ref_annotdir`
+        cls.ref_annotdir = os.path.join(cls.ref_dataset_path, 'annotations')
+        # outputs
+        cls.mt_qc_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.mt')
+        cls.ht_qc_cols_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.ht')
+        cls.qc_filter_file = os.path.join(cls.mtdir, 'mt_pops_QC_filters.ht')
+        cls.output_text_file = os.path.join(cls.annotdir, 'sample_qc_by_pop.tsv.bgz')
+        cls.output_globals_json = os.path.join(cls.annotdir, 'sample_qc_by_pop.globals.json')
+
+        # reference outputs
+        cls.ref_mt_qc_outfile = os.path.join(cls.ref_mtdir, 'mt_pops_sampleqc.mt')
+        cls.ref_ht_qc_cols_outfile = os.path.join(cls.ref_mtdir, 'mt_pops_sampleqc.ht')
+        cls.ref_qc_filter_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters.ht')
+        cls.ref_output_text_file = os.path.join(cls.ref_annotdir, 'sample_qc_by_pop.tsv.bgz')
+        cls.ref_output_globals_json = os.path.join(cls.ref_annotdir, 'sample_qc_by_pop.globals.json')
+
+        # ===== QC Step 2.5 ===== #
+        # remove_sample_qc_fails()
+        # reference inputs: `cls.ref_annotated_mt_path`, cls.ref_qc_filter_file`
+        # outputs
+        cls.sample_qc_filtered_mt_file = os.path.join(cls.mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
+        cls.samples_failing_qc_file = os.path.join(cls.annotdir, 'samples_failing_qc.tsv.bgz')
+        # reference outputs
+        cls.ref_sample_qc_filtered_mt_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
+        cls.ref_samples_failing_qc_file = os.path.join(cls.ref_annotdir, 'samples_failing_qc.tsv.bgz')
+
         
     # QC Step 1.1
     def test_1_1_load_vcfs_to_mt(self):
@@ -439,6 +537,86 @@ class TestQCSteps(HailTestCase):
 
         self.assertTrue(pca_scores_identical and pca_loadings_identical and 
                         pca_mt_identical and plink_identical)
+
+    def test_2_3_1_create_1kg_mt(self):
+        # run function to test
+        qc_step_2_3.create_1kg_mt(self.test_resourcedir, self.mtdir)
+        kg_wes_regions_identical = compare_matrixtables(self.kg_wes_regions, self.ref_kg_wes_regions)
+
+        self.assertTrue(kg_wes_regions_identical)
+
+    def test_2_3_2_merge_with_1kg(self):
+        # use reference outputs of Step 2.2 prune_mt()
+        # run function to test
+        qc_step_2_3.merge_with_1kg(self.ref_mt_ldpruned_path, self.ref_mtdir, self.merged_mt_path)
+        merged_mt_identical = compare_matrixtables(self.merged_mt_path, self.ref_merged_mt_path)
+
+        self.assertTrue(merged_mt_identical)
+
+    def test_2_3_3_annotate_and_filter(self):
+        # use reference outputs of Step 2.3 merge_with_1kg()
+        # run function to test
+        qc_step_2_3.annotate_and_filter(self.ref_merged_mt_path, self.test_resourcedir, self.filtered_mt_path)
+        filtered_mt_identical = compare_matrixtables(self.filtered_mt_path, self.ref_filtered_mt_path)
+
+        self.assertTrue(filtered_mt_identical)
+
+    def test_2_3_4_run_pca(self):
+        # use reference outputs of Step 2.3 annotate_and_filter()
+        # run function to test
+        qc_step_2_3.run_pca(self.ref_filtered_mt_path, self.pca_scores_path, self.pca_loadings_path, self.pca_evals_path)
+
+        pca_scores_identical = compare_tables(self.pca_scores_path, self.ref_pca_scores_path)
+        pca_loadings_identical = compare_tables(self.pca_loadings_path, self.ref_pca_loadings_path)
+        pca_evals_identical = compare_txts(self.pca_evals_path, self.ref_pca_evals_path)
+
+        self.assertTrue(pca_scores_identical and pca_loadings_identical and pca_evals_identical)
+
+    def test_2_3_5_predict_pops(self):
+        # use reference outputs of Step 2.3 run_pca()
+        # run function to test
+        qc_step_2_3.predict_pops(self.ref_pca_scores_path, self.pop_ht_path, strip_prefix(self.pop_ht_tsv))
+
+        pop_ht_identical = compare_tables(self.pop_ht_path, self.ref_pop_ht_path)
+        pop_ht_tsv_identical = compare_txts(strip_prefix(self.pop_ht_tsv), strip_prefix(self.ref_pop_ht_tsv))
+
+        self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
+
+    def test_2_4_1_annotate_mt(self):
+        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path, self.ref_pop_ht_tsv)
+
+        annotated_mts_identical = compare_matrixtables(self.annotated_mt_path, self.ref_annotated_mt_path)
+
+        self.assertTrue(annotated_mts_identical)
+
+    def test_2_4_2_stratified_sample_qc(self):
+        qc_step_2_4.stratified_sample_qc(self.ref_annotated_mt_path, self.mt_qc_outfile,
+                self.ht_qc_cols_outfile, self.qc_filter_file, self.annotdir)
+
+        mt_qc_identical = compare_matrixtables(self.mt_qc_outfile, self.ref_mt_qc_outfile)
+        ht_qc_cols_identical = compare_tables(self.ht_qc_cols_outfile, self.ref_ht_qc_cols_outfile)
+        qc_filter_identical = compare_tables(self.qc_filter_file, self.ref_qc_filter_file)
+        out_text_identical = compare_bgzed_txts(strip_prefix(self.output_text_file), 
+                strip_prefix(self.ref_output_text_file))
+
+        unique_hail_id_replace = [[r'__uid_\d+\n', '']]
+        out_globals_json_identical = compare_txts(strip_prefix(self.output_globals_json), 
+                strip_prefix(self.ref_output_globals_json), replace_strings=unique_hail_id_replace)
+
+        self.assertTrue(mt_qc_identical and ht_qc_cols_identical and 
+                qc_filter_identical and out_text_identical and out_globals_json_identical)
+
+    def test_2_5_1_remove_sample_qc_fails(self):
+        qc_step_2_5.remove_sample_qc_fails(self.ref_annotated_mt_path, self.ref_qc_filter_file,
+                self.samples_failing_qc_file, self.sample_qc_filtered_mt_file)
+
+        sample_qc_filtered_identical = compare_matrixtables(self.sample_qc_filtered_mt_file, 
+                self.ref_sample_qc_filtered_mt_file)
+        samples_failing_qc_identical = compare_bgzed_txts(strip_prefix(self.samples_failing_qc_file),
+                strip_prefix(self.ref_samples_failing_qc_file))
+
+        self.assertTrue(sample_qc_filtered_identical and samples_failing_qc_identical)
+
 
     @classmethod
     def tearDownClass(cls):

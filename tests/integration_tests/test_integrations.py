@@ -46,6 +46,8 @@ qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail"
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
+qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
+qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
 class HailTestCase(unittest.TestCase):
     @classmethod
@@ -97,6 +99,18 @@ class IntegrationTests(HailTestCase):
             qc_step_2_3.main()
         except Exception as e:
             self.fail(f'Step 2.3 failed with an exception: {e}')
+
+    def test_2_4_sample_qc(self):
+        try:
+            qc_step_2_4.main()
+        except Exception as e:
+            self.fail(f'Step 2.4 failed with an exception: {e}')
+
+    def test_2_5_sample_qc(self):
+        try:
+            qc_step_2_5.main()
+        except Exception as e:
+            self.fail(f'Step 2.5 failed with an exception: {e}')
 
 if __name__ == '__main__':
     unittest.main()
