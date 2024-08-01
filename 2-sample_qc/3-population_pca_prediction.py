@@ -23,24 +23,7 @@ def get_options() -> Any:
     parser.add_argument("--pca-plot-assigned", help="Plot PCA for assigned populations", action="store_true")
     parser.add_argument("-r", "--run", help="run all steps except kg_to_mt", action="store_true")
     args = parser.parse_args()
-
     return args
-
-
-def create_1kg_mt(vcf_indir: str, mt_out_file: str) -> None:
-    """
-    Create matrixtable of 1kg data
-    :param str resourcedir: resources directory
-    :param str mtdir: matrixtable directory
-    """
-    print(f"Loading VCFs from {vcf_indir}")
-    objects = hl.utils.hadoop_ls(vcf_indir)
-    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
-
-    # create and save MT
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
-    print(f"Saving as hail mt to {mt_out_file}")
-    mt.write(mt_out_file, overwrite=True)
 
 
 def merge_with_1kg(pruned_mt_file: str, kg_mt_file: str, merged_mt_file: str) -> None:
@@ -183,11 +166,6 @@ def main() -> None:
 
     # initialise hail
     sc = hail_utils.init_hl(inputs["tmp_dir"])
-
-    # if needed, create 1kg matrixtable
-    if args.kg_to_mt:
-        kgdir = inputs["kg_dir"]
-        create_1kg_mt("file://" + os.path.join(resourcedir, kgdir), "file://" + kg_mt_file)
 
     # combine with 1KG data
     pruned_mt_file = os.path.join(mtdir, "mt_ldpruned.mt")

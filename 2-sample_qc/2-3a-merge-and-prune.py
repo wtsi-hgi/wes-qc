@@ -29,38 +29,7 @@ import hail as hl
 import argparse
 from gnomad.sample_qc.ancestry import assign_population_pcs, pc_project
 from utils.utils import parse_config
-from wes_qc import hail_utils, visualize
-
-
-def filter_matrix(mt: hl.MatrixTable, long_range_ld_file: str) -> hl.MatrixTable:
-    # use only autosomes
-    mt = mt.filter_rows(mt.locus.in_autosome())
-    # split multiallelic variants and remove them
-    mt = hl.split_multi_hts(mt)  # this shouldn't do anything as only biallelic sites are used
-    mt = mt.filter_rows(mt.was_split == True, keep=False)
-    # keep only SNPs
-    mt = mt.filter_rows(hl.is_snp(mt.alleles[0], mt.alleles[1]))
-    # keep good variants using hail variant_qc and thre filters
-    mt_vqc = hl.variant_qc(mt, name="variant_QC_Hail")
-    mt_vqc_filtered = mt_vqc.filter_rows(
-        (mt_vqc.variant_QC_Hail.call_rate >= 0.99)
-        & (mt_vqc.variant_QC_Hail.AF[1] >= 0.05)
-        & (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
-    )
-    # remove long ld regions
-    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome="GRCh38")
-    mt_vqc_filtered = mt_vqc_filtered.filter_rows(
-        hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False
-    )
-    # remove palindromes
-    mt_non_pal = mt_vqc_filtered.filter_rows(
-        (mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False
-    )
-    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "C") & (mt_non_pal.alleles[1] == "G"), keep=False)
-    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "A") & (mt_non_pal.alleles[1] == "T"), keep=False)
-    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "T") & (mt_non_pal.alleles[1] == "A"), keep=False)
-
-    return mt_non_pal
+from wes_qc import hail_utils, filtering
 
 
 def merge_and_prune(
@@ -72,8 +41,8 @@ def merge_and_prune(
     pruned_mt_file: str,
 ) -> None:
     # filter both matrices
-    mt_filtered = filter_matrix(mt, long_range_ld_file)
-    kg_filtered = filter_matrix(kg_mt, long_range_ld_file)
+    mt_filtered = filtering.filter_matrix_for_ldprune(mt, long_range_ld_file)
+    kg_filtered = filtering.filter_matrix_for_ldprune(kg_mt, long_range_ld_file)
     # removing and adding needed entries to replicate filtered_mt_file structure
     mt_filtered = mt_filtered.drop(
         "AD", "DP", "GQ", "MIN_DP", "PGT", "PID", "PL", "PS", "SB", "RGQ", "callrate", "f_stat", "is_female"
@@ -83,7 +52,8 @@ def merge_and_prune(
     mt_merged = mt_filtered.union_cols(kg_filtered)
     # saving the merged matrix
     mt_merged = mt_merged.checkpoint(merged_mt_file, overwrite=True)
-    # prunning
+
+    # prunning of the linked Variants
     pruned_ht = hl.ld_prune(mt_merged.GT, r2=0.2)
     pruned_mt = mt_merged.filter_rows(hl.is_defined(pruned_ht[mt_merged.row_key]))
     pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
