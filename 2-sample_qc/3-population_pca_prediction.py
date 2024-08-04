@@ -1,10 +1,12 @@
 # population prediction with PCA
 import hail as hl
 import pyspark
+import os
 import argparse
 import pandas as pd
+from typing import Optional
 from gnomad.sample_qc.ancestry import assign_population_pcs
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 def get_options():
     '''
@@ -23,6 +25,7 @@ def get_options():
         help="assign populations", action="store_true")
     parser.add_argument("-r", "--run",
         help="run all steps except kg_to_mt", action="store_true")
+
     args = parser.parse_args()
 
     return args
@@ -36,15 +39,16 @@ def create_1kg_mt(resourcedir: str, mtdir: str):
     '''
 
     # TODO: correct resource dir: /lustre/scratch126/WES_QC/resources/1000g_VCFs
-    indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits/"
-    vcfheader = indir + "header_20201028.txt"
+    indir = os.path.join(resourcedir, "mini_1000G/")
+    vcfheader = os.path.join(indir, "header_20201028.txt") # TODO: DEBUG: not used during tests on small dataset
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
     #create and save MT
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = vcfheader)
+    # TODO: make header optional (don't have one for mini 1000g test)
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
     print("Saving as hail mt")
-    mt_out_file = mtdir + "kg_wes_regions.mt"
+    mt_out_file = os.path.join(mtdir, "kg_wes_regions.mt")
     mt.write(mt_out_file, overwrite=True)
 
 
@@ -57,7 +61,7 @@ def merge_with_1kg(pruned_mt_file: str, mtdir: str, merged_mt_file: str):
     '''
     print("Merging with 1kg data")
     mt = hl.read_matrix_table(pruned_mt_file)
-    kg_mt_file = mtdir + "kg_wes_regions.mt"
+    kg_mt_file = os.path.join(mtdir, "kg_wes_regions.mt")
     kg_mt = hl.read_matrix_table(kg_mt_file)
     # in order to create a union dataset the entries and column fields must be 
     # the same in each dataset. The following 2 lines take care of this.
@@ -85,7 +89,9 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
 
     # The following is 1kg superpop
-    pops_file = resourcedir + "/igsr_samples.tsv"
+
+    # TODO: remove leading slash
+    pops_file = os.path.join(resourcedir, "igsr_samples.tsv")
     cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
     mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])
 
@@ -96,7 +102,8 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
         (mt_vqc.variant_QC_Hail.AF[1] >= 0.05) &
         (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
     )
-    long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
+    # TODO: this file must be .bed (?)
+    long_range_ld_file = os.path.join(resourcedir, "long_ld_regions.hg38.bed")
     long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
     mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
     mt_non_pal = mt_vqc_filtered.filter_rows((mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False)
@@ -170,8 +177,8 @@ def predict_pops(pca_scores_file: str, pop_ht_file: str, pop_ht_tsv):
 
 
 def main():
-    #set up
     args = get_options()
+    print(f'{args = } DEBUG') #DEBUG
     inputs = parse_config()
     mtdir = inputs['matrixtables_lustre_dir']
     resourcedir = inputs['resource_dir']
@@ -179,36 +186,37 @@ def main():
 
     #initialise hail
     # tmp_dir = "hdfs://spark-master:9820/"
-    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
-    sc = pyspark.SparkContext()
+    tmp_dir = inputs['tmp_dir']
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     #if needed, create 1kg matrixtable
     if args.kg_to_mt:
         create_1kg_mt(resourcedir, mtdir)
 
     #combine with 1KG data
-    pruned_mt_file = mtdir + "mt_ldpruned.mt"
-    merged_mt_file = mtdir + "merged_with_1kg.mt"
+    pruned_mt_file = os.path.join(mtdir, "mt_ldpruned.mt")
+    merged_mt_file = os.path.join(mtdir, "merged_with_1kg.mt")
     if args.merge or args.run:
         merge_with_1kg(pruned_mt_file, mtdir, merged_mt_file)
 
     #annotate and filter
-    filtered_mt_file = mtdir + "merged_with_1kg_filtered.mt"
+    filtered_mt_file = os.path.join(mtdir, "merged_with_1kg_filtered.mt")
     if args.filter or args.run:
         annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
 
     #run pca
-    pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
-    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
-    pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
+    pca_scores_file = os.path.join(mtdir, "pca_scores_after_pruning.ht")
+    pca_loadings_file = os.path.join(mtdir, "pca_loadings_after_pruning.ht")
+    pca_evals_file = os.path.join(mtdir2, "pca_evals_after_pruning.txt") #text file may need to be without file///
     if args.pca or args.run:
         run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
 
     #assign pops
-    pop_ht_file = mtdir + "pop_assignments.ht"
-    pop_ht_tsv = mtdir2 + "pop_assignemtnts.tsv"
+    pop_ht_file = os.path.join(mtdir, "pop_assignments.ht")
+    pop_ht_tsv = os.path.join(mtdir2, "pop_assignments.tsv")
     if args.assign_pops or args.run:
         predict_pops(pca_scores_file, pop_ht_file, pop_ht_tsv)
 

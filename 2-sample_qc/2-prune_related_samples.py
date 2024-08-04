@@ -1,8 +1,9 @@
 # identify and prune related samples prior to PCA
 # use mt with hard filters and sex annotation from 2-sample_qc/1-hard_filters_sex_annotation.py
 import hail as hl
+import os
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from bokeh.plotting import save, output_file
 
 
@@ -24,6 +25,8 @@ def prune_mt(mtin: hl.MatrixTable, mtoutfile: str):
     pruned_mt = mtin.filter_rows(hl.is_defined(pruned_ht[mtin.row_key]))
     pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
     pruned_mt.write(mtoutfile, overwrite=True)
+
+    return pruned_mt
 
 
 def run_pc_relate(pruned_mt_file: str, relatedness_ht_file: str, samples_to_remove_file: str, scores_file: str):
@@ -47,7 +50,9 @@ def run_pc_relate(pruned_mt_file: str, relatedness_ht_file: str, samples_to_remo
     #prune individuals to be left with unrelated - creates a table containing one column - samples to remove
     pairs = relatedness_ht.filter(relatedness_ht['kin'] > 0.125)
     related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, keep=False)
-    related_samples_to_remove.write(samples_to_remove_file, overwrite=True)   
+    related_samples_to_remove.write(samples_to_remove_file, overwrite=True)
+
+    return related_samples_to_remove
 
 
 def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdir: str, samples_to_remove_file: str):
@@ -69,7 +74,7 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     print(f"{samples} samples after relatedness step.")
 
     plink_mt = pca_mt.annotate_cols(uid=pca_mt.s).key_cols_by('uid')
-    plinkfile = mtdir + "mt_unrelated.plink"
+    plinkfile = os.path.join(mtdir, "mt_unrelated.plink")
     hl.export_plink(plink_mt, plinkfile,fam_id=plink_mt.uid, ind_id=plink_mt.uid)
 
     print("Running PCA")
@@ -79,19 +84,22 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
     pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=4, compute_loadings=True)
     pca_af_ht = pca_mt.annotate_rows(pca_af=hl.agg.mean(pca_mt.GT.n_alt_alleles()) / 2).rows()
     pca_loadings = pca_loadings.annotate(pca_af=pca_af_ht[pca_loadings.key].pca_af)
-    pca_scores_file = mtdir + "mt_pca_scores.ht"#table of pca scores per sample
+    pca_scores_file = os.path.join(mtdir, "mt_pca_scores.ht") #table of pca scores per sample
     pca_scores.write(pca_scores_file, overwrite=True)
-    pca_loadings_file = mtdir + "mt_pca_loadings.ht"#table of SNPs, PCA loadings and AF
+    pca_loadings_file = os.path.join(mtdir, "mt_pca_loadings.ht") #table of SNPs, PCA loadings and AF
     pca_loadings.write(pca_loadings_file, overwrite=True)
     pca_mt = pca_mt.annotate_cols(scores=pca_scores[pca_mt.col_key].scores)
     pca_mt.write(pca_mt_file, overwrite=True)
 
     print("Plotting PC1 vs PC2")
     p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title='PCA', xlabel='PC1', ylabel='PC2')
-    # TODO: change to os.path.join
-    # TODO: add check if plotdir exists
-    output_file(plotdir + "pca.html")
+    if not os.path.exists(plotdir):
+        os.makedirs(plotdir)
+    print(f'saving plot to {plotdir} DEBUG') # DEBUG
+    output_file(os.path.join(plotdir, "pca.html"))
     save(p)
+
+    return pca_mt
 
 
 
@@ -101,34 +109,34 @@ def main():
     mtdir = inputs['matrixtables_lustre_dir']
     plotdir = inputs['plots_dir_local']
 
-    #initialise hail
-    # TODO: clarify why these won't work for me
+    # initialise hail
     # tmp_dir = "hdfs://spark-master:9820/"
     # tmp_dir = "hdfs://spark-master:9820/user/ubuntu/hail-tmp"
 
-    tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
+    tmp_dir = inputs['tmp_dir']
 
-    sc = pyspark.SparkContext()
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     #load input mt
-    mtfile = mtdir + "mt_sex_annotated.mt"
+    mtfile = os.path.join(mtdir, "mt_sex_annotated.mt")
     mt = hl.read_matrix_table(mtfile)
 
     #ld prune to get a table of variants which are not correlated
-    pruned_mt_file = mtdir + "mt_ldpruned.mt"
-    prune_mt(mt, pruned_mt_file)
+    pruned_mt_file = os.path.join(mtdir, "mt_ldpruned.mt")
+    pruned_mt = prune_mt(mt, pruned_mt_file)
 
     #run pcrelate
-    relatedness_ht_file = mtdir + "mt_relatedness.ht"
-    samples_to_remove_file = mtdir + "mt_related_samples_to_remove.ht"
-    scores_file = mtdir + "mt_pruned.pca_scores.ht"
-    run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
+    relatedness_ht_file = os.path.join(mtdir, "mt_relatedness.ht")
+    samples_to_remove_file = os.path.join(mtdir, "mt_related_samples_to_remove.ht")
+    scores_file = os.path.join(mtdir, "mt_pruned.pca_scores.ht")
+    related_samples_to_remove_ht = run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
     #run PCA
-    pca_mt_file = mtdir + "mt_pca.mt"
-    run_population_pca(pruned_mt_file, pca_mt_file, mtdir, plotdir, samples_to_remove_file)
+    pca_mt_file = os.path.join(mtdir, "mt_pca.mt")
+    population_pca_mt = run_population_pca(pruned_mt_file, pca_mt_file, mtdir, plotdir, samples_to_remove_file)
 
 
 if __name__ == '__main__':

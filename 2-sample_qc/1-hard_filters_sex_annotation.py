@@ -1,5 +1,6 @@
 #apply gnomad's hard filters and impute sex
 #input gatk_unprocessed.mt from step 1.1
+import os
 import hail as hl
 import pyspark
 from utils.utils import parse_config, path_local, path_spark, expand_cvars
@@ -142,11 +143,12 @@ def main():
     config = parse_config()
     #importmtdir = inputs['load_matrixtables_lustre_dir']
 
-    #initialise hail
+    #initialise hailS
     tmp_dir = config['tmp_dir']
-    sc = pyspark.SparkContext()
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     mt_infile = config['step1']['gatk_mt_outfile'] # input from 1.1
     print("Reading input matrix")
@@ -161,6 +163,8 @@ def main():
     # TODO: where is this function?
     # annotate_ambiguous_sex(mt_sex, mtdir)
 
+    # TODO: make this optional and check how it affects the downstream steps
+    # there is no metadata for our contrived test datasets
     #identify_inconsistencies
     identify_inconsistencies(mt_sex, config)
     

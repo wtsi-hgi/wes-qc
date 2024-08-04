@@ -2,8 +2,10 @@
 # Filter to remove samples sequenced at Broad
 import hail as hl
 import pyspark
+import os
 from utils.utils import parse_config
 
+# TODO: not used? make it optional and mention in cli help
 def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     '''
     param str annotated_mt_file: File containing MatrixTable annotated with sequencing location
@@ -53,15 +55,17 @@ def main():
     annotdir = inputs['annotation_lustre_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    # tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
+    tmp_dir = inputs['tmp_dir']
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    qc_filter_ht_file = mtdir + "mt_pops_QC_filters.ht"
-    annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"  # annotated but unfiltered mt
-    sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_after_sample_qc.mt"
-    samples_failing_qc_file = annotdir + "samples_failing_qc.tsv.bgz"
+    qc_filter_ht_file = os.path.join(mtdir,"mt_pops_QC_filters.ht")
+    annotated_mt_file = os.path.join(mtdir,"gatk_unprocessed_with_pop.mt")  # annotated but unfiltered mt
+    sample_qc_filtered_mt_file = os.path.join(mtdir,"mt_pops_QC_filters_after_sample_qc.mt")
+    samples_failing_qc_file = os.path.join(annotdir, "samples_failing_qc.tsv.bgz")
     remove_sample_qc_fails(annotated_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
 
 
