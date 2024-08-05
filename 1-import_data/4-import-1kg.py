@@ -1,6 +1,14 @@
 """
+This script prepares the 1000 Genome matrixtable,
+starting form the published 1000G VCF files
 
+You need to run this script only once to prepare the 1000 Genome matrix
+Then ou can reuse it with other datasets
 
+To prepare data for this script
+(you can use the script in scripts/1kg_download):
+* Download 1000G VCFs
+* Remove SV and leave only SNP and indels
 """
 
 import argparse

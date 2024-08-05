@@ -1,25 +1,27 @@
 """
-This is the new approach that makes pruning after all filtering
+This is the alternative script to make population PAC
+new approach that makes pruning after all filtering.
 
-HOWTO:
-1. Run this script instead of script 2-prune_related_samples
-2. Then, run script
-3-population_pca_prediction --pca --pca-plot --assign_pops --pca-plot-assigned
+It doesn't use identification and pruning of the related samples.
+
+HOW TO:
+0. Run the script 1-hard_filter_sex_annotation
+1. Run this script. You don't need to run the 2-prune_related_samples.py script.
+   In will generate the
+2. Run the script 3-population_pca_prediction --pca --pca-plot --assign_pops --pca-plot-assigned
 
 
-
-In the main you need to run merge_and_prune.
-merge_and_prune will use filter_matrix to filter both matrices
-
+Script input:
 Input matrixtable (mt) is "mt_sex_annotated.mt"
 Input 1000G matrix (kg_mt) is "kg_wes_regions.mt"
 long_range_ld_file is "long_ld_regions.hg38.bed"
 pops_file is "igsr_samples.tsv"
-merged_mt_file name of a file for the merged matrix checkpoint
-pruned_mt_file name of a file to save the pruned matrix
-Rsult: pruned_mt_file is a replacement for filtered_mt_file in the PCA function in the 3rd script.
 
-
+Script output:
+"merged_with_1kg.mt" - checkpoint for the merged matrix
+"merged_with_1kg_filtered.mt" - final output of the script
+The matrixtable name is not 100% correct.
+It was chosen to keep unchanged the process in script 3
 """
 
 import os
