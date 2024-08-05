@@ -1,5 +1,8 @@
-# Load 1000Genomes VCFs into hail,
-# Filter and prune related samples
+"""
+
+
+"""
+
 import argparse
 from typing import Any
 
@@ -125,17 +128,15 @@ def main() -> None:
     kg_mt_file = os.path.join(mtdir, "kg_wes_regions.mt")
     if args.kg_remove_related_samples:
         # TODO: This part of code is from the script 2/2 fucntion run_population_pca().
-        pruned_kg_mt = hl.read_matrix_table(pruned_kg_file)
-        variants, samples = pruned_kg_mt.count()
-        print(f"Samples loaded: {samples}")
-        print("Removing related samples")
-        related_samples_to_remove = hl.read_table(samples_to_remove_file)
-        kg_mt_remove_related = pruned_kg_mt.filter_cols(
-            hl.is_defined(related_samples_to_remove[pruned_kg_mt.col_key]), keep=False
-        )
+        kg_mt = hl.read_matrix_table("file://" + kg_unprocessed)
+        variants, samples = kg_mt.count()
+        print(f"=== Loaded form initial table: {samples} samples, {variants} variants.")
+        print("=== Removing related samples")
+        related_samples_to_remove = hl.read_table("file://" + samples_to_remove_file)
+        kg_mt_remove_related = kg_mt.filter_cols(hl.is_defined(related_samples_to_remove[kg_mt.col_key]), keep=False)
         variants, samples = kg_mt_remove_related.count()
-        print(f"Samples after relatedness step: {samples}.")
-        kg_mt_remove_related.write(kg_mt_file, overwrite=True)
+        print(f"=== Remains after removing related samples: {samples} samples, {variants} variants.")
+        kg_mt_remove_related.write("file://" + kg_mt_file, overwrite=True)
 
     hail_utils.stop_hl(sc)
 
