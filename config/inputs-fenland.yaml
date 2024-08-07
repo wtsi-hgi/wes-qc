@@ -24,7 +24,7 @@ fam_pedigree: ["Fenland_Axiom_UKB_Sanger_exomeid.fam","Fenland_core_exome_Sanger
 self_reported_sex: fenland_self_reported_sex.csv
 exclude_variations_file: "variants_to_remove.vcf"
 fam_id_remap: 7286_pedigree_name_map.csv
-pedfile_name: trios.ped
+pedfile_name: "" # We don't have trios for the Fenland data set
 n_pca: 3
 kg_dir: 1kg_vcf_nosv # "1kg_vcf" # Filter fr 100genomes VCFS inside `resources`
 kg_pop: igsr_samples.tsv # downloaded from https://www.internationalgenome.org/data-portal/sample
