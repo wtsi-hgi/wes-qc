@@ -7,6 +7,7 @@ import hail as hl
 import hailtop.fs as hfs
 import shutil as sh
 from pyspark import SparkContext
+from utils.config import parse_config, path_local, path_spark, getp, __expand_cvars_recursively
 
 
 def compare_structs(struct1, struct2):
@@ -441,14 +442,56 @@ class TestQCSteps(HailTestCase):
         cls.ref_sample_qc_filtered_mt_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
         cls.ref_samples_failing_qc_file = os.path.join(cls.ref_annotdir, 'samples_failing_qc.tsv.bgz')
 
+
+        # mk43
+        # TODO: use a template engine to create a yaml
+        # TODO: cleanup this function
+        # TODO: separate this functions into steps
+        
+        config = dict()
+        config['general'] = dict(
+            tmp_dir = cls.tmp_dir,
+            annotation_dir = cls.annotdir,
+            matrixtables_dir = cls.mtdir,
+            resource_dir = cls.test_resourcedir
+        )
+        config['step1'] = dict(
+            gatk_vcf_header_infile = cls.vcf_header,
+            gatk_vcf_indir = cls.import_vcf_dir,
+            gatk_mt_outfile = '{mtdir}/gatk_unprocessed.mt',
+        )
+        config['step2'] = dict()
+        config['step2']['sex_annotation_hard_filters'] = dict(
+            filtered_mt_outfile = '{mtdir}/mt_hard_filters_annotated.mt',
+            n_alt_alleles_threshold = 0.001,
+            defined_gt_frac_threshold = 0.99
+        )
+        config['step2']['impute_sex'] = {
+            'sex_ht_outfile': '{anndir}/sex_annotated.sex_check.txt.bgz',
+            'sex_mt_outfile': '{mtdir}/mt_sex_annotated.mt',
+            'female_threshold': 0.5,
+            'male_threshold': 0.8,
+            'aaf_threshold': 0.05
+        }
+        config['step2']['sex_inconsistencies'] = {
+            'sex_metadata_file': '{resdir}/mlwh_sample_and_sex.txt',
+            'conflicting_sex_report_path': '{anndir}/conflicting_sex.txt.bgz',
+            'fstat_outliers_report_path': '{anndir}/sex_annotation_f_stat_outliers.txt.bgz',
+            'fstat_low': 0.2,
+            'fstat_high': 0.8
+        }
+        cls.config = __expand_cvars_recursively(config, config)
         
     # QC Step 1.1
     def test_1_1_load_vcfs_to_mt(self):
         # run function to test
-        qc_step_1_1.load_vcfs_to_mt(self.import_vcf_dir, self.mtdir, self.tmp_dir, self.vcf_header)
-
+        qc_step_1_1.load_vcfs_to_mt(self.config)
+        
         # compare the output to reference
-        outputs_are_identical = compare_matrixtables(self.ref_mt_path, self.output_mt_path)
+        output_mt_path = self.config['step1']['gatk_mt_outfile']
+        self.assertEqual(output_mt_path, self.output_mt_path)
+
+        outputs_are_identical = compare_matrixtables(self.ref_mt_path, output_mt_path)
         self.assertTrue(outputs_are_identical)
 
     # QC Step 2.1 apply_hard_filters
@@ -457,10 +500,14 @@ class TestQCSteps(HailTestCase):
         ref_mt_unfiltered = hl.read_matrix_table(self.ref_unfiltered_mt_path)
 
         # run function to test
-        mt_filtered = qc_step_2_1.apply_hard_filters(ref_mt_unfiltered, self.mtdir)
+        mt_filtered = qc_step_2_1.apply_hard_filters(ref_mt_unfiltered, self.config)
 
+        
         # compare the output to reference
-        outputs_are_identical = compare_matrixtables(self.ref_output_filtered_mt_path, self.output_filtered_mt_path)
+        output_filtered_mt_path = self.config['step2']['filtered_mt_outfile']
+        self.assertEqual(output_filtered_mt_path, self.output_filtered_mt_path)
+        
+        outputs_are_identical = compare_matrixtables(self.ref_output_filtered_mt_path, output_filtered_mt_path)
         self.assertTrue(outputs_are_identical)
 
     # QC Step 2.1 impute sex
@@ -469,12 +516,19 @@ class TestQCSteps(HailTestCase):
         ref_mt_filtered = hl.read_matrix_table(self.ref_output_filtered_mt_path)
 
         # run function to test
-        sex_mt = qc_step_2_1.impute_sex(ref_mt_filtered, self.mtdir, self.annotdir)
+        sex_mt = qc_step_2_1.impute_sex(ref_mt_filtered, self.config)
 
         # compare the outputs to reference
-        output_mts_are_identical = compare_matrixtables(self.ref_output_sex_mt_path, self.output_sex_mt_path)
+        output_sex_annotated_path = self.config['step2']['impute_sex']['sex_ht_outfile']
+        output_sex_mt_path = self.config['step2']['impute_sex']['sex_mt_outfile']
+        self.assertEqual(output_sex_annotated_path, self.output_sex_annotated_path)
+        self.assertEqual(output_sex_mt_path, self.output_sex_mt_path)
+
+        self.assertEqual(path_local(output_sex_annotated_path), strip_prefix(output_sex_annotated_path))
+
+        output_mts_are_identical = compare_matrixtables(self.ref_output_sex_mt_path, output_sex_mt_path)
         output_txts_are_identical = compare_bgzed_txts(strip_prefix(self.ref_output_sex_annotated_path),
-                                                       strip_prefix(self.output_sex_annotated_path))
+                                                       strip_prefix(output_sex_annotated_path))
 
         self.assertTrue(output_mts_are_identical and output_txts_are_identical)
 
@@ -483,17 +537,25 @@ class TestQCSteps(HailTestCase):
         ref_output_sex_mt = hl.read_matrix_table(self.ref_output_sex_mt_path)
 
         # run function to test
-        qc_step_2_1.identify_inconsistencies(ref_output_sex_mt, self.mtdir, self.annotdir, self.test_resourcedir)
+        qc_step_2_1.identify_inconsistencies(ref_output_sex_mt, self.config)
 
         # compare outputs to reference
+        conflicting_sex_path = self.config['step2']['sex_inconsistencies']['conflicting_sex_report_path']
+        sex_annotation_f_stat_outliers_path = self.config['step2']['sex_inconsistencies']['fstat_outliers_report_path']
+
+        self.assertEqual(conflicting_sex_path, self.conflicting_sex_path)
+        self.assertEqual(sex_annotation_f_stat_outliers_path, self.sex_annotation_f_stat_outliers_path)
+
         conflicting_sex_are_identical = compare_bgzed_txts(strip_prefix(self.ref_conflicting_sex_path),
-                                                                  strip_prefix(self.conflicting_sex_path))
+                                                                  strip_prefix(conflicting_sex_path))
 
         f_stat_outliers_are_identical = compare_bgzed_txts(strip_prefix(self.ref_sex_annotation_f_stat_outliers_path),
-                                                           strip_prefix(self.sex_annotation_f_stat_outliers_path))
+                                                           strip_prefix(sex_annotation_f_stat_outliers_path))
 
 
         self.assertTrue(conflicting_sex_are_identical and f_stat_outliers_are_identical)
+
+    # mk43 : unprocessed after this line
 
     def test_2_2_1_prune_mt(self):
         # read reference output of the Step 2.1 impute_sex()
