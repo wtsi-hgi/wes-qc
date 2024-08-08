@@ -3,7 +3,7 @@
 import os
 import hail as hl
 import pyspark
-from utils.utils import parse_config, path_local, path_spark, expand_cvars
+    from utils.utils import parse_config, path_local, path_spark, __expand_cvars
 import os
 
 def apply_hard_filters(mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
@@ -144,7 +144,7 @@ def main():
     #importmtdir = inputs['load_matrixtables_lustre_dir']
 
     #initialise hailS
-    tmp_dir = config['tmp_dir']
+    tmp_dir = config['general']['tmp_dir']
     # sc = pyspark.SparkContext()
     sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()

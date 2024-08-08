@@ -5,6 +5,7 @@ A separate file with minimal dependencies
 import os
 import yaml
 import re
+from utils.utils import get_script_path
 
 """
 A dictionary of predefined cvars in the format of  
