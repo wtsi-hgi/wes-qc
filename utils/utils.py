@@ -66,28 +66,30 @@ def expand_pd_array_col(
     return df
 
 
-def get_rf(
+def get_rf_model(rf_dir: str, run_hash: str) -> str:
+    hashdir = os.path.join(rf_dir, run_hash)
+    model_file = os.path.join(hashdir, "rf.model")
+    return model_file
+
+
+def get_rf_data(
     rf_dir: str,
     data: str = "rf_result",
     run_hash: str = "",
-) -> Union[str, TableResource]:
+) -> TableResource:
     """
     Gets the path to the desired RF data.
     Data can take the following values:
         - 'training': path to the training data for a given run
-        - 'model': path to pyspark pipeline RF model
+        - 'model': - moved to separate funciton
         - 'rf_result' (default): path to HT containing result of RF filtering
     :param str data: One of 'training', 'model' or 'rf_result' (default)
     :param str run_hash: Hash of RF run to load
     :return: Path to desired RF data
     """
-    hashdir = rf_dir + run_hash + "/"
-    model_file = hashdir + "rf.model"
-    data_file = hashdir + data + ".ht"
-    if data == "model":
-        return model_file
-    else:
-        return TableResource(data_file)
+    hashdir = os.path.join(rf_dir, run_hash)
+    data_file = os.path.join(hashdir, data + ".ht")
+    return TableResource(data_file)
 
 
 def rm_mt(path: str) -> None:

@@ -1,59 +1,70 @@
-#make RF model for variant QC
+# make RF model for variant QC
+import os
+
 import hail as hl
 import pyspark
 import uuid
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
-import wes_qc.utils.constants as constants
-from wes_qc.utils.utils import parse_config, get_rf
+from typing import Dict, List, Tuple, Any
+import utils.constants as constants
+from utils import utils
 from gnomad.utils.file_utils import file_exists
 from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
 
+from wes_qc import hail_utils
 
-def get_rf_runs(rf_json_fp: str) -> Dict:
+spark_local_message = """!!! WARNING !!!
+The gnomAD fucntion train_rf_model() is a bit buggy
+and can work incorrectly in the parallel SPARK environment.
+
+If the run of the function will fail with some weird message
+(no space left on device, wrong imports, etc),
+try running model training on the master node only:
+
+PYTHONPATH=$(pwd):$PYTHONPATH PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit --master local[*]  3-variant_qc/3-train_rf.py
+"""
+
+
+def get_rf_runs(rf_json_fp: str) -> Dict[Any, Any]:
     """
     Loads RF run data from JSON file.
     :param rf_json_fp: File path to rf json file.
     :return: Dictionary containing the content of the JSON file, or an empty dictionary if the file wasn't found.
     """
     if file_exists(rf_json_fp):
-        with hl.hadoop_open(rf_json_fp) as f:
-            return json.load(f)
+        print(f"=== Loading RF models data from {rf_json_fp}")
+        with hl.hadoop_open("file://" + rf_json_fp) as f:
+            return dict(json.load(f))
     else:
-        print(
-            f"File {rf_json_fp} could not be found. Returning empty RF run hash dict."
-        )
+        print(f"=== File {rf_json_fp} could not be found. Returning empty RF run hash dict.")
         return {}
 
 
-def train_rf(ht: hl.Table, test_intervals: str) -> Tuple[hl.Table, pyspark.ml.PipelineModel]:
-    '''
+def train_rf(ht: hl.Table, test_intervals_str: str) -> Tuple[hl.Table, pyspark.ml.PipelineModel]:
+    """
     Train RF model
     :param hl.Table ht: Hail table containing input data
     :param str test_intervals: Test intervals
     :return: Hail table and RF model
-    '''
+    """
     features = constants.FEATURES
-    print("test_intervals")
-    print(test_intervals)
+    print(f"=== Test_intervals: {test_intervals_str}")
 
     fp_expr = ht.fail_hard_filters
     tp_expr = ht.omni | ht.mills | ht.kgp_phase1_hc | ht.hapmap
     ht = ht.annotate(tp=tp_expr, fp=fp_expr)
 
-    if isinstance(test_intervals, str):
-        test_intervals = [test_intervals]
-        test_intervals = [
-            hl.parse_locus_interval(x, reference_genome="GRCh38")
-            for x in test_intervals
-        ]
-        print("Resulting intervals")
+    if isinstance(test_intervals_str, str):
+        test_intervals = [test_intervals_str]
+        test_intervals = [hl.parse_locus_interval(x, reference_genome="GRCh38") for x in test_intervals]
+        print("=== Resulting intervals")
         print(hl.eval(test_intervals))
-
-    ht=ht.persist()
-   
+    else:
+        test_intervals = test_intervals_str
+    ht = ht.persist()
+    print("=== Start training the model")
     rf_ht, rf_model = train_rf_model(
         ht,
         rf_features=features,
@@ -62,12 +73,11 @@ def train_rf(ht: hl.Table, test_intervals: str) -> Tuple[hl.Table, pyspark.ml.Pi
         fp_to_tp=1.0,
         num_trees=500,
         max_depth=5,
-        test_expr=hl.literal(test_intervals).any(
-            lambda interval: interval.contains(ht.locus)),
+        test_expr=hl.literal(test_intervals).any(lambda interval: interval.contains(ht.locus)),
     )
-    #fp to tp = Ratio of FPs to TPs for training the RF model
-    #num trees is number of trees in the model
-    #max depth = maximum tree depth in model
+    # fp to tp = Ratio of FPs to TPs for training the RF model
+    # num trees is number of trees in the model
+    # max depth = maximum tree depth in model
 
     ht = ht.join(rf_ht, how="left")
 
@@ -81,9 +91,7 @@ def get_run_data(
     test_intervals: List[str],
     features_importance: Dict[str, float],
     test_results: List[hl.tstruct],
-
-
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Creates a Dict containing information about the RF input arguments and feature importance
     :param bool transmitted_singletons: True if transmitted singletons were used in training
@@ -95,7 +103,7 @@ def get_run_data(
     :return: Dict of RF information
     """
     if vqsr_training:
-        transmitted_singletons = None
+        transmitted_singletons = False
 
     run_data = {
         "input_args": {
@@ -122,33 +130,38 @@ def get_run_data(
     return run_data
 
 
-def main():
+def main() -> None:
     # set up
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-    test_interval = inputs['rf_test_interval']
+    print(spark_local_message)
+
+    inputs = utils.parse_config()
+
+    data_root: str = inputs["data_root"]
+    dataset_name: str = inputs["dataset_name"]
+    mtdir: str = os.path.join(data_root, inputs["matrixtables_lustre_dir"])
+    rf_dir = os.path.join(data_root, inputs["var_qc_rf_dir"])
+    test_interval = inputs["rf_test_interval"]
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
-    hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    sc = hail_utils.init_hl(inputs["tmp_dir"])
 
     # hash for new RF
+    runs_json = os.path.join(rf_dir, "rf_runs.json")
+    rf_runs = get_rf_runs(runs_json)
     run_hash = str(uuid.uuid4())[:8]
-    rf_runs = get_rf_runs(rf_dir)
     while run_hash in rf_runs:
         run_hash = str(uuid.uuid4())[:8]
-    
 
     # train RF
-    input_ht_file = mtdir + "ht_for_RF_by_variant_type_all_cols.ht"
-    input_ht = hl.read_table(input_ht_file)
-    runs_json = rf_dir + "rf_runs.json"
+    input_ht_file = os.path.join(mtdir, "ht_for_RF_by_variant_type_all_cols.ht")
+    input_ht = hl.read_table("file://" + input_ht_file)
+
     ht_result, rf_model = train_rf(input_ht, test_interval)
-    print("Writing out ht_training data")
-    ht_result = ht_result.checkpoint(get_rf(rf_dir, data="training", run_hash=run_hash).path, overwrite=True)
+
+    print("=== Writing out ht_training data")
+    ht_result = ht_result.checkpoint(
+        utils.get_rf_data("file://" + rf_dir, data="training", run_hash=run_hash).path, overwrite=True
+    )
 
     rf_runs[run_hash] = get_run_data(
         vqsr_training=False,
@@ -158,14 +171,16 @@ def main():
         features_importance=hl.eval(ht_result.features_importance),
         test_results=hl.eval(ht_result.test_results),
     )
-    rf_runs[run_hash]['features_importance'] = dict(rf_runs[run_hash]['features_importance'])#convert featues importance frozendict to dict for dumping to json
+    rf_runs[run_hash]["features_importance"] = dict(
+        rf_runs[run_hash]["features_importance"]
+    )  # convert featues importance frozendict to dict for dumping to json
 
-    with hl.hadoop_open(runs_json, "w") as f:
+    with hl.hadoop_open("file://" + runs_json, "w") as f:
         json.dump(rf_runs, f)
     pretty_print_runs(rf_runs)
-    save_model(
-            rf_model, get_rf(rf_dir, data="model", run_hash=run_hash), overwrite=True)
+    save_model(rf_model, utils.get_rf_model("file://" + rf_dir, run_hash=run_hash), overwrite=True)
+    hail_utils.stop_hl(sc)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
