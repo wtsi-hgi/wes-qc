@@ -31,7 +31,7 @@ kg_pop: igsr_samples.tsv # downloaded from https://www.internationalgenome.org/d
 
 rf_test_interval: chr20
 
-runhash: fef0f446
+runhash: 5278832e
 
 samples_to_exclude: Birth_Cohorts_Data_Note_ALSPAC_348_samples_removed.txt
 samples_rename_map: ""
