@@ -1,5 +1,7 @@
 #apply gnomad's hard filters and impute sex
 #input gatk_unprocessed.mt from step 1.1
+import os.path
+
 import hail as hl
 import pyspark
 from utils.utils import parse_config
@@ -13,7 +15,7 @@ def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     :rtype: MatrixTable
     '''
     print("Applying hard filters")
-    filtered_mt_file = mtdir + "mt_hard_filters_annotated.mt"
+    filtered_mt_file = os.path.join(mtdir, "mt_hard_filters_annotated.mt")
     mt = mt.filter_rows((hl.len(mt.alleles) == 2) & hl.is_snp(mt.alleles[0], mt.alleles[1]) &
         (hl.agg.mean(mt.GT.n_alt_alleles()) / 2 > 0.001) &
         (hl.agg.fraction(hl.is_defined(mt.GT)) > 0.99))
@@ -46,7 +48,7 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     sex_colnames = ['f_stat', 'is_female']
     sex_ht = sex_ht.select(*sex_colnames)
     mt = mt.annotate_cols(**sex_ht[mt.col_key])
-    sex_mt_file = mtdir + "mt_sex_annotated.mt"
+    sex_mt_file = os.path.join(mtdir, "mt_sex_annotated.mt")
     print("Writing to " + sex_mt_file)
     mt.write(sex_mt_file, overwrite=True)
 
@@ -73,17 +75,17 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-    metadata_file =  resourcedir +  '/mlwh_sample_and_sex.txt'
-    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
+    metadata_file = os.path.join(resourcedir, 'sample_sex.tsv')
+    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('sample_id')
     #we only want those from the metadata file where sex is known
-    metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.gender == 'Female'))
+    metadata_ht = metadata_ht.filter((metadata_ht.gender == 'male') | (metadata_ht.gender == 'female'))
 
     #annotate the sex-predictions with the manifest sex annotation - need to use a join here
     ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].gender)
 
     #identify samples where imputed sex and manifest sex conflict
-    conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
-        (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
+    conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'female')) | (
+        (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'male')))
     conflicting_sex_ht.export(annotdir + '/conflicting_sex.txt.bgz')
 
     #identify samples where f stat is between 0.2 and 0.8
@@ -94,7 +96,6 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
 def main():
     #set up
     inputs = parse_config()
-    #importmtdir = inputs['load_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
     resourcedir = inputs['resource_dir']
@@ -105,7 +106,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mt_in_file = mtdir + "/gatk_unprocessed.mt"
+    mt_in_file = os.path.join(mtdir, "gatk_unprocessed.mt")
     print("Reading input matrix")
     mt_unfiiltered = hl.read_matrix_table(mt_in_file)
 
@@ -121,4 +122,3 @@ def main():
 
 if __name__ == '__main__':
     main() 
-

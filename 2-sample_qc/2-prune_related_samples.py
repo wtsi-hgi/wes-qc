@@ -1,8 +1,10 @@
 # identify and prune related samples prior to PCA
 # use mt with hard filters and sex annotation from 2-sample_qc/1-hard_filters_sex_annotation.py
+import os.path
+
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from bokeh.plotting import save, output_file
 
 
@@ -94,29 +96,29 @@ def main():
     plotdir = inputs['plots_lustre_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = "file:///lustre/scratch126/teams/hgi/ip13/slemap/qc/temp/"
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     #load input mt
-    mtfile = mtdir + "mt_sex_annotated.mt"
+    mtfile = os.path.join(mtdir, "mt_sex_annotated.mt")
     mt = hl.read_matrix_table(mtfile)
 
     #ld prune to get a table of variants which are not correlated
-    pruned_mt_file = mtdir + "mt_ldpruned.mt"
+    pruned_mt_file = os.path.join(mtdir, "mt_ldpruned.mt")
     prune_mt(mt, pruned_mt_file)
 
     #run pcrelate
-    relatedness_ht_file = mtdir + "mt_relatedness.ht"
-    samples_to_remove_file = mtdir + "mt_related_samples_to_remove.ht"
-    scores_file = mtdir + "mt_pruned.pca_scores.ht"
+    relatedness_ht_file = os.path.join(mtdir, "mt_relatedness.ht")
+    samples_to_remove_file = os.path.join(mtdir, "mt_related_samples_to_remove.ht")
+    scores_file = os.path.join(mtdir, "mt_pruned.pca_scores.ht")
     run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
     #run PCA
-    pca_mt_file = mtdir + "mt_pca.mt"
+    pca_mt_file = os.path.join(mtdir, "mt_pca.mt")
     run_population_pca(pruned_mt_file, pca_mt_file, mtdir, plotdir, samples_to_remove_file)
 
 
 if __name__ == '__main__':
-    main() 
+    main()
