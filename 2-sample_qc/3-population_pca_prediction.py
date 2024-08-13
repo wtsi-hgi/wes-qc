@@ -155,10 +155,10 @@ def main() -> None:
 
     data_root: str = inputs["data_root"]
     dataset_name: str = inputs["dataset_name"]
-    mtdir: str = os.path.join(data_root, inputs["matrixtables_lustre_dir"])
-    resourcedir = os.path.join(data_root, inputs["resource_dir"])
-    annot_dir: str = os.path.join(data_root, inputs["annotation_lustre_dir"])
-    plotdir = os.path.join(data_root, inputs["plots_lustre_dir"])
+    mtdir: str = inputs["load_matrixtables_lustre_dir"]
+    resourcedir = inputs["resource_dir_local"]
+    annot_dir: str = inputs["annotation_lustre_dir_local"]
+    plotdir = inputs["plots_dir_local"]
 
     n_pca = int(inputs["n_pca"])
 
@@ -223,6 +223,7 @@ def main() -> None:
         print(f"Plotting PCA components for assigned populations: {pca_scores_file}")
         pop_ht = hl.read_table("file://" + pop_ht_file)
         pop_ht = pop_ht.transmute(scores=pop_ht.pca_scores)
+        pop_ht = pop_ht.filter(hl.is_missing(pop_ht.known_pop))
         visualize.plot_pca_bokeh(
             pop_ht, os.path.join(plotdir, f"PCA_assigned_populations_{n_pca}.html"), n_pca, pop="pop"
         )

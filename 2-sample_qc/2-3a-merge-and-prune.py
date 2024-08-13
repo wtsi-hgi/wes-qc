@@ -72,8 +72,8 @@ def main() -> None:
 
     data_root: str = inputs["data_root"]
     dataset_name: str = inputs["dataset_name"]
-    mtdir: str = os.path.join(data_root, inputs["matrixtables_lustre_dir"])
-    resourcedir = os.path.join(data_root, inputs["resource_dir"])
+    mtdir: str = inputs["load_matrixtables_lustre_dir"]
+    resourcedir = inputs["resource_dir_local"]
     annot_dir: str = os.path.join(data_root, inputs["annotation_lustre_dir"])
     plotdir = os.path.join(data_root, inputs["plots_lustre_dir"])
 
