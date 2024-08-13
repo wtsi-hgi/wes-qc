@@ -1,16 +1,13 @@
 ---
-gatk_vcf_header: file:///lustre/scratch123/qc/BiB/gatk_vcf_header.txt
-gatk_import_lustre_dir: file:///lustre/scratch123/qc/BiB/gatk_vcfs/
-load_matrixtables_lustre_dir: /lustre/scratch123/qc/BiB/matrixtables/
-#load_matrixtables_lustre_dir: /lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-annotation_lustre_dir: file:///lustre/scratch123/qc/BiB/annotations/
-annotation_lustre_dir_local: /lustre/scratch123/qc/BiB/annotations/
-matrixtables_lustre_dir: file:///lustre/scratch123/qc/BiB/matrixtables/
-#matrixtables_lustre_dir: file:///lustre/scratch123/qc/matrixtables/mts_for_control_datasets/
-plots_lustre_dir: file:///lustre/scratch123/qc/BiB/plots/
-plots_dir_local: /lustre/scratch123/qc/BiB/plots/
-resource_dir: file:///lustre/scratch123/qc/BiB/resources/
-resource_dir_local: /lustre/scratch123/qc/BiB/resources/
+gatk_import_lustre_dir: file:///lustre/scratch126/teams/hgi/ip13/slemap/
+annotation_lustre_dir: file:///lustre/scratch126/teams/hgi/ip13/slemap/qc/annotations/
+annotation_lustre_dir_local: /lustre/scratch126/teams/hgi/ip13/slemap/qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch126/teams/hgi/ip13/slemap/qc/matrixtables/
+load_matrixtables_lustre_dir: /lustre/scratch126/teams/hgi/ip13/slemap/qc/matrixtables/
+plots_lustre_dir: file:///lustre/scratch126/teams/hgi/ip13/slemap/qc/plots/
+plots_dir_local: /lustre/scratch126/teams/hgi/ip13/slemap/qc/plots/
+resource_dir: file:///lustre/scratch126/teams/hgi/ip13/slemap/resources/
+resource_dir_local: /lustre/scratch126/teams/hgi/ip13/slemap/resources/
 training_set_dir: file:///lustre/scratch123/qc/BiB/training_sets/
 var_qc_rf_dir: file:///lustre/scratch123/qc/BiB/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch123/qc/BiB/filtered_vcfs/
