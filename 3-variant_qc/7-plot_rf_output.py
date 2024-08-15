@@ -311,7 +311,7 @@ def create_plots(
 
     if trios_available:
         # plot transmitted singletons
-        plotfile = plot_dir + "transmitted_singletons.html"
+        plotfile = plot_dir + f"{run_hash}_transmitted_singletons.html"
         tabs = plot_metric(
             snvs,
             "n_trans_singletons",
@@ -326,7 +326,7 @@ def create_plots(
         output_file(filename=plotfile)
         save(tabs)
         # plot untransmitted singletons
-        plotfile = plot_dir + "untransmitted_singletons.html"
+        plotfile = plot_dir + f"{run_hash}_untransmitted_singletons.html"
         tabs = plot_metric(
             snvs,
             "n_untrans_singletons",
@@ -341,7 +341,7 @@ def create_plots(
         output_file(filename=plotfile)
         save(tabs)
         # plot transmitted/untransmitted ratio
-        plotfile = plot_dir + "transmitted_untransmitted.html"
+        plotfile = plot_dir + f"{run_hash}_transmitted_untransmitted.html"
         tabs = plot_metric(
             snvs,
             "trans_untrans_ratio",
@@ -358,7 +358,7 @@ def create_plots(
 
         # plot transmitted/untransmitted from Hail's tdt test
         # plot transmitted singletons
-        plotfile = plot_dir + "transmitted_singletons_tdt.html"
+        plotfile = plot_dir + f"{run_hash}_transmitted_singletons_tdt.html"
         tabs = plot_metric(
             snvs,
             "n_trans_singletons_tdt",
@@ -373,7 +373,7 @@ def create_plots(
         output_file(filename=plotfile)
         save(tabs)
         # plot untransmitted singletons
-        plotfile = plot_dir + "untransmitted_singletons_tdt.html"
+        plotfile = plot_dir + f"{run_hash}_untransmitted_singletons_tdt.html"
         tabs = plot_metric(
             snvs,
             "n_untrans_singletons_tdt",
@@ -388,7 +388,7 @@ def create_plots(
         output_file(filename=plotfile)
         save(tabs)
         # ratio
-        plotfile = plot_dir + "transmitted_untransmitted_tdt.html"
+        plotfile = plot_dir + f"{run_hash}_transmitted_untransmitted_tdt.html"
         tabs = plot_metric(
             snvs,
             "trans_untrans_ratio_tdt",
@@ -405,7 +405,7 @@ def create_plots(
 
     # plot number of insertions
 
-    plotfile = plot_dir + "n_insertions.html"
+    plotfile = plot_dir + f"{run_hash}_n_insertions.html"
     tabs = plot_metric(
         indels,
         "n_ins",
@@ -421,7 +421,7 @@ def create_plots(
     save(tabs)
 
     # plot number of deletions
-    plotfile = plot_dir + "n_deletions.html"
+    plotfile = plot_dir + f"{run_hash}_n_deletions.html"
     tabs = plot_metric(
         indels,
         "n_del",
@@ -437,7 +437,7 @@ def create_plots(
     save(tabs)
 
     # plot Ti/Tv ratio
-    plotfile = plot_dir + "r_ti_tv.html"
+    plotfile = plot_dir + f"{run_hash}_r_ti_tv.html"
     tabs = plot_metric(
         snvs,
         "Ti/Tv ratio",
@@ -453,7 +453,7 @@ def create_plots(
     save(tabs)
 
     # plot 1kg high confidence SNVs
-    plotfile = plot_dir + "kg_snv.html"
+    plotfile = plot_dir + f"{run_hash}_kg_snv.html"
     tabs = plot_metric(
         snvs,
         "n_kgp_high_conf_snvs",
@@ -469,7 +469,7 @@ def create_plots(
     save(tabs)
 
     # plot omni SNVs
-    plotfile = plot_dir + "omni_snv.html"
+    plotfile = plot_dir + f"{run_hash}_omni_snv.html"
     tabs = plot_metric(
         snvs,
         "n_omni",
@@ -485,7 +485,7 @@ def create_plots(
     save(tabs)
 
     # plot mills indels
-    plotfile = plot_dir + "mills_indels.html"
+    plotfile = plot_dir + f"{run_hash}_mills_indels.html"
     tabs = plot_metric(
         indels,
         "n_mills",
@@ -501,7 +501,7 @@ def create_plots(
     save(tabs)
 
     # plot hapmap snvs
-    plotfile = plot_dir + "hapmap_snvs.html"
+    plotfile = plot_dir + f"{run_hash}_hapmap_snvs.html"
     tabs = plot_metric(
         snvs,
         "n_hapmap_snvs",
@@ -517,7 +517,7 @@ def create_plots(
     save(tabs)
 
     # plot hapmap indels
-    plotfile = plot_dir + "hapmap_indels.html"
+    plotfile = plot_dir + f"{run_hash}_hapmap_indels.html"
     tabs = plot_metric(
         indels,
         "n_hapmap_indels",
@@ -533,7 +533,7 @@ def create_plots(
     save(tabs)
 
     # plot fail hard filters snvs
-    plotfile = plot_dir + "fail_hard_filters_snvs.html"
+    plotfile = plot_dir + f"{run_hash}_fail_hard_filters_snvs.html"
     tabs = plot_metric(
         snvs,
         "fail_hard_filters_snvs",
@@ -549,7 +549,7 @@ def create_plots(
     save(tabs)
 
     # plot fail hard filters indels
-    plotfile = plot_dir + "fail_hard_filters_indels.html"
+    plotfile = plot_dir + f"{run_hash}_fail_hard_filters_indels.html"
     tabs = plot_metric(
         indels,
         "fail_hard_filters_indels",
@@ -577,10 +577,10 @@ def main() -> None:
     rf_dir = os.path.join(data_root, inputs["var_qc_rf_dir"])
     runhash = inputs["runhash"]
     ped_file_name = inputs["pedfile_name"]
+    root_plot_dir = os.path.join(data_root, inputs["plots_lustre_dir"])
 
     # initialise hail
     sc = hail_utils.init_hl(inputs["tmp_dir"])
-    root_plot_dir = os.path.join(data_root, inputs["plots_lustre_dir"])
 
     qc_plots_settings = {
         "mean_point_size": 4.0,
