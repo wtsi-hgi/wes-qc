@@ -20,12 +20,13 @@ annot_dir:str = os.path.join(data_root, config['annotation_lustre_dir'])
 rf_dir:str = os.path.join(data_root, config['var_qc_rf_dir'])
 resourcedir:str = os.path.join(data_root, config['resource_dir'])
 stats_dir:str = os.path.join(data_root, config['stats_dir'])
-plot_dir:str = os.path.join(data_root, config['plots_dir_local'])
+plot_dir:str = os.path.join(data_root, config['plots_lustre_dir'])
 
 tmp_dir:str = config["tmp_dir"]
 
 filterCombinationParams = compare_hardfilter.HardFilterCombinationParams(**config["hard_filters_combinations"])
 runhash:str = filterCombinationParams.runhash
+ped_file_name = config["pedfile_name"]
 wd = os.path.join(mtdir, runhash)
 
 is_hail_running = False
@@ -33,7 +34,7 @@ is_hail_running = False
 rule default:
     input:
         out_file_snv=os.path.join(wd, 'evaluation.snv.json'),
-        #out_file_indel=os.path.join(wd, 'evaluation.indel.json')
+        out_file_indel=os.path.join(wd, 'evaluation.indel.json')
         #outfile_snp = os.path.join(plot_dir, runhash, "evaluation.snv.csv"),
         #outfile_indel = os.path.join(plot_dir, runhash, "evaluation.indel.csv")
 
@@ -58,7 +59,7 @@ rule annotate_mt:
     input:
         mtfile = os.path.join(mtdir,"mt_varqc_splitmulti.mt"),
         rf_htfile = os.path.join(rf_dir,runhash,"_gnomad_score_binning_tmp.ht"),
-        cqfile = os.path.join(resourcedir, "all_consequences.txt")
+        cqfile = os.path.join(annot_dir, "all_consequences.txt")
     output:
         mt_annot_path = directory(os.path.join(wd, 'tmp.hard_filters_combs.mt'))
     benchmark: os.path.join(stats_dir,'benchmark_annotate_mt.txt')
@@ -86,11 +87,19 @@ rule filter_var_type:
         )
         hail_utils.stop_hl(sc)
 
+def make_input_for_evaluate(wcs):
+    inputs = {
+        "mt_path": os.path.join(mtdir, f"tmp.hard_filters_combs.{wcs.label}.mt"),
+        "giab_ht_path": rules.generate_giab.output.giab_ht_path
+    }
+    if ped_file_name != "":
+        inputs["pedfile"] = os.path.join(annot_dir, config["pedfile_name"])
+    print(f"Collected inputs: {inputs}")
+    return inputs
+
 rule evaluate_filter_combinations:
     input:
-        mt_path = os.path.join(mtdir,"tmp.hard_filters_combs.{label}.mt"),
-        giab_ht_path= rules.generate_giab.output.giab_ht_path,
-        pedfile= os.path.join(annot_dir, config["pedfile_name"])
+        unpack(make_input_for_evaluate)
     output:
         json_dump_file=protected(os.path.join(wd, 'evaluation.{label}.json'))
     benchmark: os.path.join(stats_dir,'benchmark_{label}_evaluate_filter_combinations.txt')
@@ -102,7 +111,7 @@ rule evaluate_filter_combinations:
         results = compare_hardfilter.filter_and_count_by_type(
             mt_path=f"file://{input.mt_path}",
             ht_giab=giab_ht,
-            pedfile=f"file://{input.pedfile}",
+            pedfile=(f"file://{input.pedfile}") if ped_file_name != "" else "",
             mtdir=f"file://{wd}",
             filters=filterCombinationParams,
             var_type=wildcards.label,

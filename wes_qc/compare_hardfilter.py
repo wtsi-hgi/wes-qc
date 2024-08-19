@@ -153,12 +153,19 @@ def filter_and_count_by_type(
     elif var_type == "indel":
         bins = filters.indel_bins
     else:
+        print(f"Unknown variant type: {var_type}")
         exit(-1)
 
     results: ResultsDict = {var_type: {}}
-    pedigree = hl.Pedigree.read(pedfile)
+
+    pedigree = hl.Pedigree.read(pedfile) if pedfile != "" else None
 
     mt = hl.read_matrix_table(mt_path)
+    sample_ids = set(mt.s.collect())
+
+    if not filters.giab_sample in sample_ids:
+        print(f"=== Control sample {filters.giab_sample} not found in matrixtable")
+        exit(-1)
 
     mt = trace_analysis_step(mt, f"var_type:{var_type}")
 
@@ -283,7 +290,7 @@ def count_tp_fp_t_u(
     mt_syn: hl.MatrixTable,
     mt_prec_recall: hl.Table,
     ht_giab: hl.Table,
-    pedigree: hl.Pedigree,
+    pedigree: Optional[hl.Pedigree],
     var_type: str,
     mtdir: str,
 ) -> Dict[str, float]:
@@ -311,7 +318,7 @@ def count_tp_fp_t_u(
     results["FP"] = counts[1]
 
     if var_type == "snv":
-        ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
+        ratio = get_trans_untrans(mt_syn, pedigree, mtdir) if pedigree is not None else -1
 
         prec, recall = get_prec_recall_snv(ht_prec_recall, ht_giab, mtdir)
         results["t_u_ratio"] = ratio
