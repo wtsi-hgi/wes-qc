@@ -2,8 +2,9 @@
 #input gatk_unprocessed.mt from step 1.1
 import os
 import hail as hl
+import hailtop.fs as hfs
 import pyspark
-    from utils.utils import parse_config, path_local, path_spark, __expand_cvars
+from utils.utils import parse_config, path_local, path_spark, _expand_cvars
 import os
 
 def apply_hard_filters(mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
@@ -97,14 +98,8 @@ def identify_inconsistencies(mt: hl.MatrixTable, config: dict):
 
     # TODO: do we need such a detailed logging, or a single if (... and ... and ...) will suffice?
     error = False
-    if not os.path.exists(conf['sex_metadata_file']):
-        print("error: identify_inconsistencies: sex_metadata_file missing")
-        error = True
-    if not os.path.exists(conf['conflicting_sex_report_path']):
-        print("error: identify_inconsistencies: conflicting_sex_report_path missing")
-        error = True
-    if not os.path.exists(conf['fstat_outliers_report_path']):
-        print("error: identify_inconsistencies: fstat_outliers_report_path missing")
+    if not hfs.exists(conf['sex_metadata_file']):
+        print("error: identify_inconsistencies: missing input: sex_metadata_file")
         error = True
     if error:
         print("skip identify_inconsistencies because of previous errors")
@@ -131,6 +126,8 @@ def identify_inconsistencies(mt: hl.MatrixTable, config: dict):
     #identify samples where imputed sex and manifest sex conflict
     conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
         (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
+
+    # TODO: do we need this redundancy? the paths already have the "file://" prefix
     conflicting_sex_ht.export(path_spark(conf['conflicting_sex_report_path'])) # output
 
     #identify samples where f stat is between fstat_low and fstat_high
