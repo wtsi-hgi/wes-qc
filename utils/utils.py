@@ -7,10 +7,6 @@ import pandas as pd
 from shutil import rmtree
 from typing import Optional, Union, Set
 
-def get_script_path():
-    #returns the path of the script that is being run
-    return os.path.dirname(os.path.realpath(sys.argv[0]))
-
 """
 Config
 """
@@ -21,8 +17,8 @@ from utils.config import (
     getp,
     __is_path_field_re,
     __is_path_field,
-    __expand_cvars,
-    __expand_cvars_recursively,
+    _expand_cvars,
+    _expand_cvars_recursively,
     parse_config,
     path_local,
     path_spark

@@ -3,9 +3,9 @@ A separate file with minimal dependencies
 """
 
 import os
+import sys
 import yaml
 import re
-from utils.utils import get_script_path
 
 """
 A dictionary of predefined cvars in the format of  
@@ -22,6 +22,10 @@ default_cvars = {
 """
 Config utils
 """
+
+def get_script_path():
+    #returns the path of the script that is being run
+    return os.path.dirname(os.path.realpath(sys.argv[0]))
 
 def getp(_dict: dict, keypath: str, silent: bool = False, default = None):
     """
@@ -62,7 +66,7 @@ __is_path_field_re = re.compile(r"(out|in)?(dir|file)(_local)?$")
 def __is_path_field(fieldname):
     return __is_path_field_re.search(fieldname) is not None
 
-def __expand_cvars(config: dict, str_with_cvar: str, as_path: bool = False, custom_cvars: dict = None):
+def _expand_cvars(config: dict, str_with_cvar: str, as_path: bool = False, custom_cvars: dict = None):
     """
     Expand config variables in a string.  
     Ignore errors, leave invalid cvars as is. 
@@ -92,14 +96,14 @@ def __expand_cvars(config: dict, str_with_cvar: str, as_path: bool = False, cust
         if proto_match is not None: 
             expanded_str = expanded_str[proto_match.end():]
         # normalize path
-        expanded_str = os.path.normpath(expanded_str)
+        expanded_str = os.path.normpath(expanded_str) if expanded_str else ''
         # restore the protocol
         if proto_match is not None:
             expanded_str = proto_match[0] + expanded_str
 
     return expanded_str
 
-def __expand_cvars_recursively(config: dict, dict_to_expand, inplace=False, custom_cvars: dict = None):
+def _expand_cvars_recursively(config: dict, dict_to_expand, inplace=False, custom_cvars: dict = None):
     """
     Recursively expand cvars in all string fields in a nested dict structure `dict_to_expand`
     using data from `config`.  
@@ -115,10 +119,10 @@ def __expand_cvars_recursively(config: dict, dict_to_expand, inplace=False, cust
     for key in _dict:
         val = _dict[key]
         if isinstance(val, str):
-            _dict[key] = __expand_cvars(config, val, as_path=__is_path_field(key), custom_cvars=custom_cvars)
+            _dict[key] = _expand_cvars(config, val, as_path=__is_path_field(key), custom_cvars=custom_cvars)
         elif isinstance(val, dict):
             # force inplace
-            __expand_cvars_recursively(config, val, inplace=True, custom_cvars=custom_cvars)
+            _expand_cvars_recursively(config, val, inplace=True, custom_cvars=custom_cvars)
     return _dict
 
 def parse_config(path: str = None, custom_cvars: dict = None):
@@ -128,7 +132,7 @@ def parse_config(path: str = None, custom_cvars: dict = None):
         print(f"Loading config '{path}', function arg")
         with open(path, 'r') as y:
             inputs = yaml.load(y, Loader=yaml.FullLoader)
-        config = __expand_cvars_recursively(inputs, inputs, inplace=True, custom_cvars=custom_cvars)
+        config = _expand_cvars_recursively(inputs, inputs, inplace=True, custom_cvars=custom_cvars)
         return config
     
     # find config dir
@@ -165,7 +169,7 @@ def parse_config(path: str = None, custom_cvars: dict = None):
         inputs = yaml.load(y, Loader=yaml.FullLoader)
 
     # expand config variables in strings
-    config = __expand_cvars_recursively(inputs, inputs, inplace=True, custom_cvars=custom_cvars)
+    config = _expand_cvars_recursively(inputs, inputs, inplace=True, custom_cvars=custom_cvars)
 
     return config
 
