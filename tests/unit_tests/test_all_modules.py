@@ -648,7 +648,7 @@ class TestQCSteps(HailTestCase):
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
 
     def test_2_4_1_annotate_mt(self):
-        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path, self.ref_pop_ht_tsv)
+        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path)
 
         annotated_mts_identical = compare_matrixtables(self.annotated_mt_path, self.ref_annotated_mt_path)
 
