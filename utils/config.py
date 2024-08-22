@@ -6,6 +6,7 @@ import os
 import sys
 import yaml
 import re
+from typing import Iterable
 
 """
 A dictionary of predefined cvars in the format of  
@@ -16,6 +17,7 @@ default_cvars = {
     'anndir': 'general.annotation_dir',
     'mtdir': 'general.matrixtables_dir',
     'resdir': 'general.resource_dir',
+    'pltdir': 'general.plots_dir',
 }
 
 
@@ -58,12 +60,29 @@ def getp(_dict: dict, keypath: str, silent: bool = False, default = None):
             raise KeyError(f"{keypath} : {breadcrumbs + '.' + nextkey} is a field, not a section")
     return section
 
+# TODO: move this stuff to another utils file. Something like `common.py`
+def subdict(_dict: dict, keys: Iterable[str]) -> dict:
+    """
+    Get a subset of a dictionary safely. Output dictionary will only have those keys that are in both _dict and keys list.
+
+    Useful for constructing a kwargs dict
+    """
+    correct_keys = _dict.keys() & set(keys)
+    return {k: _dict[k] for k in correct_keys}
+
+def multigetp(_dict: dict, keypaths: Iterable[str], silent: bool = False, default = None) -> tuple:
+    """
+    Get a series of items by keys using `utils.getp`.
+    Useful when you want to get several items at once (via unpacking).
+    """
+    return (getp(_dict, k, silent, default) for k in keypaths)
+
 """
 Detect field names that end in dir, file, indir, outdir, infile, outfile + optionally _local.
 Capture groups are (in/out/None, dir/file, _local/None) 
 """
 __is_path_field_re = re.compile(r"(out|in)?(dir|file)(_local)?$")
-def __is_path_field(fieldname):
+def __is_path_field(fieldname: str):
     return __is_path_field_re.search(fieldname) is not None
 
 def _expand_cvars(config: dict, str_with_cvar: str, as_path: bool = False, custom_cvars: dict = None):

@@ -17,6 +17,9 @@ general:
   # CVAR resdir
   resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 
+  # CVAR pltdir
+  plots_dir: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
+
 # --- Step 1.1 --- #
 step1:
   gatk_vcf_header_infile:
@@ -40,10 +43,47 @@ step2:
   sex_inconsistencies:
     # TODO: specify structure of a sex metadata file
     sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
-    conflicting_sex_report_path: '{anndir}/conflicting_sex.txt.bgz'
-    fstat_outliers_report_path: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz'
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz'
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz'
     fstat_low: 0.2
     fstat_high: 0.8
+
+# --- Step 2.2 --- #
+  prune:
+    pruned_mt_file: '{mtdir}/mt_ldpruned.mt'
+    r2: 0.2
+    ld_prune_args: {}
+    # ld_prune_args:
+    #   bp_window_size:
+    #   memory_per_core:
+    #   keep_higher_maf:
+    #   block_size: 
+
+  pc_relate:
+    relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'
+    scores_file: '{mtdir}/mt_pruned.pca_scores.ht'
+    pca_components: 3
+    pc_relate_args:
+      min_individual_maf: 0.05
+      block_size: 4096
+      min_kinship: 0.05
+      statistics: 'kin2'
+      # k:
+      # include_self_kinship:
+    relatedness_column: 'kin'
+    relatedness_threshold: 0.125
+    
+  population_pca:
+    plink_outfile: '{mtdir}/mt_unrelated.plink'
+
+    pca_components: 4
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht'
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht'
+    pca_mt_file: '{mtdir}/mt_pca.mt'
+
+    plot_outfile: '{pltdir}/pca.html'
+
 
 # unprocessed below this line
 
