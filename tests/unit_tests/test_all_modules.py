@@ -8,6 +8,7 @@ import hailtop.fs as hfs
 import shutil as sh
 from pyspark import SparkContext
 from utils.config import parse_config, path_local, path_spark, getp, _expand_cvars_recursively
+import subprocess
 
 
 def compare_structs(struct1, struct2):
@@ -275,6 +276,9 @@ class TestQCSteps(HailTestCase):
         # path to dir with the test data in the repo
         cls.test_dataset_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         cls.ref_dataset_path = f"file://{os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_output_data')}"
+        refdir = cls.ref_dataset_path.removeprefix('file://')
+        os.makedirs(refdir, exist_ok=True)
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/', refdir]) #BEEP
 
         # TODO: switch to config rendering as in integration tests?
 
@@ -406,6 +410,9 @@ class TestQCSteps(HailTestCase):
         
         # ===== QC General Params ===== #
         cls.test_resourcedir = f"file://{os.path.join(cls.test_dataset_path, 'resources')}"
+        resdir = cls.test_resourcedir.removeprefix('file://')
+        os.makedirs(resdir, exist_ok=True)
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resdir]) #BEEP
 
         # add general params into the config object
         config = dict()
@@ -419,6 +426,10 @@ class TestQCSteps(HailTestCase):
         # ===== QC Step 1.1 ===== #
         # inputs
         cls.import_vcf_dir = f"file://{os.path.join(cls.test_dataset_path, 'control_set_small')}"
+        vcfdir = cls.import_vcf_dir.removeprefix('file://')
+        os.makedirs(vcfdir, exist_ok=True)
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir]) #BEEP
+        
         cls.vcf_header = '' # not available for test dataset. TODO: create one to ensure test completeness
         # outputs
         # TODO: make output filename variable and refactor the test
@@ -648,7 +659,7 @@ class TestQCSteps(HailTestCase):
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
 
     def test_2_4_1_annotate_mt(self):
-        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path)
+        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path, self.ref_pop_ht_tsv)
 
         annotated_mts_identical = compare_matrixtables(self.annotated_mt_path, self.ref_annotated_mt_path)
 
