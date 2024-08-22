@@ -31,7 +31,7 @@ def prune_mt(mtin: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     step2.prune.ld_prune_args.block_size : int optional  
     '''
     conf = config['step2']['prune']
-    ld_prune_args = subdict(conf['ld_prune_args'], {'r2', 'bp_window_size', 'memory_per_core', 'keep_higher_maf', 'block_size'})
+    ld_prune_args = conf['ld_prune_args']
     mtoutfile = conf['pruned_mt_outfile']
 
     print("Filtering to autosomes")
@@ -75,7 +75,7 @@ def run_pc_relate(pruned_mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     step2.pc_relate.pc_relate_args.include_self_kinship : bool  
     '''
     conf = config['step2']['pc_relate']
-    pc_relate_kwargs = subdict(conf['pc_relate_args'], {'min_individual_maf', 'block_size', 'min_kinship', 'statistics', 'k', 'include_self_kinship'})
+    pc_relate_kwargs = conf['pc_relate_args']
 
     print("Running PC relate")
 

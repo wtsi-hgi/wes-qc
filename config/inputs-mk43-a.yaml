@@ -51,13 +51,12 @@ step2:
 # --- Step 2.2 --- #
   prune:
     pruned_mt_file: '{mtdir}/mt_ldpruned.mt'
-    r2: 0.2
-    ld_prune_args: {}
-    # ld_prune_args:
-    #   bp_window_size:
-    #   memory_per_core:
-    #   keep_higher_maf:
-    #   block_size: 
+    ld_prune_args:
+      r2: 0.2
+      # bp_window_size:
+      # memory_per_core:
+      # keep_higher_maf:
+      # block_size: 
 
   pc_relate:
     relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
