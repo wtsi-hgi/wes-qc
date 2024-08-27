@@ -17,11 +17,9 @@ def apply_hard_filters(mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     :rtype: MatrixTable
 
     ### Config fields
-    ```
-    step2.sex_annotation_hard_filters.filtered_mt_outfile : path
-    step2.sex_annotation_hard_filters.n_alt_alleles_threshold : float
-    step2.sex_annotation_hard_filters.defined_gt_frac_threshold : float
-    ```
+    step2.sex_annotation_hard_filters.filtered_mt_outfile : path  
+    step2.sex_annotation_hard_filters.n_alt_alleles_threshold : float  
+    step2.sex_annotation_hard_filters.defined_gt_frac_threshold : float  
     '''
     conf = config['step2']['sex_annotation_hard_filters']
 
@@ -46,13 +44,11 @@ def impute_sex(mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     :rtype: MatrixTable
 
     ### Config fields
-    ```
-    step2.impute_sex.sex_ht_outfile : path
-    step2.impute_sex.sex_mt_outfile : path
-    step2.impute_sex.female_threshold : float
-    step2.impute_sex.male_threshold : float
-    step2.impute_sex.aaf_threshold : float
-    ```
+    step2.impute_sex.sex_ht_outfile : path  
+    step2.impute_sex.sex_mt_outfile : path  
+    step2.impute_sex.female_threshold : float  
+    step2.impute_sex.male_threshold : float  
+    step2.impute_sex.aaf_threshold : float  
     '''
 
     conf = config['step2']['impute_sex']
@@ -86,13 +82,11 @@ def identify_inconsistencies(mt: hl.MatrixTable, config: dict):
     :param dict config:
 
     ### Config fields
-    ```
-    step2.sex_inconsistencies.sex_metadata_file : input path : TODO explain metadata structure and constants
-    step2.sex_inconsistencies.conflicting_sex_report_path : output path : TODO
-    step2.sex_inconsistencies.fstat_outliers_report_path : output path : TODO
-    step2.sex_inconsistencies.fstat_low : float
-    step2.sex_inconsistencies.fstat_high : float
-    ```
+    step2.sex_inconsistencies.sex_metadata_file : input path : TODO explain metadata structure and constants  
+    step2.sex_inconsistencies.conflicting_sex_report_file : output path : TODO  
+    step2.sex_inconsistencies.fstat_outliers_report_file : output path : TODO  
+    step2.sex_inconsistencies.fstat_low : float  
+    step2.sex_inconsistencies.fstat_high : float  
     '''
     conf = config['step2']['sex_inconsistencies']
 
@@ -128,11 +122,11 @@ def identify_inconsistencies(mt: hl.MatrixTable, config: dict):
         (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
 
     # TODO: do we need this redundancy? the paths already have the "file://" prefix
-    conflicting_sex_ht.export(path_spark(conf['conflicting_sex_report_path'])) # output
+    conflicting_sex_ht.export(path_spark(conf['conflicting_sex_report_file'])) # output
 
     #identify samples where f stat is between fstat_low and fstat_high
     f_stat_ht = qc_ht.filter( (qc_ht.f_stat > conf['fstat_low']) & (qc_ht.f_stat < conf['fstat_high']) )
-    f_stat_ht.export(path_spark(conf['fstat_outliers_report_path'])) # output
+    f_stat_ht.export(path_spark(conf['fstat_outliers_report_file'])) # output
     
 
 def main():

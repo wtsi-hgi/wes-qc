@@ -478,8 +478,8 @@ class TestQCSteps(HailTestCase):
         }
         config['step2']['sex_inconsistencies'] = {
             'sex_metadata_file': '{resdir}/mlwh_sample_and_sex.txt',
-            'conflicting_sex_report_path': '{anndir}/conflicting_sex.txt.bgz',
-            'fstat_outliers_report_path': '{anndir}/sex_annotation_f_stat_outliers.txt.bgz',
+            'conflicting_sex_report_file': '{anndir}/conflicting_sex.txt.bgz',
+            'fstat_outliers_report_file': '{anndir}/sex_annotation_f_stat_outliers.txt.bgz',
             'fstat_low': 0.2,
             'fstat_high': 0.8
         }
@@ -543,8 +543,8 @@ class TestQCSteps(HailTestCase):
         qc_step_2_1.identify_inconsistencies(ref_output_sex_mt, self.config)
 
         # compare outputs to reference
-        conflicting_sex_path = self.config['step2']['sex_inconsistencies']['conflicting_sex_report_path']
-        sex_annotation_f_stat_outliers_path = self.config['step2']['sex_inconsistencies']['fstat_outliers_report_path']
+        conflicting_sex_path = self.config['step2']['sex_inconsistencies']['conflicting_sex_report_file']
+        sex_annotation_f_stat_outliers_path = self.config['step2']['sex_inconsistencies']['fstat_outliers_report_file']
 
         self.assertEqual(conflicting_sex_path, self.conflicting_sex_path) # DEBUG
         self.assertEqual(sex_annotation_f_stat_outliers_path, self.sex_annotation_f_stat_outliers_path) # DEBUG
