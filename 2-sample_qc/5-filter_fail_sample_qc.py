@@ -14,7 +14,21 @@ def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     '''
     mt = hl.read_matrix_table(annotated_mt_file)
     mt = mt.filter_cols(mt.sequencing_location == 'Sanger')  # filter to Sanger only
-    mt.write(sanger_mt_file)
+    mt.write(sanger_mt_file, overwrite=True)
+
+
+def exclude_samples(mt_file: str, mt_out: str, samples_file: str):
+    mt = hl.read_matrix_table(mt_file)
+
+    with open(samples_file) as f:
+        samples_list = hl.set(f.read().splitlines())
+
+    print(f'Samples before filters: {mt.count_cols()}')
+    mt = mt.filter_cols(samples_list.contains(mt.s), keep=False)
+    print(f'Samples after filters: {mt.count_cols()}')
+
+    mt.write(mt_out, overwrite=True)
+
 
 
 def remove_sample_qc_fails(sanger_mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str):
@@ -62,7 +76,11 @@ def main():
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"  # annotated but unfiltered mt
     sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_after_sample_qc.mt"
     samples_failing_qc_file = annotdir + "samples_failing_qc.tsv.bgz"
-    remove_sample_qc_fails(annotated_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
+    # remove_sample_qc_fails(annotated_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
+
+    # filter only samples provided by Wanseon
+    wanseon_list = '/lustre/scratch126/teams/hgi/ip13/slemap/qc/wanseon_samples_failing_qc.txt'
+    exclude_samples(annotated_mt_file, sample_qc_filtered_mt_file, wanseon_list)
 
 
 if __name__ == '__main__':
