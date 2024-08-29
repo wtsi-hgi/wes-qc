@@ -16,6 +16,8 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str):
     :param str pop_pandas_file: tsv from pandas df - EGA and pop
 
     ### Config fields
+    step1.gatk_mt_outfile : input path : used in main   
+    step2.predict_populations.pop_ht_file : input path : used in main  
     step2.annotate_with_pop.annotated_mt_file : output path : used in main  
     '''
     mt = hl.read_matrix_table(path_spark(raw_mt_file))
@@ -37,6 +39,7 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     TODO: note about `if min_dp > 0 or min_gq > 0 or min_vaf > 0`
 
     ### Config fields
+    step2.annotate_with_pop.annotated_mt_file : input path : used in main  
     step2.stratified_sample_qc.mt_qc_outfile : output path : used in main   
     step2.stratified_sample_qc.ht_qc_cols_outfile : output path : used in main   
     step2.stratified_sample_qc.qc_filter_file : output path : used in main   
