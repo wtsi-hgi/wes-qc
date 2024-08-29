@@ -18,10 +18,10 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str):
     ### Config fields
     step2.annotate_with_pop.annotated_mt_file : output path : used in main  
     '''
-    mt = hl.read_matrix_table(raw_mt_file)
-    pop_ht = hl.read_table(pop_ht_file)
+    mt = hl.read_matrix_table(path_spark(raw_mt_file))
+    pop_ht = hl.read_table(path_spark(pop_ht_file))
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
-    mt.write(annotated_mt_file, overwrite=True) # output
+    mt.write(path_spark(annotated_mt_file), overwrite=True) # output
     return mt
 
 
@@ -49,7 +49,7 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     '''
     conf = config['step2']['stratified_sample_qc']
 
-    mt = hl.read_matrix_table(annotated_mt_file)
+    mt = hl.read_matrix_table(path_spark(annotated_mt_file))
     # filter to autosomes only
     mt = mt.filter_rows(mt.locus.in_autosome())
 
@@ -76,11 +76,11 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     mt_with_sampleqc = mt_with_sampleqc.annotate_cols(sample_qc=mt_with_sampleqc.sample_qc.annotate(
         heterozygosity_rate=mt_with_sampleqc.sample_qc.n_het/mt_with_sampleqc.sample_qc.n_called))
     
-    mt_with_sampleqc.write(mt_qc_outfile, overwrite=True) # output
-    mt_with_sampleqc.cols().write(ht_qc_cols_outfile,  overwrite=True) # output
+    mt_with_sampleqc.write(path_spark(mt_qc_outfile), overwrite=True) # output
+    mt_with_sampleqc.cols().write(path_spark(ht_qc_cols_outfile),  overwrite=True) # output
 
     # stratify by pop
-    pop_ht = hl.read_table(ht_qc_cols_outfile)
+    pop_ht = hl.read_table(path_spark(ht_qc_cols_outfile))
     # TODO: shall we move qc_metrics to the config?
     qc_metrics = ['heterozygosity_rate', 'n_snp', 'r_ti_tv', 'n_transition', 'n_transversion',
                   'r_insertion_deletion', 'n_insertion', 'n_deletion', 'r_het_hom_var']
@@ -101,15 +101,15 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
         hl.len(pop_ht.qc_metrics_filters) == 0)
     )
     print(f'{checkpoint} exome samples found passing pop filtering')
-    pop_ht.write(qc_filter_file, overwrite=True) # output
+    pop_ht.write(path_spark(qc_filter_file), overwrite=True) # output
 
     # output_text_file = os.path.join(annotdir, "sample_qc_by_pop.tsv.bgz")
     output_text_file = conf['output_text_file']
-    pop_ht.export(output_text_file, delimiter="\t") # output
+    pop_ht.export(path_spark(output_text_file), delimiter="\t") # output
 
     # output_globals_json = os.path.join(annotdir, "sample_qc_by_pop.globals.json")
     output_globals_json = conf['output_globals_json']
-    pop_ht.globals.export(output_globals_json) # output
+    pop_ht.globals.export(path_spark(output_globals_json)) # output
 
 
 def main():
