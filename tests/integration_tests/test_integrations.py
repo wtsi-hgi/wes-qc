@@ -60,11 +60,14 @@ class HailTestCase(unittest.TestCase):
         resources_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         resources_path = os.path.join(resources_path, 'resources')
 
-        render_config('inputs_test_template.yaml', test_data_path, resources_path)
+        # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
+        render_config('new_config_test_template.yaml', test_data_path, resources_path, 
+                      savefile='new_config_test_rendered.yaml')
 
         # set up path to test config
         smoke_test_dir_path = os.path.dirname(os.path.realpath(__file__))
-        test_config_path = os.path.join(smoke_test_dir_path, 'inputs_test_rendered.yaml')
+        # test_config_path = os.path.join(smoke_test_dir_path, 'inputs_test_rendered.yaml') # TODO: make configurable
+        test_config_path = os.path.join(smoke_test_dir_path, 'new_config_test_rendered.yaml')
         os.environ['WES_CONFIG'] = test_config_path
 
     @classmethod

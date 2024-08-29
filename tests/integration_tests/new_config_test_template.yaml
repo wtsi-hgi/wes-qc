@@ -1,0 +1,172 @@
+---
+
+general:
+  # TODO: separate input and output config variables
+
+  # CVAR tmpdir
+  tmp_dir: {INTEGRATION_TESTS_DIR}/tmp_new_config/ # output
+  # tmp_dir: hdfs://spark-master:9820/
+
+  # CVAR anndir
+  annotation_dir: {INTEGRATION_TESTS_DIR}/annotations_new_config/ # output
+  
+  # CVAR mtdir
+  matrixtables_dir: {INTEGRATION_TESTS_DIR}/matrixtables_new_config/ # output
+
+  # TODO: document resource_dir
+  # TODO: add option to override in `resources` config field
+  # TODO: add Jira ticket
+  # CVAR resdir
+  resource_dir: {RESOURCES_DIR} # input
+
+  # CVAR 1kg resource dir
+  1kg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
+
+  # CVAR pltdir
+  plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # input
+
+# --- Step 1.1 --- #
+step1:
+  gatk_vcf_header_infile:
+  gatk_vcf_indir: {TEST_DATA_DIR}
+  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
+
+# --- Step 2.1 --- #
+step2:
+  sex_annotation_hard_filters:
+    filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
+    n_alt_alleles_threshold: 0.001
+    defined_gt_frac_threshold: 0.99
+
+  impute_sex:
+    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.txt.bgz'
+    sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
+    female_threshold: 0.5
+    male_threshold: 0.8
+    aaf_threshold: 0.05
+    
+  sex_inconsistencies:
+    # TODO: specify structure of a sex metadata file
+    sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz'
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz'
+    fstat_low: 0.2
+    fstat_high: 0.8
+
+# --- Step 2.2 --- #
+  prune:
+    pruned_mt_file: '{mtdir}/mt_ldpruned.mt'
+    ld_prune_args:
+      r2: 0.2
+      # bp_window_size:
+      # memory_per_core:
+      # keep_higher_maf:
+      # block_size: 
+
+  pc_relate:
+    relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'
+    scores_file: '{mtdir}/mt_pruned.pca_scores.ht'
+    pca_components: 3
+    pc_relate_args:
+      min_individual_maf: 0.05
+      block_size: 4096
+      min_kinship: 0.05
+      statistics: 'kin2'
+      # k:
+      # include_self_kinship:
+    relatedness_column: 'kin'
+    relatedness_threshold: 0.125
+    
+  population_pca:
+    plink_outfile: '{mtdir}/mt_unrelated.plink'
+
+    pca_components: 4
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht'
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht'
+    pca_mt_file: '{mtdir}/mt_pca.mt'
+
+    plot_outfile: '{pltdir}/pca.html'
+  
+  # --- Step 2.3 --- #
+  create_1kg_mt:
+    indir: '{1kg_resdir}'
+    vcfheader: '{1kg_resdir}/header_20201028.txt'
+    mt_out_file: '{mtdir}/kg_wes_regions.mt'
+
+  merge_with_1_kg:
+    kg_mt_file: '{mtdir}/kg_wes_regions.mt'
+    merged_mt_outfile: '{mtdir}/merged_with_1kg'
+
+  annotate_and_filter:
+    pops_file: '{resdir}/igsr_samples.tsv'
+    call_rate: 0.99
+    AF: 0.05
+    p_value_hwe: 0.00005
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+  
+  run_pca:
+    pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
+    pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
+    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt' # TODO: don't add prefix
+
+  predict_pops:
+    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
+    gnomad_pc_n_estimators: 100
+    gnomad_prop_train: 0.8
+    gnomad_min_prob: 0.5
+    pop_ht_outfile: '{mtdir}/pop_assignments.ht'
+    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+  
+
+
+# unprocessed below this line
+
+plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
+plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
+
+training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
+var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
+vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
+
+load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+
+
+rf_test_interval: chr20
+
+#hard filter
+hard_filters:
+  missingness: 0.5
+  snp:
+    relaxed:
+      bin: 92
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 88
+      dp: 5
+      gq: 10
+      ab: 0.2
+    stringent:
+      bin: 84
+      dp: 5
+      gq: 15
+      ab: 0.2
+  indel:
+    relaxed:
+      bin: 68
+      dp: 5
+      gq: 10
+      ab: 0.2
+    medium:
+      bin: 66
+      dp: 5
+      gq: 15
+      ab: 0.2
+    stringent:
+      bin: 58
+      dp: 5
+      gq: 20
+      ab: 0.3
