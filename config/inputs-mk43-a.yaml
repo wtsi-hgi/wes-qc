@@ -26,8 +26,8 @@ step1:
   gatk_vcf_indir: /lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
-# --- Step 2.1 --- #
 step2:
+  # --- Step 2.1 --- #
   sex_annotation_hard_filters:
     filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
     n_alt_alleles_threshold: 0.001
@@ -48,7 +48,7 @@ step2:
     fstat_low: 0.2
     fstat_high: 0.8
 
-# --- Step 2.2 --- #
+  # --- Step 2.2 --- #
   prune:
     pruned_mt_file: '{mtdir}/mt_ldpruned.mt'
     ld_prune_args:
@@ -58,7 +58,8 @@ step2:
       # keep_higher_maf:
       # block_size: 
 
-  pc_relate:
+  # preciously pc_relate
+  prune_pc_relate:
     relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht'
@@ -73,7 +74,8 @@ step2:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
     
-  population_pca:
+  # previously population_pca
+  prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
 
     pca_components: 4
@@ -82,6 +84,35 @@ step2:
     pca_mt_file: '{mtdir}/mt_pca.mt'
 
     plot_outfile: '{pltdir}/pca.html'
+
+  # --- Step 2.3 --- #
+  # tmp before dh's merge
+  pop_pred_pca:
+    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
+    pca_loadings_file: '{mtdir}/pca_loadings_after_pruning.ht'
+    pca_evals_file: '{mtdir}/pca_evals_after_pruning.txt'
+
+  predict_populations:
+    pop_ht_file: '{mtdir}/pop_assignments.ht'
+    pop_ht_tsv: '{mtdir}/pop_assignments.tsv'
+
+  # --- Step 2.4 --- #
+
+  # annotate_mt
+  annotate_with_pop:
+    annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt'
+
+  stratified_sample_qc:
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt'
+    ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht'
+    qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht'
+
+    min_depth: 20
+    min_genotype_quality: 20
+    min_vaf: 0.25
+    output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz'
+    output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json'
+  
 
 
 # unprocessed below this line
@@ -93,6 +124,7 @@ training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
 var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
 vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
 
+# TODO: this is a redundant field that differs to matrixtables_dir only in prefix
 load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
 
 

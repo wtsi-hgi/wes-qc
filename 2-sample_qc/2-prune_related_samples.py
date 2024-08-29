@@ -74,7 +74,7 @@ def run_pc_relate(pruned_mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     step2.pc_relate.pc_relate_args.k : int  
     step2.pc_relate.pc_relate_args.include_self_kinship : bool  
     '''
-    conf = config['step2']['pc_relate']
+    conf = config['step2']['prune_pc_relate']
     pc_relate_kwargs = conf['pc_relate_args']
 
     print("Running PC relate")
@@ -99,6 +99,8 @@ def run_pc_relate(pruned_mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     return related_samples_to_remove
 
 
+# How is this step different from 2-sample_qc/3-population_pca_prediction.py / run_pca ?
+# Only PCA plotting?
 def run_population_pca(pruned_mt: hl.MatrixTable, samples_to_remove: hl.Table, config: dict) -> hl.MatrixTable:
     '''
     Runs PCA and creates a matrix table of non-related individuals with PCA scores
@@ -119,8 +121,11 @@ def run_population_pca(pruned_mt: hl.MatrixTable, samples_to_remove: hl.Table, c
     step2.population_pca.plot_outfile : output path : Bokeh PCA scatterplot  
 
     '''
-    conf = config['step2']['population_pca']
-    plinkfile, pca_scores_file, pca_loadings_file, pca_mt_file = multigetp(conf, ('plink_outfile', 'pca_scores_file', 'pca_loadings_file', 'pca_mt_file'))
+    conf = config['step2']['prune_plot_pca']
+    plinkfile = conf['plink_outfile']
+    pca_scores_file = conf['pca_scores_file']
+    pca_loadings_file = conf['pca_loadings_file']
+    pca_mt_file = conf['pca_mt_file']
 
     print("Running population PCA")
     print("Removing related samples")
