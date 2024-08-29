@@ -17,6 +17,7 @@ default_cvars = {
     'anndir': 'general.annotation_dir',
     'mtdir': 'general.matrixtables_dir',
     'resdir': 'general.resource_dir',
+    '1kg_resdir': 'general.1kg_resource_dir',
     'pltdir': 'general.plots_dir',
 }
 

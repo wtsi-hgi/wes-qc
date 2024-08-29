@@ -17,6 +17,9 @@ general:
   # CVAR resdir
   resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 
+  # CVAR 1kg resource dir
+  1kg_resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/mini_1000G/
+
   # CVAR pltdir
   plots_dir: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
 
@@ -82,6 +85,38 @@ step2:
     pca_mt_file: '{mtdir}/mt_pca.mt'
 
     plot_outfile: '{pltdir}/pca.html'
+  
+  # --- Step 2.3 --- #
+  create_1kg_mt:
+    indir: '{1kg_resdir}'
+    vcfheader: '{1kg_resdir}/header_20201028.txt'
+    mt_out_file: '{mtdir}/kg_wes_regions.mt'
+
+  merge_with_1_kg:
+    kg_mt_file: '{mtdir}/kg_wes_regions.mt'
+    merged_mt_outfile: '{mtdir}/merged_with_1kg'
+
+  annotate_and_filter:
+    pops_file: '{resdir}/igsr_samples.tsv'
+    call_rate: 0.99
+    AF: 0.05
+    p_value_hwe: 0.00005
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+  
+  run_pca:
+    pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
+    pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
+    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt' # TODO: don't add prefix
+
+  predict_pops:
+    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
+    gnomad_pc_n_estimators: 100
+    gnomad_prop_train: 0.8
+    gnomad_min_prob: 0.5
+    pop_ht_outfile: '{mtdir}/pop_assignments.ht'
+    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+  
 
 
 # unprocessed below this line
