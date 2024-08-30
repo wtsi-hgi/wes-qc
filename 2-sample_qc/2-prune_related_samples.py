@@ -93,10 +93,10 @@ def run_pc_relate(pruned_mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     rel_threshold = conf['relatedness_threshold']
 
     pairs = relatedness_ht.filter(relatedness_ht[rel_col] > rel_threshold)
-    related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, keep=False)
-    related_samples_to_remove.write(path_spark(conf['samples_to_remove_file']), overwrite=True) # output
+    samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, keep=False)
+    samples_to_remove.write(path_spark(conf['samples_to_remove_file']), overwrite=True) # output
 
-    return related_samples_to_remove
+    return samples_to_remove
 
 
 def run_population_pca(pruned_mt: hl.MatrixTable, samples_to_remove: hl.Table, config: dict) -> hl.MatrixTable:
