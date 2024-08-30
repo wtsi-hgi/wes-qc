@@ -276,9 +276,16 @@ class TestQCSteps(HailTestCase):
         # path to dir with the test data in the repo
         cls.test_dataset_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         cls.ref_dataset_path = f"file://{os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_output_data')}"
-        refdir = cls.ref_dataset_path.removeprefix('file://')
-        os.makedirs(refdir, exist_ok=True)
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/', refdir]) #BEEP
+        refdir = path_local(cls.ref_dataset_path)
+        refdir_mtdir = os.path.join(refdir, 'matrixtables')
+        refdir_annotdir = os.path.join(refdir, 'annotations')
+        os.makedirs(refdir_mtdir, exist_ok=True)
+        os.makedirs(refdir_annotdir, exist_ok=True)
+
+        print(f'Downloading reference output data from the s3 bucket')
+        # TODO: switch to http-based download (e.g. using wget)
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/matrixtables/', refdir_mtdir]) #BEEP
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/annotations/', refdir_annotdir]) #BEEP
 
         # TODO: switch to config rendering as in integration tests?
 
@@ -410,8 +417,11 @@ class TestQCSteps(HailTestCase):
         
         # ===== QC General Params ===== #
         cls.test_resourcedir = f"file://{os.path.join(cls.test_dataset_path, 'resources')}"
-        resdir = cls.test_resourcedir.removeprefix('file://')
+        resdir = path_local(cls.test_resourcedir)
         os.makedirs(resdir, exist_ok=True)
+
+        print(f'Downloading resources from the s3 bucket')
+        # TODO: switch to http-based download (e.g. using wget)
         subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resdir]) #BEEP
 
         # add general params into the config object
@@ -426,8 +436,11 @@ class TestQCSteps(HailTestCase):
         # ===== QC Step 1.1 ===== #
         # inputs
         cls.import_vcf_dir = f"file://{os.path.join(cls.test_dataset_path, 'control_set_small')}"
-        vcfdir = cls.import_vcf_dir.removeprefix('file://')
+        vcfdir = path_local(cls.import_vcf_dir)
         os.makedirs(vcfdir, exist_ok=True)
+
+        print(f'Downloading control set from the s3 bucket')
+        # TODO: switch to http-based download (e.g. using wget)
         subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir]) #BEEP
         
         cls.vcf_header = '' # not available for test dataset. TODO: create one to ensure test completeness
@@ -659,7 +672,7 @@ class TestQCSteps(HailTestCase):
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
 
     def test_2_4_1_annotate_mt(self):
-        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path, self.ref_pop_ht_tsv)
+        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path)
 
         annotated_mts_identical = compare_matrixtables(self.annotated_mt_path, self.ref_annotated_mt_path)
 
