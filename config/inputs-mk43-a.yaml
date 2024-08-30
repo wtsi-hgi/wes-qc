@@ -17,7 +17,7 @@ general:
   # CVAR resdir
   resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 
-  # CVAR 1kg resource dir
+  # CVAR 1kg_resdir
   1kg_resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/mini_1000G/
 
   # CVAR pltdir

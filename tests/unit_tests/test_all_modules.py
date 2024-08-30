@@ -280,6 +280,13 @@ class TestQCSteps(HailTestCase):
         os.makedirs(refdir, exist_ok=True)
         subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/', refdir]) #BEEP
 
+        cls.test_resourcedir = f"file://{os.path.join(cls.test_dataset_path, 'resources')}"
+        resdir = cls.test_resourcedir.removeprefix('file://')
+        os.makedirs(resdir, exist_ok=True)
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resdir]) #BEEP
+        cls.onekg_resdir = f"file://{os.path.join(cls.test_dataset_path, 'resources', 'mini_1000G')}"
+
+
         # TODO: switch to config rendering as in integration tests?
 
         # TODO: move below (near the config setup) after refactoring other steps
@@ -288,50 +295,7 @@ class TestQCSteps(HailTestCase):
         cls.annotdir = f"file://{os.path.join(cls.test_outdir_path, 'annotations_test')}"
         cls.plots_dir = f"file://{os.path.join(cls.test_outdir_path, 'plots_test')}"
         os.makedirs(cls.plots_dir.removeprefix('file://'), exist_ok=True)
-
-
-        # ===== QC Step 2.3 ===== #
-        # create_1kg_mt()
-        # reference inputs: no
-        # outputs
-        cls.kg_wes_regions = os.path.join(cls.mtdir, 'kg_wes_regions.mt')
-        # reference outputs
-        cls.ref_kg_wes_regions = os.path.join(cls.ref_dataset_path, 'matrixtables', 'kg_wes_regions.mt')
-
-        # merge_with_1kg()
-        # reference inputs: `cls.ref_mt_ldpruned_path`
-        cls.ref_mtdir = os.path.join(cls.ref_dataset_path, 'matrixtables')
-        # outputs
-        cls.merged_mt_path = os.path.join(cls.mtdir, 'merged_with_1kg.mt')
-        # reference outputs
-        cls.ref_merged_mt_path = os.path.join(cls.ref_mtdir, "merged_with_1kg.mt")
-
-        # annotate_and_filter()
-        # reference inputs: `cls.ref_merged_mt_path`, `cls.test_resourcedir`
-        # outputs
-        cls.filtered_mt_path = os.path.join(cls.mtdir, 'merged_with_1kg_filtered.mt')
-        # reference outputs
-        cls.ref_filtered_mt_path = os.path.join(cls.ref_mtdir, "merged_with_1kg_filtered.mt")
-
-        # run_pca()
-        # reference inputs: `cls.ref_filtered_mt_path`
-        # outputs
-        cls.pca_scores_path = os.path.join(cls.mtdir, 'pca_scores_after_pruning.ht')
-        cls.pca_loadings_path = os.path.join(cls.mtdir, 'pca_loadings_after_pruning.ht')
-        cls.pca_evals_path = path_local(os.path.join(cls.mtdir, 'pca_evals_after_pruning.txt'))
-        # reference outputs
-        cls.ref_pca_scores_path = os.path.join(cls.ref_mtdir, 'pca_scores_after_pruning.ht')
-        cls.ref_pca_loadings_path = os.path.join(cls.ref_mtdir, 'pca_loadings_after_pruning.ht')
-        cls.ref_pca_evals_path = path_local(os.path.join(cls.ref_mtdir, 'pca_evals_after_pruning.txt'))
-
-        # predict_pops()
-        # reference inputs: `cls.ref_pca_scores_path`
-        # outputs
-        cls.pop_ht_path = os.path.join(cls.mtdir, 'pop_assignments.ht')
-        cls.pop_ht_tsv = os.path.join(cls.mtdir, 'pop_assignments.tsv')
-        # reference outputs
-        cls.ref_pop_ht_path = os.path.join(cls.ref_mtdir, 'pop_assignments.ht')
-        cls.ref_pop_ht_tsv = os.path.join(cls.ref_mtdir, 'pop_assignments.tsv')
+        
 
 
         # ===== QC Step 2.4 ===== #
@@ -375,12 +339,6 @@ class TestQCSteps(HailTestCase):
         # TODO: cleanup this function
         # TODO: separate this functions into steps
         
-        # ===== QC General Params ===== #
-        cls.test_resourcedir = f"file://{os.path.join(cls.test_dataset_path, 'resources')}"
-        resdir = cls.test_resourcedir.removeprefix('file://')
-        os.makedirs(resdir, exist_ok=True)
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resdir]) #BEEP
-
         # add general params into the config object
         config = dict()
         config['general'] = dict(
@@ -388,7 +346,8 @@ class TestQCSteps(HailTestCase):
             annotation_dir = cls.annotdir,
             matrixtables_dir = cls.mtdir,
             resource_dir = cls.test_resourcedir,
-            plots_dir = cls.plots_dir
+            plots_dir = cls.plots_dir,
+            onekg_resource_dir = cls.onekg_resdir
         )
 
         # ===== QC Step 1.1 ===== #
@@ -528,6 +487,83 @@ class TestQCSteps(HailTestCase):
             'plot_outfile' : '{pltdir}/pca.html'
         }
 
+        # ===== QC Step 2.3 ===== #
+        # create_1kg_mt()
+        # reference inputs: no
+        # outputs
+        cls.kg_wes_regions = os.path.join(cls.mtdir, 'kg_wes_regions.mt')
+        # reference outputs
+        cls.ref_kg_wes_regions = os.path.join(cls.ref_dataset_path, 'matrixtables', 'kg_wes_regions.mt')
+
+        # merge_with_1kg()
+        # reference inputs: `cls.ref_mt_ldpruned_path`
+        cls.ref_mtdir = os.path.join(cls.ref_dataset_path, 'matrixtables')
+        # outputs
+        cls.merged_mt_path = os.path.join(cls.mtdir, 'merged_with_1kg.mt')
+        # reference outputs
+        cls.ref_merged_mt_path = os.path.join(cls.ref_mtdir, "merged_with_1kg.mt")
+
+        # annotate_and_filter()
+        # reference inputs: `cls.ref_merged_mt_path`, `cls.test_resourcedir`
+        # outputs
+        cls.filtered_mt_path = os.path.join(cls.mtdir, 'merged_with_1kg_filtered.mt')
+        # reference outputs
+        cls.ref_filtered_mt_path = os.path.join(cls.ref_mtdir, "merged_with_1kg_filtered.mt")
+
+        # run_pca()
+        # reference inputs: `cls.ref_filtered_mt_path`
+        # outputs
+        cls.pca_scores_path = os.path.join(cls.mtdir, 'pca_scores_after_pruning.ht')
+        cls.pca_loadings_path = os.path.join(cls.mtdir, 'pca_loadings_after_pruning.ht')
+        cls.pca_evals_path = path_local(os.path.join(cls.mtdir, 'pca_evals_after_pruning.txt'))
+        # reference outputs
+        cls.ref_pca_scores_path = os.path.join(cls.ref_mtdir, 'pca_scores_after_pruning.ht')
+        cls.ref_pca_loadings_path = os.path.join(cls.ref_mtdir, 'pca_loadings_after_pruning.ht')
+        cls.ref_pca_evals_path = path_local(os.path.join(cls.ref_mtdir, 'pca_evals_after_pruning.txt'))
+
+        # predict_pops()
+        # reference inputs: `cls.ref_pca_scores_path`
+        # outputs
+        cls.pop_ht_path = os.path.join(cls.mtdir, 'pop_assignments.ht')
+        cls.pop_ht_tsv = os.path.join(cls.mtdir, 'pop_assignments.tsv')
+        # reference outputs
+        cls.ref_pop_ht_path = os.path.join(cls.ref_mtdir, 'pop_assignments.ht')
+        cls.ref_pop_ht_tsv = os.path.join(cls.ref_mtdir, 'pop_assignments.tsv')
+
+        config['step2']['create_1kg_mt'] = {
+            'indir': '{1kg_resdir}',
+            'vcfheader': '{1kg_resdir}/header_20201028.txt',
+            'mt_out_file' : '{mtdir}/kg_wes_regions.mt'
+        }
+
+        config['step2']['merge_with_1_kg'] = {
+            'kg_mt_file' : '{mtdir}/kg_wes_regions.mt',
+            'merged_mt_outfile' : '{mtdir}/merged_with_1kg'
+        }
+
+        config['step2']['annotate_and_filter'] = {
+            'pops_file' : '{resdir}/igsr_samples.tsv',
+            'call_rate' : 0.99,
+            'AF' : 0.05,
+            'p_value_hwe' : 0.00005,
+            'long_range_ld_file' : '{resdir}/long_ld_regions.hg38.bed',
+            'filtered_mt_outfile' : '{mtdir}/merged_with_1kg_filtered.mt'
+        }
+
+        config['step2']['run_pca'] = {
+            'pca_scores_outfile' : '{mtdir}/pca_scores_after_pruning.ht',
+            'pca_loadings_outfile' : '{mtdir}/pca_loadings_after_pruning.ht',
+            'pca_evals_outfile' : '{mtdir}/pca_evals_after_pruning.txt'
+        }
+        
+        config['step2']['predict_pops'] = {
+            'pca_scores_file' : '{mtdir}/pca_scores_after_pruning.ht',
+            'gnomad_pc_n_estimators' : 100,
+            'gnomad_prop_train' : 0.8,
+            'gnomad_min_prob' : 0.5,
+            'pop_ht_outfile' : '{mtdir}/pop_assignments.ht',
+            'pop_ht_outtsv' : '{mtdir}/pop_assignments.tsv'}
+
         cls.config = _expand_cvars_recursively(config, config)
         
     # QC Step 1.1
@@ -603,8 +639,6 @@ class TestQCSteps(HailTestCase):
 
         self.assertTrue(conflicting_sex_are_identical and f_stat_outliers_are_identical)
 
-    # mk43 : unprocessed after this line
-
     def test_2_2_1_prune_mt(self):
         # read reference output of the Step 2.1 impute_sex()
         ref_output_sex_mt = hl.read_matrix_table(self.ref_output_sex_mt_path)
@@ -655,31 +689,34 @@ class TestQCSteps(HailTestCase):
 
     def test_2_3_1_create_1kg_mt(self):
         # run function to test
-        qc_step_2_3.create_1kg_mt(self.test_resourcedir, self.mtdir)
+        qc_step_2_3.create_1kg_mt(self.config)
         kg_wes_regions_identical = compare_matrixtables(self.kg_wes_regions, self.ref_kg_wes_regions)
 
         self.assertTrue(kg_wes_regions_identical)
 
     def test_2_3_2_merge_with_1kg(self):
         # use reference outputs of Step 2.2 prune_mt()
+        ref_mt_ldpruned = hl.read_matrix_table(self.ref_mt_ldpruned_path)
         # run function to test
-        qc_step_2_3.merge_with_1kg(self.ref_mt_ldpruned_path, self.ref_mtdir, self.merged_mt_path)
+        qc_step_2_3.merge_with_1kg(ref_mt_ldpruned, self.config)
         merged_mt_identical = compare_matrixtables(self.merged_mt_path, self.ref_merged_mt_path)
 
         self.assertTrue(merged_mt_identical)
 
     def test_2_3_3_annotate_and_filter(self):
         # use reference outputs of Step 2.3 merge_with_1kg()
+        ref_merged_mt = hl.read_matrix_table(self.ref_merged_mt_path)
         # run function to test
-        qc_step_2_3.annotate_and_filter(self.ref_merged_mt_path, self.test_resourcedir, self.filtered_mt_path)
+        qc_step_2_3.annotate_and_filter(ref_merged_mt, self.config)
         filtered_mt_identical = compare_matrixtables(self.filtered_mt_path, self.ref_filtered_mt_path)
 
         self.assertTrue(filtered_mt_identical)
 
     def test_2_3_4_run_pca(self):
         # use reference outputs of Step 2.3 annotate_and_filter()
+        ref_filtered_mt = hl.read_matrix_table(self.ref_filtered_mt_path)
         # run function to test
-        qc_step_2_3.run_pca(self.ref_filtered_mt_path, self.pca_scores_path, self.pca_loadings_path, self.pca_evals_path)
+        qc_step_2_3.run_pca(ref_filtered_mt, self.config)
 
         pca_scores_identical = compare_tables(self.pca_scores_path, self.ref_pca_scores_path)
         pca_loadings_identical = compare_tables(self.pca_loadings_path, self.ref_pca_loadings_path)
@@ -690,12 +727,14 @@ class TestQCSteps(HailTestCase):
     def test_2_3_5_predict_pops(self):
         # use reference outputs of Step 2.3 run_pca()
         # run function to test
-        qc_step_2_3.predict_pops(self.ref_pca_scores_path, self.pop_ht_path, path_local(self.pop_ht_tsv))
+        qc_step_2_3.predict_pops(self.config)
 
         pop_ht_identical = compare_tables(self.pop_ht_path, self.ref_pop_ht_path)
         pop_ht_tsv_identical = compare_txts(path_local(self.pop_ht_tsv), path_local(self.ref_pop_ht_tsv))
 
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
+
+    # vk11 : unprocessed after this line
 
     def test_2_4_1_annotate_mt(self):
         qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path)
