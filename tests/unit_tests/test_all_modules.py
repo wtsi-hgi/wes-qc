@@ -279,7 +279,7 @@ class TestQCSteps(HailTestCase):
         refdir = cls.ref_dataset_path.removeprefix('file://')
         os.makedirs(refdir, exist_ok=True)
         subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/', refdir]) #BEEP
-
+        cls.ref_mtdir = f"file://{os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_output_data', 'matrixtables')}"
         cls.test_resourcedir = f"file://{os.path.join(cls.test_dataset_path, 'resources')}"
         resdir = cls.test_resourcedir.removeprefix('file://')
         os.makedirs(resdir, exist_ok=True)
@@ -537,8 +537,8 @@ class TestQCSteps(HailTestCase):
         }
 
         config['step2']['merge_with_1_kg'] = {
-            'kg_mt_file' : '{mtdir}/kg_wes_regions.mt',
-            'merged_mt_outfile' : '{mtdir}/merged_with_1kg'
+            'kg_mt_file' : cls.ref_kg_wes_regions,
+            'merged_mt_outfile' : '{mtdir}/merged_with_1kg.mt'
         }
 
         config['step2']['annotate_and_filter'] = {
