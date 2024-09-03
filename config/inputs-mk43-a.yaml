@@ -17,7 +17,7 @@ general:
   # CVAR resdir
   resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
 
-  # CVAR 1kg resource dir
+  # CVAR 1kg_resdir
   1kg_resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/mini_1000G/
 
   # CVAR pltdir
@@ -94,7 +94,7 @@ step2:
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg'
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt'
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
