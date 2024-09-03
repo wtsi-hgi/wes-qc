@@ -8,6 +8,7 @@ from typing import Optional
 import hail as hl
 import hailtop.fs as hfs
 from pyspark import SparkContext
+import subprocess
 
 # for test config rendering
 INTEGRATION_TESTS_DIR = '{INTEGRATION_TESTS_DIR}'
@@ -52,19 +53,33 @@ qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 class HailTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # get test suite path in the repo
+        test_suite_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        # render test config from the template
-        test_data_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        test_data_path = os.path.join(test_data_path, 'control_set_small')
+        # specify paths to the test data and resources
+        test_data_path = os.path.join(test_suite_path, 'control_set_small')
+        resources_path = os.path.join(test_suite_path, 'resources')
 
-        resources_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        resources_path = os.path.join(resources_path, 'resources')
+        # set up an s3cfg file
+        
+        # download publicly available test data and resources from the s3 bucket
+        os.makedirs(test_data_path, exist_ok=True)
+        os.makedirs(resources_path, exist_ok=True)
+        print(f'Downloading data from the s3 bucket') # TODO: improve logging
 
-        render_config('inputs_test_template.yaml', test_data_path, resources_path)
+        # TODO: switch to wget
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', test_data_path])
+        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resources_path])
+        
+        # # render test config from the template
+        # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
+        render_config('new_config_test_template.yaml', test_data_path, resources_path, 
+                      savefile='new_config_test_rendered.yaml')
 
         # set up path to test config
         smoke_test_dir_path = os.path.dirname(os.path.realpath(__file__))
-        test_config_path = os.path.join(smoke_test_dir_path, 'inputs_test_rendered.yaml')
+        # test_config_path = os.path.join(smoke_test_dir_path, 'inputs_test_rendered.yaml') # TODO: make configurable
+        test_config_path = os.path.join(smoke_test_dir_path, 'new_config_test_rendered.yaml')
         os.environ['WES_CONFIG'] = test_config_path
 
     @classmethod

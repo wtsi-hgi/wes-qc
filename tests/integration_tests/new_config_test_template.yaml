@@ -1,32 +1,34 @@
 ---
 
 general:
+  # TODO: separate input and output config variables
+
   # CVAR tmpdir
-  tmp_dir: /lustre/scratch126/mk43/tmp/
+  tmp_dir: {INTEGRATION_TESTS_DIR}/tmp_new_config/ # output
   # tmp_dir: hdfs://spark-master:9820/
 
   # CVAR anndir
-  annotation_dir: /lustre/scratch126/dh24_test/qc_test/BiB/annotations/
+  annotation_dir: {INTEGRATION_TESTS_DIR}/annotations_new_config/ # output
   
   # CVAR mtdir
-  matrixtables_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
+  matrixtables_dir: {INTEGRATION_TESTS_DIR}/matrixtables_new_config/ # output
 
   # TODO: document resource_dir
   # TODO: add option to override in `resources` config field
   # TODO: add Jira ticket
   # CVAR resdir
-  resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/
+  resource_dir: {RESOURCES_DIR} # input
 
   # CVAR 1kg resource dir
-  1kg_resource_dir: /lustre/scratch126/dh24_test/qc_test/BiB/resources/mini_1000G/
+  1kg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
-  plots_dir: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
+  plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # input
 
 # --- Step 1.1 --- #
 step1:
   gatk_vcf_header_infile:
-  gatk_vcf_indir: /lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+  gatk_vcf_indir: {TEST_DATA_DIR}
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
 # --- Step 2.1 --- #
