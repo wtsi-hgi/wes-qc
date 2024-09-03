@@ -3,7 +3,7 @@
 import hail as hl
 import pyspark
 import os
-from utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 # TODO: not used? make it optional and mention in cli help
 def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
@@ -19,15 +19,21 @@ def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     mt.write(sanger_mt_file)
 
 
-def remove_sample_qc_fails(sanger_mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str):
+def remove_sample_qc_fails(mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str):
     '''
-    param str sanger_mt_file: Input MatrixTable file
+    param str mt_file: Input MatrixTable file
     param str qc_filter_ht_file: File contaning sample QC output
     param str samples_failing_qc_file: Output file for list of samples failing QC
     param str sample_qc_filtered_mt_file: Output file for MatrixTable with sample QC fails removed
+
+    ### Config fields
+    step2.annotate_with_pop.annotated_mt_file : input path : used in main   
+    step2.stratified_sample_qc.mt_qc_outfile : input path : used in main   
+    step2.remove_sample_qc_fails.samples_failing_qc_file : output path : used in main   
+    step2.remove_sample_qc_fails.sample_qc_filtered_mt_file : output path : used in main   
     '''
-    sangermt = hl.read_matrix_table(sanger_mt_file)
-    sample_qc_ht = hl.read_table(qc_filter_ht_file)
+    mt = hl.read_matrix_table(path_spark(mt_file))
+    sample_qc_ht = hl.read_table(path_spark(qc_filter_ht_file))
     # identify samples which have failed any of the metrics tested
     sample_qc_ht = sample_qc_ht.annotate(filter_fail_count=(hl.len(sample_qc_ht.qc_metrics_filters)))
 
@@ -40,32 +46,37 @@ def remove_sample_qc_fails(sanger_mt_file: str, qc_filter_ht_file: str, samples_
     # save a list of samples that have failed QC
     fail_ht = sample_qc_ht.filter(sample_qc_ht.filter_result == 'Fail').key_by()
     fails = fail_ht.select(fail_ht.s)
-    fails.export(samples_failing_qc_file)
+    fails.export(path_spark(samples_failing_qc_file)) # output
     # filter the sangermt to remove samples that have failed
     fails = fails.key_by('s')
-    sangermt = sangermt.filter_cols(hl.is_defined(fails[sangermt.s]), keep=False)
+    mt = mt.filter_cols(hl.is_defined(fails[mt.s]), keep=False)
     # save the filtered mt to file
-    sangermt.write(sample_qc_filtered_mt_file, overwrite=True)
+    mt.write(path_spark(sample_qc_filtered_mt_file), overwrite=True) # output
 
 
 def main():
     # set up
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    annotdir = inputs['annotation_lustre_dir']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    annotdir = config['general']['annotation_dir']
+    resourcesdir = config['general']['resource_dir']
 
     # initialise hail
     # tmp_dir = "file:///lustre/scratch126/dh24_test/tmp"
-    tmp_dir = inputs['tmp_dir']
+    tmp_dir = config['general']['tmp_dir']
     # sc = pyspark.SparkContext()
     sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    qc_filter_ht_file = os.path.join(mtdir,"mt_pops_QC_filters.ht")
-    annotated_mt_file = os.path.join(mtdir,"gatk_unprocessed_with_pop.mt")  # annotated but unfiltered mt
-    sample_qc_filtered_mt_file = os.path.join(mtdir,"mt_pops_QC_filters_after_sample_qc.mt")
-    samples_failing_qc_file = os.path.join(annotdir, "samples_failing_qc.tsv.bgz")
+    # annotated_mt_file = os.path.join(mtdir,"gatk_unprocessed_with_pop.mt")  # annotated but unfiltered mt
+    # qc_filter_ht_file = os.path.join(mtdir,"mt_pops_QC_filters.ht")
+    # samples_failing_qc_file = os.path.join(annotdir, "samples_failing_qc.tsv.bgz")
+    # sample_qc_filtered_mt_file = os.path.join(mtdir,"mt_pops_QC_filters_after_sample_qc.mt")
+    annotated_mt_file = config['step2']['annotate_with_pop']['annotated_mt_file'] # annotated but unfiltered mt
+    qc_filter_ht_file = config['step2']['stratified_sample_qc']['qc_filter_file']
+    samples_failing_qc_file = config['step2']['remove_sample_qc_fails']['samples_failing_qc_file']
+    sample_qc_filtered_mt_file = config['step2']['remove_sample_qc_fails']['sample_qc_filtered_mt_file']
     remove_sample_qc_fails(annotated_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
 
 
