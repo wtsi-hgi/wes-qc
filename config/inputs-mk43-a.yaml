@@ -61,7 +61,7 @@ step2:
       # keep_higher_maf:
       # block_size: 
 
-  # preciously pc_relate
+  # previously pc_relate
   prune_pc_relate:
     relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'

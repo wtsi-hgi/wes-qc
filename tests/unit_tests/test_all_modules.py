@@ -313,43 +313,6 @@ class TestQCSteps(HailTestCase):
         # TODO: create parent dirs inside the corresponding func
         os.makedirs(path_local(cls.plots_dir), exist_ok=True)
 
-
-        # ===== QC Step 2.4 ===== #
-        # annotate_mt()
-        # reference imputs: `cls.ref_pop_ht_path`, `cls.ref_pop_ht_tsv`, `cls.ref_mt_path`
-        # outputs
-        cls.annotated_mt_path = os.path.join(cls.mtdir, 'gatk_unprocessed_with_pop.mt')
-        # reference outputs
-        cls.ref_annotated_mt_path = os.path.join(cls.ref_mtdir, 'gatk_unprocessed_with_pop.mt')
-
-        # stratified_sample_qc()
-        # reference inputs: `cls.ref_annotated_mt_path`, `cls.ref_annotdir`
-        cls.ref_annotdir = os.path.join(cls.ref_dataset_path, 'annotations')
-        # outputs
-        cls.mt_qc_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.mt')
-        cls.ht_qc_cols_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.ht')
-        cls.qc_filter_file = os.path.join(cls.mtdir, 'mt_pops_QC_filters.ht')
-        cls.output_text_file = os.path.join(cls.annotdir, 'sample_qc_by_pop.tsv.bgz')
-        cls.output_globals_json = os.path.join(cls.annotdir, 'sample_qc_by_pop.globals.json')
-
-        # reference outputs
-        cls.ref_mt_qc_outfile = os.path.join(cls.ref_mtdir, 'mt_pops_sampleqc.mt')
-        cls.ref_ht_qc_cols_outfile = os.path.join(cls.ref_mtdir, 'mt_pops_sampleqc.ht')
-        cls.ref_qc_filter_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters.ht')
-        cls.ref_output_text_file = os.path.join(cls.ref_annotdir, 'sample_qc_by_pop.tsv.bgz')
-        cls.ref_output_globals_json = os.path.join(cls.ref_annotdir, 'sample_qc_by_pop.globals.json')
-
-        # ===== QC Step 2.5 ===== #
-        # remove_sample_qc_fails()
-        # reference inputs: `cls.ref_annotated_mt_path`, cls.ref_qc_filter_file`
-        # outputs
-        cls.sample_qc_filtered_mt_file = os.path.join(cls.mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
-        cls.samples_failing_qc_file = os.path.join(cls.annotdir, 'samples_failing_qc.tsv.bgz')
-        # reference outputs
-        cls.ref_sample_qc_filtered_mt_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
-        cls.ref_samples_failing_qc_file = os.path.join(cls.ref_annotdir, 'samples_failing_qc.tsv.bgz')
-
-
         # mk43
         # TODO: use a template engine to create a yaml
         # TODO: cleanup this function
@@ -382,7 +345,7 @@ class TestQCSteps(HailTestCase):
         # TODO: make output filename variable and refactor the test
         cls.output_mt_path = os.path.join(cls.mtdir, 'gatk_unprocessed.mt') # DEBUG: keep for testing new config format
         # reference outputs
-        cls.ref_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'gatk_unprocessed.mt')
+        cls.ref_mt_file = os.path.join(cls.ref_dataset_path, 'matrixtables', 'gatk_unprocessed.mt')
 
         # add step 1 parameters into the config obj
         config['step1'] = dict(
@@ -482,7 +445,7 @@ class TestQCSteps(HailTestCase):
             'ld_prune_args': {'r2': 0.2}
         }
 
-        config['step2']['pc_relate'] = {
+        config['step2']['prune_pc_relate'] = {
             'relatedness_ht_file' : '{mtdir}/mt_relatedness.ht',
             'samples_to_remove_file' : '{mtdir}/mt_related_samples_to_remove.ht',
             'scores_file': '{mtdir}/mt_pruned.pca_scores.ht',
@@ -498,7 +461,7 @@ class TestQCSteps(HailTestCase):
             'relatedness_threshold': 0.125
         }
 
-        config['step2']['population_pca'] = {
+        config['step2']['prune_plot_pca'] = {
             'plink_outfile' : '{mtdir}/mt_unrelated.plink',
             'pca_components' : 4,
             'pca_scores_file' : '{mtdir}/mt_pca_scores.ht',
@@ -543,10 +506,10 @@ class TestQCSteps(HailTestCase):
         # predict_pops()
         # reference inputs: `cls.ref_pca_scores_path`
         # outputs
-        cls.pop_ht_path = os.path.join(cls.mtdir, 'pop_assignments.ht')
+        cls.pop_ht_file = os.path.join(cls.mtdir, 'pop_assignments.ht')
         cls.pop_ht_tsv = os.path.join(cls.mtdir, 'pop_assignments.tsv')
         # reference outputs
-        cls.ref_pop_ht_path = os.path.join(cls.ref_mtdir, 'pop_assignments.ht')
+        cls.ref_pop_ht_file = os.path.join(cls.ref_mtdir, 'pop_assignments.ht')
         cls.ref_pop_ht_tsv = os.path.join(cls.ref_mtdir, 'pop_assignments.tsv')
 
         config['step2']['create_1kg_mt'] = {
@@ -583,6 +546,61 @@ class TestQCSteps(HailTestCase):
             'pop_ht_outfile' : '{mtdir}/pop_assignments.ht',
             'pop_ht_outtsv' : '{mtdir}/pop_assignments.tsv'}
 
+        # ===== QC Step 2.4 ===== #
+        # annotate_mt()
+        # reference inputs: `cls.ref_pop_ht_file`, `cls.ref_pop_ht_tsv`, `cls.ref_mt_file`
+        # outputs
+        cls.annotated_mt_file = os.path.join(cls.mtdir, 'gatk_unprocessed_with_pop.mt')
+        # reference outputs
+        cls.ref_annotated_mt_file = os.path.join(cls.ref_mtdir, 'gatk_unprocessed_with_pop.mt')
+
+        # stratified_sample_qc()
+        # reference inputs: `cls.ref_annotated_mt_file`, `cls.ref_annotdir`
+        cls.ref_annotdir = os.path.join(cls.ref_dataset_path, 'annotations')
+        # outputs
+        cls.mt_qc_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.mt')
+        cls.ht_qc_cols_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.ht')
+        cls.qc_filter_file = os.path.join(cls.mtdir, 'mt_pops_QC_filters.ht')
+        cls.output_text_file = os.path.join(cls.annotdir, 'sample_qc_by_pop.tsv.bgz')
+        cls.output_globals_json = os.path.join(cls.annotdir, 'sample_qc_by_pop.globals.json')
+
+        # reference outputs
+        cls.ref_mt_qc_outfile = os.path.join(cls.ref_mtdir, 'mt_pops_sampleqc.mt')
+        cls.ref_ht_qc_cols_outfile = os.path.join(cls.ref_mtdir, 'mt_pops_sampleqc.ht')
+        cls.ref_qc_filter_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters.ht')
+        cls.ref_output_text_file = os.path.join(cls.ref_annotdir, 'sample_qc_by_pop.tsv.bgz')
+        cls.ref_output_globals_json = os.path.join(cls.ref_annotdir, 'sample_qc_by_pop.globals.json')
+        
+        config['step2']['annotate_with_pop'] = {
+            'annotated_mt_file' : '{mtdir}/gatk_unprocessed_with_pop.mt'
+        }
+
+        config['step2']['stratified_sample_qc'] = {
+            'mt_qc_outfile': '{mtdir}/mt_pops_sampleqc.mt',
+            'ht_qc_cols_outfile' : '{mtdir}/mt_pops_sampleqc.ht',
+            'qc_filter_file' : '{mtdir}/mt_pops_QC_filters.ht',
+            'min_depth' : 20,
+            'min_genotype_quality' : 20,
+            'min_vaf' : 0.25,
+            'output_text_file' : '{anndir}/sample_qc_by_pop.tsv.bgz',
+            'output_globals_json_file' : '{anndir}/sample_qc_by_pop.globals.json'
+        }
+
+        # ===== QC Step 2.5 ===== #
+        # remove_sample_qc_fails()
+        # reference inputs: `cls.ref_annotated_mt_file`, cls.ref_qc_filter_file`
+        # outputs
+        cls.sample_qc_filtered_mt_file = os.path.join(cls.mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
+        cls.samples_failing_qc_file = os.path.join(cls.annotdir, 'samples_failing_qc.tsv.bgz')
+        # reference outputs
+        cls.ref_sample_qc_filtered_mt_file = os.path.join(cls.ref_mtdir, 'mt_pops_QC_filters_after_sample_qc.mt')
+        cls.ref_samples_failing_qc_file = os.path.join(cls.ref_annotdir, 'samples_failing_qc.tsv.bgz')
+
+        config['step2']['remove_sample_qc_fails'] = {
+            'samples_failing_qc_file' : '{anndir}/samples_failing_qc.tsv.bgz',
+            'sample_qc_filtered_mt_file' : '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
+        }
+
         cls.config = _expand_cvars_recursively(config, config)
         
     # QC Step 1.1
@@ -594,7 +612,7 @@ class TestQCSteps(HailTestCase):
         output_mt_path = self.config['step1']['gatk_mt_outfile']
         self.assertEqual(output_mt_path, self.output_mt_path) # DEBUG
 
-        outputs_are_identical = compare_matrixtables(self.ref_mt_path, output_mt_path)
+        outputs_are_identical = compare_matrixtables(self.ref_mt_file, output_mt_path)
         self.assertTrue(outputs_are_identical)
 
     # QC Step 2.1 apply_hard_filters
@@ -604,7 +622,6 @@ class TestQCSteps(HailTestCase):
 
         # run function to test
         mt_filtered = qc_step_2_1.apply_hard_filters(ref_mt_unfiltered, self.config)
-
         
         # compare the output to reference
         output_filtered_mt_path = self.config['step2']['sex_annotation_hard_filters']['filtered_mt_outfile']
@@ -678,9 +695,9 @@ class TestQCSteps(HailTestCase):
         qc_step_2_2.run_pc_relate(ref_mt_ldpruned, self.config)
 
         # compare outputs to reference
-        relatedness_ht_path = self.config['step2']['pc_relate']['relatedness_ht_file']
-        samples_to_remove_path = self.config['step2']['pc_relate']['samples_to_remove_file']
-        scores_path = self.config['step2']['pc_relate']['scores_file']
+        relatedness_ht_path = self.config['step2']['prune_pc_relate']['relatedness_ht_file']
+        samples_to_remove_path = self.config['step2']['prune_pc_relate']['samples_to_remove_file']
+        scores_path = self.config['step2']['prune_pc_relate']['scores_file']
         
         output_relatedness_ht_identical = compare_tables(relatedness_ht_path, self.ref_relatedness_ht_path)
         output_samples_to_remove_identical = compare_tables(samples_to_remove_path, self.ref_samples_to_remove_path)
@@ -748,7 +765,7 @@ class TestQCSteps(HailTestCase):
         # run function to test
         qc_step_2_3.predict_pops(self.config)
 
-        pop_ht_identical = compare_tables(self.pop_ht_path, self.ref_pop_ht_path)
+        pop_ht_identical = compare_tables(self.pop_ht_file, self.ref_pop_ht_file)
         pop_ht_tsv_identical = compare_txts(path_local(self.pop_ht_tsv), path_local(self.ref_pop_ht_tsv))
 
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
@@ -756,15 +773,15 @@ class TestQCSteps(HailTestCase):
     # vk11 : unprocessed after this line
 
     def test_2_4_1_annotate_mt(self):
-        qc_step_2_4.annotate_mt(self.ref_mt_path, self.ref_pop_ht_path, self.annotated_mt_path)
+        qc_step_2_4.annotate_mt(self.ref_mt_file, self.ref_pop_ht_file, self.annotated_mt_file)
 
-        annotated_mts_identical = compare_matrixtables(self.annotated_mt_path, self.ref_annotated_mt_path)
+        annotated_mts_identical = compare_matrixtables(self.annotated_mt_file, self.ref_annotated_mt_file)
 
         self.assertTrue(annotated_mts_identical)
 
     def test_2_4_2_stratified_sample_qc(self):
-        qc_step_2_4.stratified_sample_qc(self.ref_annotated_mt_path, self.mt_qc_outfile,
-                self.ht_qc_cols_outfile, self.qc_filter_file, self.annotdir)
+        qc_step_2_4.stratified_sample_qc(self.ref_annotated_mt_file, self.mt_qc_outfile,
+                self.ht_qc_cols_outfile, self.qc_filter_file, self.config)
 
         mt_qc_identical = compare_matrixtables(self.mt_qc_outfile, self.ref_mt_qc_outfile)
         ht_qc_cols_identical = compare_tables(self.ht_qc_cols_outfile, self.ref_ht_qc_cols_outfile)
@@ -780,7 +797,7 @@ class TestQCSteps(HailTestCase):
                 qc_filter_identical and out_text_identical and out_globals_json_identical)
 
     def test_2_5_1_remove_sample_qc_fails(self):
-        qc_step_2_5.remove_sample_qc_fails(self.ref_annotated_mt_path, self.ref_qc_filter_file,
+        qc_step_2_5.remove_sample_qc_fails(self.ref_annotated_mt_file, self.ref_qc_filter_file,
                 self.samples_failing_qc_file, self.sample_qc_filtered_mt_file)
 
         sample_qc_filtered_identical = compare_matrixtables(self.sample_qc_filtered_mt_file, 

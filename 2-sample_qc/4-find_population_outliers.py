@@ -111,7 +111,7 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     pop_ht.export(path_spark(output_text_file), delimiter="\t") # output
 
     # output_globals_json = os.path.join(annotdir, "sample_qc_by_pop.globals.json")
-    output_globals_json = conf['output_globals_json']
+    output_globals_json = conf['output_globals_json_file']
     pop_ht.globals.export(path_spark(output_globals_json)) # output
 
 
