@@ -500,7 +500,7 @@ class TestQCSteps(HailTestCase):
 
         config['step2']['merge_with_1_kg'] = {
             'kg_mt_file' : '{mtdir}/kg_wes_regions.mt',
-            'merged_mt_outfile' : '{mtdir}/merged_with_1kg'
+            'merged_mt_outfile' : '{mtdir}/merged_with_1kg.mt'
         }
 
         config['step2']['annotate_and_filter'] = {
