@@ -19,14 +19,18 @@ def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str):
     mt.write(sanger_mt_file)
 
 
-def remove_sample_qc_fails(mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str):
+def remove_sample_qc_fails(mt_file: str, qc_filter_ht_file: str, samples_failing_qc_file: str, sample_qc_filtered_mt_file: str, config: dict = None):
     '''
     param str mt_file: Input MatrixTable file
     param str qc_filter_ht_file: File contaning sample QC output
     param str samples_failing_qc_file: Output file for list of samples failing QC
     param str sample_qc_filtered_mt_file: Output file for MatrixTable with sample QC fails removed
+    param dict config: A config object. No effect.
 
     ### Config fields
+    None
+
+    ### Indirect config fields
     step2.annotate_with_pop.annotated_mt_file : input path : used in main   
     step2.stratified_sample_qc.mt_qc_outfile : input path : used in main   
     step2.remove_sample_qc_fails.samples_failing_qc_file : output path : used in main   

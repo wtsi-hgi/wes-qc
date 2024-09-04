@@ -6,7 +6,7 @@ from utils.utils import parse_config, path_local, path_spark
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 
 # TODO: rename to annotate_with_pop
-def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str):
+def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str, config: dict = None):
     '''
     Annotate mt with superpopulation and sequencing runid
     :param str raw_mt_file: raw mt file
@@ -14,8 +14,12 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, annotated_mt_file: str):
     :param str runid_file: metadata file to annotate run ids TODO
     :param str annotated_mt_file: annotated mt file
     :param str pop_pandas_file: tsv from pandas df - EGA and pop
+    :param dict config: A config object. No effect.
 
     ### Config fields
+    None
+
+    ### Indirect config fields
     step1.gatk_mt_outfile : input path : used in main   
     step2.predict_populations.pop_ht_file : input path : used in main  
     step2.annotate_with_pop.annotated_mt_file : output path : used in main  
@@ -38,17 +42,18 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
 
     TODO: note about `if min_dp > 0 or min_gq > 0 or min_vaf > 0`
 
-    ### Config fields
-    step2.annotate_with_pop.annotated_mt_file : input path : used in main  
-    step2.stratified_sample_qc.mt_qc_outfile : output path : used in main   
-    step2.stratified_sample_qc.ht_qc_cols_outfile : output path : used in main   
-    step2.stratified_sample_qc.qc_filter_file : output path : used in main   
+    ### Config fields 
     step2.stratified_sample_qc.min_dp : float : TODO   
     step2.stratified_sample_qc.min_gq : float : TODO   
     step2.stratified_sample_qc.min_vaf : float : TODO   
     step2.stratified_sample_qc.output_text_file : output path : TODO   
     step2.stratified_sample_qc.output_globals_json_file : output path : TODO   
 
+    ### Indirect config fields
+    step2.annotate_with_pop.annotated_mt_file : input path : used in main  
+    step2.stratified_sample_qc.mt_qc_outfile : output path : used in main   
+    step2.stratified_sample_qc.ht_qc_cols_outfile : output path : used in main   
+    step2.stratified_sample_qc.qc_filter_file : output path : used in main  
     '''
     conf = config['step2']['stratified_sample_qc']
 
