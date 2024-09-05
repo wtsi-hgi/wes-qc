@@ -9,19 +9,6 @@ import re
 from typing import Iterable
 
 """
-A dictionary of predefined cvars in the format of  
-`{ 'cvar_name': 'path.to.cvar.definition.in.config' }`
-"""
-default_cvars = {
-    'tmpdir': 'general.tmp_dir',
-    'anndir': 'general.annotation_dir',
-    'mtdir': 'general.matrixtables_dir',
-    'resdir': 'general.resource_dir',
-    'pltdir': 'general.plots_dir',
-}
-
-
-"""
 Config utils
 """
 
@@ -81,31 +68,43 @@ def multigetp(_dict: dict, keypaths: Iterable[str], silent: bool = False, defaul
 Detect field names that end in dir, file, indir, outdir, infile, outfile + optionally _local.
 Capture groups are (in/out/None, dir/file, _local/None) 
 """
-__is_path_field_re = re.compile(r"(out|in)?(dir|file)(_local)?$")
+__is_path_field_re = re.compile(r"(dir|file)(_local)?$")
 def __is_path_field(fieldname: str):
     return __is_path_field_re.search(fieldname) is not None
 
-def _expand_cvars(config: dict, str_with_cvar: str, as_path: bool = False, custom_cvars: dict = None):
+def _expand_cvars(config: dict, str_with_cvar: str, fieldname: str, as_path: bool = False, custom_cvars: dict = None, undefined_ok: bool = False):
     """
     Expand config variables in a string.  
     Ignore errors, leave invalid cvars as is. 
 
     Perform basic path normalization if `as_path`.
     
-    Will use `custom_cvars` first, `default_cvars` second, and literal field names third.
+    Will use `custom_cvars` first, config `cvars` second, and literal field names third.
     """
-    # Find all cvars that look like {cvar_name}
+    # collect cvars from config
+    cvars = config.get('cvars', dict())
+
+    # Find all cvars that look like {something}
     # - no dots at the begininng or at the end
     # - no more 1 dot in a row
     # - a-zA-Z0-9_ as identifiers
     cvar_re = re.compile(r"\{([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)\}")
     def repl(cvar_match):
-        cvar_name = cvar_match.group(1)
-        if custom_cvars and cvar_name in custom_cvars:
-            cvar_name = custom_cvars[cvar_name]
-        elif cvar_name in default_cvars: 
-            cvar_name = default_cvars[cvar_name]
-        return str(getp(config, keypath=cvar_name, silent=True, default='{'+cvar_name+'}'))
+        print(f"field {fieldname} {cvar_match.group(0)=}, ", end='')
+        cvar_expr = cvar_match.group(1)
+        if custom_cvars and cvar_expr in custom_cvars:
+            print("custom cvar, ", end='')
+            cvar_expr = custom_cvars[cvar_expr]
+        elif cvar_expr in cvars: 
+            print("cvar, ", end='')
+            cvar_expr = cvars[cvar_expr]
+        try:
+            substitution = str(getp(config, keypath=cvar_expr, silent=undefined_ok, default='{'+cvar_expr+'}'))
+            print(f'{cvar_expr} -> {substitution} ({undefined_ok=})')
+        except KeyError as e:
+            print(config)
+            raise ValueError(f"field {fieldname}, expression {cvar_match.group(1)}, cannot substitute because variable is undefined.")
+        return substitution
     expanded_str = cvar_re.sub(repl, str_with_cvar)
 
     if as_path:
@@ -122,7 +121,8 @@ def _expand_cvars(config: dict, str_with_cvar: str, as_path: bool = False, custo
 
     return expanded_str
 
-def _expand_cvars_recursively(config: dict, dict_to_expand, inplace=False, custom_cvars: dict = None):
+# TODO: fix infinite recursion
+def _expand_cvars_recursively(config: dict, dict_to_expand, custom_cvars: dict = None, fieldname: str = ''):
     """
     Recursively expand cvars in all string fields in a nested dict structure `dict_to_expand`
     using data from `config`.  
@@ -130,19 +130,28 @@ def _expand_cvars_recursively(config: dict, dict_to_expand, inplace=False, custo
 
     Will use `custom_cvars` first, `default_cvars` second, and literal field names third.
     """
-    if inplace:
-        _dict = dict_to_expand
-    else:
-        from copy import deepcopy
-        _dict = deepcopy(dict_to_expand)
-    for key in _dict:
-        val = _dict[key]
+
+    # A former version of this function had an in_place argument to perform this operation 
+    # without creating a deep copy of the whole nested dictionary. This lead to errors in
+    # variable substitution in cases when variable refers to a field that is defined 
+    # further down the config file and requires a variable substitution on its own.
+    # By constructing the parsed_config from the start via depth-first traversal we can 
+    # detect such cases, as they lead to the KeyError in getp.
+     
+    parsed_config = dict()
+    for key in config:
+        next_fieldname = f"{fieldname}.{key}" if fieldname else key
+        val = config[key]
         if isinstance(val, str):
-            _dict[key] = _expand_cvars(config, val, as_path=__is_path_field(key), custom_cvars=custom_cvars)
+            # substitute variables in the string
+            parsed_config[key] = _expand_cvars(parsed_config, val, fieldname=next_fieldname, as_path=__is_path_field(key), custom_cvars=custom_cvars)
         elif isinstance(val, dict):
-            # force inplace
-            _expand_cvars_recursively(config, val, inplace=True, custom_cvars=custom_cvars)
-    return _dict
+            # go deeper, substituting all variables in a subdict
+            parsed_config[key] = _expand_cvars_recursively(parsed_config, val, custom_cvars=custom_cvars, fieldname=next_fieldname)
+        else:
+            # not a str and not a subdict, just copy the value
+            parsed_config[key] = val
+    return parsed_config
 
 def parse_config(path: str = None, custom_cvars: dict = None):
     # with an option to get the config file path from env or from arg
@@ -151,7 +160,7 @@ def parse_config(path: str = None, custom_cvars: dict = None):
         print(f"Loading config '{path}', function arg")
         with open(path, 'r') as y:
             inputs = yaml.load(y, Loader=yaml.FullLoader)
-        config = _expand_cvars_recursively(inputs, inputs, inplace=True, custom_cvars=custom_cvars)
+        config = _expand_cvars_recursively(inputs, inputs, custom_cvars=custom_cvars)
         return config
     
     # find config dir
