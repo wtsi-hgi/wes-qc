@@ -256,17 +256,19 @@ def main() -> None:
     hail_utils.clear_temp_folder(tmp_dir)
 
     sc = hail_utils.init_hl(tmp_dir)
-    exclude_file = os.path.join(annotdir, inputs["samples_to_exclude"])
+
     rf_htfile = os.path.join(rf_dir, runhash + "/_gnomad_score_binning_tmp.ht")
     mtfile = os.path.join(mtdir, "mt_varqc_splitmulti.mt")
-    cqfile = os.path.join(resourcedir, "all_consequences_with_gene_and_csq.txt")
+    cqfile = os.path.join(annotdir, "all_consequences_with_gene_and_csq.txt")
 
     mtfile_annot = os.path.join(mtdir, "mt_hard_filter_combinations.mt")
 
     mt = hl.read_matrix_table(mtfile)
 
     # remove unwanted samples
-    mt = remove_samples(mt, exclude_file)
+    if inputs["samples_to_exclude"] != "":
+        exclude_file = os.path.join(annotdir, inputs["samples_to_exclude"])
+        mt = remove_samples(mt, exclude_file)
 
     if inputs["samples_rename_map"] != "":
         # Renaming sample according to the map
