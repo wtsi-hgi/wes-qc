@@ -100,3 +100,45 @@ def select_founders(ped: hl.Pedigree) -> Set[str]:
     for trio in ped.trios:
         samples.discard(trio.s)
     return samples
+
+import subprocess
+
+# === Utils for downloading test data from the s3 storage === #
+
+TEST_DATA_DOWNLOAD_URL = 'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/test_data.zip'
+
+# TODO: make versatile, don't download if already exists
+def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir: bool = False) -> None:
+    """Download compressed test data from the s3 storage and 
+    move the subfolders to the correct destinations inside the repo.
+
+    Parameters
+    ----------
+    outdir : str
+        Path to download and extract compressed test data.
+    
+    move_dirs : dict
+        Directories to move. Keys are the dirs to be moved, values are their destination dirs
+    
+    clean_up_unzip_dir : bool, default: False
+        Remove the folder with the unzipped data after moving the data from it.
+
+    Return
+    ------
+        None
+    """
+    print(f'Downloading data from the s3 bucket') # TODO: improve logging
+    # Download zipped archive with all the data
+    subprocess.run(['wget', '-nc', TEST_DATA_DOWNLOAD_URL, '-P', outdir]) # skip existing
+
+    # Unzip the data
+    print(f'Unzipping the data')
+    subprocess.run(['unzip', '-n', os.path.join(outdir, 'test_data.zip'), '-d', outdir])
+    # Move unzipped data to correct folders in the test dir
+    print(f'Moving data to correct dirs')
+
+    for dir_to_move, destination_dir in move_dirs.items():
+        subprocess.run(['mv', '-vn', dir_to_move, destination_dir])
+
+    if clean_up_unzip_dir:
+        subprocess.run(['rm', '-r', outdir])

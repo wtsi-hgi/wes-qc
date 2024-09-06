@@ -63,45 +63,34 @@ class HailTestCase(unittest.TestCase):
         # specify paths to the test data and resources
         test_data_path = os.path.join(test_suite_path, 'control_set_small')
         resources_path = os.path.join(test_suite_path, 'resources')
-        ref_data_path = os.path.join(test_suite_path, 'unit_tests', 'reference_output_data')
+        ref_data_path = os.path.join(test_suite_path, 'unit_tests')
 
         unzipped_path = os.path.join(test_suite_path, 'unzipped_data')
         unzipped_control_set_path = os.path.join(unzipped_path, 'control_set_small')
         unzipped_resources_path = os.path.join(unzipped_path, 'resources')
-        unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data') # not used in integration tests
-        
-        # download publicly available test data and resources from the s3 bucket
-        # os.makedirs(test_data_path, exist_ok=True)
-        # os.makedirs(resources_path, exist_ok=True)
-        # os.makedirs(ref_data_path, exist_ok=True)
 
-        print(f'Downloading data from the s3 bucket') # TODO: improve logging
-        # Download zipped archive with all the data
-        subprocess.run(['wget', '-nc', TEST_DATA_DOWNLOAD_URL, '-P', unzipped_path]) # skip existing
+        # not used in integration tests, but prolly better download it as well
+        unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data')
 
-        # Unzip the data
-        print(f'Unzipping the data')
-        subprocess.run(['unzip', '-n', os.path.join(unzipped_path, 'test_data.zip'), '-d', unzipped_path])
-        # Move unzipped data to correct folders in the test dir
-        print(f'Moving data to correct dirs')
-        
-        subprocess.run(['mv', '-vn', unzipped_control_set_path, test_suite_path])
-        subprocess.run(['mv', '-vn', unzipped_resources_path, test_suite_path])
-        subprocess.run(['mv', '-vn', unzipped_ref_data_path, os.path.join(test_suite_path, 'unit_tests')])
-        # Remove dir used to unzip data
-        # print(f'Removing unzipping dir')
-        # subprocess.run(['rm', '-r', unzipped_path])
+
+        test_data_dirs_to_move = {
+            unzipped_control_set_path: test_suite_path,
+            unzipped_resources_path: test_suite_path,
+            unzipped_ref_data_path: ref_data_path
+        }
+
+        download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
+
+        smoke_test_dir_path = os.path.dirname(os.path.realpath(__file__))
+        rendered_config_savefile = os.path.join(smoke_test_dir_path, 'integration_config_rendered.yaml')
         
         # # render test config from the template
         # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
         render_config('new_config_test_template.yaml', test_data_path, resources_path, 
-                      savefile='new_config_test_rendered.yaml')
+                      savefile=rendered_config_savefile)
 
         # set up path to test config
-        smoke_test_dir_path = os.path.dirname(os.path.realpath(__file__))
-        # test_config_path = os.path.join(smoke_test_dir_path, 'inputs_test_rendered.yaml') # TODO: make configurable
-        test_config_path = os.path.join(smoke_test_dir_path, 'new_config_test_rendered.yaml')
-        os.environ['WES_CONFIG'] = test_config_path
+        os.environ['WES_CONFIG'] = rendered_config_savefile
 
     @classmethod
     def tearDownClass(cls):

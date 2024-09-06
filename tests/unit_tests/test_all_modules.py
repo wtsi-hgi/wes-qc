@@ -8,6 +8,7 @@ import hailtop.fs as hfs
 import shutil as sh
 from pyspark import SparkContext
 from utils.config import parse_config, path_local, path_spark, getp, _expand_cvars_recursively
+from utils.utils import download_test_data_from_s3
 import subprocess
 
 
@@ -273,8 +274,8 @@ class TestQCSteps(HailTestCase):
 
         # define parameters needed for functions to be tested
 
-        # path to dir with the test data in the repo
-        cls.test_dataset_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        # get test suite path in the repo
+        cls.test_suite_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         cls.ref_dataset_path = f"file://{os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_output_data')}"
         # TODO: add ref_annotdir
         # TODO: upd all paths that use reference matrixtables dir to use this variable
@@ -282,18 +283,29 @@ class TestQCSteps(HailTestCase):
         
         # Download reference data from the s3 bucket, use local paths for that
         ref_dataset_path_local = path_local(cls.ref_dataset_path)
-        ref_mtdir_local = os.path.join(ref_dataset_path_local, 'matrixtables')
-        ref_annotdir_local = os.path.join(ref_dataset_path_local, 'annotations')
-        os.makedirs(ref_mtdir_local, exist_ok=True)
-        os.makedirs(ref_annotdir_local, exist_ok=True)
+        # ref_mtdir_local = os.path.join(ref_dataset_path_local, 'matrixtables')
+        # ref_annotdir_local = os.path.join(ref_dataset_path_local, 'annotations')
 
-        print(f'Downloading reference output data from the s3 bucket')
-        # TODO: switch to http-based download (e.g. using wget)
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/matrixtables/', ref_mtdir_local]) #BEEP
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/unit_tests/reference_output_data/annotations/', ref_annotdir_local]) #BEEP
+        unzipped_path = os.path.join(cls.test_suite_path, 'unzipped_data')
+        unzipped_control_set_path = os.path.join(unzipped_path, 'control_set_small')
+        unzipped_resources_path = os.path.join(unzipped_path, 'resources')
+        unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data') 
+
+        test_data_path = os.path.join(cls.test_suite_path, 'control_set_small')
+        resources_path = os.path.join(cls.test_suite_path, 'resources')
+        ref_dataset_parent_path = os.path.join(cls.test_suite_path, 'unit_tests')
+
+        test_data_dirs_to_move = {
+            unzipped_control_set_path: cls.test_suite_path,
+            unzipped_resources_path: cls.test_suite_path,
+            unzipped_ref_data_path: ref_dataset_parent_path
+        }
+
+        download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
+
 
         # Download resources from s3 bucket
-        cls.test_resourcedir = f"file://{os.path.join(cls.test_dataset_path, 'resources')}"
+        cls.test_resourcedir = f"file://{resources_path}"
         resdir = path_local(cls.test_resourcedir)
         os.makedirs(resdir, exist_ok=True)
 
@@ -332,7 +344,7 @@ class TestQCSteps(HailTestCase):
 
         # ===== QC Step 1.1 ===== #
         # inputs
-        cls.import_vcf_dir = f"file://{os.path.join(cls.test_dataset_path, 'control_set_small')}"
+        cls.import_vcf_dir = f"file://{test_data_path}"
         vcfdir = path_local(cls.import_vcf_dir)
         os.makedirs(vcfdir, exist_ok=True)
 
