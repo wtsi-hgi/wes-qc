@@ -12,7 +12,7 @@ from typing import Iterable
 Config utils
 """
 
-def get_script_path():
+def get_script_path() -> str:
     #returns the path of the script that is being run
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
@@ -47,22 +47,66 @@ def getp(_dict: dict, keypath: str, silent: bool = False, default = None):
             raise KeyError(f"{keypath} : {breadcrumbs + '.' + nextkey} is a field, not a section")
     return section
 
-# TODO: move this stuff to another utils file. Something like `common.py`
-def subdict(_dict: dict, keys: Iterable[str]) -> dict:
+import collections
+def flatten(dictionary: collections.abc.MutableMapping, parent_key=False, separator='.') -> dict:
     """
-    Get a subset of a dictionary safely. Output dictionary will only have those keys that are in both _dict and keys list.
+    From https://stackoverflow.com/a/62186053
 
-    Useful for constructing a kwargs dict
+    Turn a nested dictionary into a flattened dictionary
+    :param dictionary: The dictionary to flatten
+    :param parent_key: The string to prepend to dictionary's keys
+    :param separator: The string used to separate flattened keys
+    :return: A flattened dictionary
     """
-    correct_keys = _dict.keys() & set(keys)
-    return {k: _dict[k] for k in correct_keys}
 
-def multigetp(_dict: dict, keypaths: Iterable[str], silent: bool = False, default = None) -> tuple:
+    items = []
+    for key, value in dictionary.items():
+        new_key = str(parent_key) + separator + key if parent_key else key
+        if isinstance(value, collections.abc.MutableMapping):
+            items.extend(flatten(value, new_key, separator).items())
+        else:
+            items.append((new_key, value))
+    return dict(items)
+
+def is_subsection(subsection_key: str, supersection_key: str) -> bool:
+    if supersection_key == '': 
+        return True
+    return subsection_key.startswith(supersection_key + '.')
+
+def parent_section(section_key: str) -> str:
+    dot_idx = section_key.rfind('.')
+    if dot_idx < 0: return ''
+    return section_key[:dot_idx]
+
+def resolve_cvar(cvar: str, base_config: dict, fieldname: str = '', undefined_ok: bool = False) -> str:
     """
-    Get a series of items by keys using `utils.getp`.
-    Useful when you want to get several items at once (via unpacking).
+    Get a value that cvar should be substituted with
     """
-    return (getp(_dict, k, silent, default) for k in keypaths)
+    try:    
+        # 1. cvar shortcuts. Always absolute. At most once.
+        cvar_shortcut_def = f"cvar_shortcuts.{cvar}"
+        if cvar_shortcut_def in base_config:
+            if undefined_ok:
+                return base_config.get(base_config[cvar_shortcut_def], '{'+cvar+'}')
+            return base_config[base_config[cvar_shortcut_def]]
+
+        # 2. config variable in the same section, providing we have a fieldname.
+        #    skip if cvar is explicit full key (starts with `.`) or field is top-level (no `.`).
+        if cvar[0] != '.' and '.' in fieldname:
+            cvar_as_local = f"{parent_section(fieldname)}.{cvar}"
+            if fieldname and (cvar_as_local in base_config):
+                return base_config[cvar_as_local]
+            # note that we still need to check a full key
+        
+        # 3. config variable with a full key
+        if cvar[0] == '.':
+            cvar = cvar[1:]
+        if undefined_ok:
+            return base_config.get(cvar, '{'+cvar+'}')
+        return base_config[cvar]
+
+    except KeyError as e:
+        raise ValueError(f"cannot substitute undefined config variable '{cvar}' referenced in field '{fieldname}'")
 
 """
 Detect field names that end in dir, file, indir, outdir, infile, outfile + optionally _local.
@@ -72,17 +116,23 @@ __is_path_field_re = re.compile(r"(dir|file)(_local)?$")
 def __is_path_field(fieldname: str):
     return __is_path_field_re.search(fieldname) is not None
 
-def _expand_cvars(config: dict, str_with_cvar: str, fieldname: str, as_path: bool = False, custom_cvars: dict = None, undefined_ok: bool = False):
+def _expand_cvars_str(base_config: dict, str_with_cvar: str, fieldname: str, as_path: bool = False, undefined_ok: bool = False):
     """
-    Expand config variables in a string.  
-    Ignore errors, leave invalid cvars as is. 
+    Substitute config variables in a string.  
+    Will follow cvar_shortcuts, this helps avoid specifying the full field name for frequently used fields.  
+    If undefined_ok, ignore errors, leave invalid cvars as is.
 
+    :param dict base_config: a flat config dictionary and a source for values to substitute
+    :param str str_with_cvar: a string with a variable that will be substituted by value from `base_config`
+    :param str fieldname: a name of this string field for logging purposes
+    :param bool as_path: shall this string be treated as a file/dir path
+    :param bool undefined_ok: shall we ignore undefined variables, or raise an exception
+    
     Perform basic path normalization if `as_path`.
     
-    Will use `custom_cvars` first, config `cvars` second, and literal field names third.
+    Will config `cvar_shortcuts` from the `base_config` first, 
+    and literal field names from the `base_config` second.
     """
-    # collect cvars from config
-    cvars = config.get('cvars', dict())
 
     # Find all cvars that look like {something}
     # - no dots at the begininng or at the end
@@ -90,21 +140,8 @@ def _expand_cvars(config: dict, str_with_cvar: str, fieldname: str, as_path: boo
     # - a-zA-Z0-9_ as identifiers
     cvar_re = re.compile(r"\{([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)\}")
     def repl(cvar_match):
-        print(f"field {fieldname} {cvar_match.group(0)=}, ", end='')
         cvar_expr = cvar_match.group(1)
-        if custom_cvars and cvar_expr in custom_cvars:
-            print("custom cvar, ", end='')
-            cvar_expr = custom_cvars[cvar_expr]
-        elif cvar_expr in cvars: 
-            print("cvar, ", end='')
-            cvar_expr = cvars[cvar_expr]
-        try:
-            substitution = str(getp(config, keypath=cvar_expr, silent=undefined_ok, default='{'+cvar_expr+'}'))
-            print(f'{cvar_expr} -> {substitution} ({undefined_ok=})')
-        except KeyError as e:
-            print(config)
-            raise ValueError(f"field {fieldname}, expression {cvar_match.group(1)}, cannot substitute because variable is undefined.")
-        return substitution
+        return str(resolve_cvar(cvar_expr, base_config, fieldname, undefined_ok))
     expanded_str = cvar_re.sub(repl, str_with_cvar)
 
     if as_path:
@@ -121,46 +158,74 @@ def _expand_cvars(config: dict, str_with_cvar: str, fieldname: str, as_path: boo
 
     return expanded_str
 
-# TODO: fix infinite recursion
-def _expand_cvars_recursively(config: dict, dict_to_expand, custom_cvars: dict = None, fieldname: str = ''):
+def _process_cvars_in_config(unprocessed_config: dict, base_config: dict = dict()):
     """
-    Recursively expand cvars in all string fields in a nested dict structure `dict_to_expand`
-    using data from `config`.  
-    Detect and activate path mode automatically based on __is_path_field
+    Recursively expand cvars in all string fields in a FLAT `unprocessed_config`
+    using data from `base_config`.  
+    Detect and activate path mode automatically based on __is_path_field.
+    Specify additional config field aliases in `custom_shortcuts`.
 
-    Will use `custom_cvars` first, `default_cvars` second, and literal field names third.
+    :param dict unprocessed_config: a flat dictionary with string values that needs cvar expansion
+    :param dict base_config: a read-only dictionary, a base config, that will act as an additional source for config variables
+    :return dict: 
+
+    Order of config variable resolution:
+    1. `cvar_shortcuts` section from the unprocessed_config
+    2. `cvar_shortcuts` section from the base_config
+    3. unprocessed_config fields in same section
+    4. base_config fields in same section
+    5. unprocessed_config fields by full key
+    6. base_config fields by full key
     """
 
-    # A former version of this function had an in_place argument to perform this operation 
-    # without creating a deep copy of the whole nested dictionary. This lead to errors in
-    # variable substitution in cases when variable refers to a field that is defined 
-    # further down the config file and requires a variable substitution on its own.
-    # By constructing the parsed_config from the start via depth-first traversal we can 
-    # detect such cases, as they lead to the KeyError in getp.
-     
-    parsed_config = dict()
+    # the full context for variable substitution
+    context = base_config.copy()
+    # we only need cvar shortcuts for now
+    for k,v in unprocessed_config.items():
+        if k.startswith('cvar_shortcuts.'):
+            context[k] = v
+    # note that context does not contain unprocessed_config at start, but will contain in the end
+    config = unprocessed_config.copy()
+
     for key in config:
-        next_fieldname = f"{fieldname}.{key}" if fieldname else key
         val = config[key]
         if isinstance(val, str):
-            # substitute variables in the string
-            parsed_config[key] = _expand_cvars(parsed_config, val, fieldname=next_fieldname, as_path=__is_path_field(key), custom_cvars=custom_cvars)
+            processed_str = _expand_cvars_str(context, val, key, as_path=__is_path_field(key))
+            context[key] = processed_str
+            config[key] = processed_str
         elif isinstance(val, dict):
-            # go deeper, substituting all variables in a subdict
-            parsed_config[key] = _expand_cvars_recursively(parsed_config, val, custom_cvars=custom_cvars, fieldname=next_fieldname)
-        else:
-            # not a str and not a subdict, just copy the value
-            parsed_config[key] = val
-    return parsed_config
+            raise ValueError(f"This function accepts only a flat config. Nested dict detected at {key=}")
 
-def parse_config(path: str = None, custom_cvars: dict = None):
+    return config
+
+def parse_config_file(file_obj, additional_cvar_shortcuts: dict = dict()):
+    config = yaml.safe_load(file_obj)
+    if 'cvar_shortcuts' not in config:
+        config['cvar_shortcuts'] = dict()
+    config['cvar_shortcuts'].update(additional_cvar_shortcuts)
+    config = flatten(config)
+    config = _process_cvars_in_config(config)
+    return config
+
+# TODO: rename to load_config or get_config
+def parse_config(path: str = None, additional_cvar_shortcuts: dict = dict()):
+    """
+    Read and parse WES QC YAML config from default location, env variable, or function argument.  
+    Does variable substitution via `_process_cvars_in_config`.
+    
+    Config lookup order:
+    1. `path` if it is not None
+    2. `$WES_CONFIG` if `WES_CONFIG` env variable starts with `/` or `./`
+    3. `../config/$WES_CONFIG` and `../../config/$WES_CONFIG`
+    4. `../config/input.yaml` and `../../config/input.yaml`
+    """
+
     # with an option to get the config file path from env or from arg
     
     if path is not None:
         print(f"Loading config '{path}', function arg")
         with open(path, 'r') as y:
-            inputs = yaml.load(y, Loader=yaml.FullLoader)
-        config = _expand_cvars_recursively(inputs, inputs, custom_cvars=custom_cvars)
+            config = parse_config_file(y, additional_cvar_shortcuts)
         return config
     
     # find config dir
@@ -194,10 +259,7 @@ def parse_config(path: str = None, custom_cvars: dict = None):
     print(f"Loading config '{input_yaml}', {config_type}")
         
     with open(input_yaml, 'r') as y:
-        inputs = yaml.load(y, Loader=yaml.FullLoader)
-
-    # expand config variables in strings
-    config = _expand_cvars_recursively(inputs, inputs, inplace=True, custom_cvars=custom_cvars)
+        config = parse_config_file(y, additional_cvar_shortcuts)
 
     return config
 
