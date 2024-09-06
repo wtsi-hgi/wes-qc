@@ -21,7 +21,7 @@ def prune_mt(mtin: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     See also: https://hail.is/docs/0.2/methods/genetics.html#hail.methods.ld_prune
 
     ### Config fields
-    step2.prune.pruned_mt_outfile : output path  
+    step2.prune.pruned_mt_file : output path  
     step2.prune.r2 : float  
 
     ### Optional ld_prune arguments  
@@ -32,7 +32,7 @@ def prune_mt(mtin: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     '''
     conf = config['step2']['prune']
     ld_prune_args = conf['ld_prune_args']
-    mtoutfile = conf['pruned_mt_outfile']
+    mtoutfile = conf['pruned_mt_file']
 
     print("Filtering to autosomes")
     mtin = mtin.filter_rows(mtin.locus.in_autosome())
@@ -178,7 +178,7 @@ def main():
     #load input mt
     # mt_infile = os.path.join(mtdir, "mt_sex_annotated.mt")
     mt_infile = config['step2']['impute_sex']['sex_mt_outfile']
-    mt = hl.read_matrix_table(mt_infile)
+    mt = hl.read_matrix_table(path_spark(mt_infile))
 
     #ld prune to get a table of variants which are not correlated
     # pruned_mt_file = os.path.join(mtdir, "mt_ldpruned.mt")

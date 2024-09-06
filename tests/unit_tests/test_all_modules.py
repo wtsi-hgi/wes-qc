@@ -441,7 +441,7 @@ class TestQCSteps(HailTestCase):
         cls.ref_pca_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_pca.mt')
 
         config['step2']['prune'] = {
-            'pruned_mt_outfile': '{mtdir}/mt_ldpruned.mt',
+            'pruned_mt_file': '{mtdir}/mt_ldpruned.mt',
             'ld_prune_args': {'r2': 0.2}
         }
 

@@ -122,14 +122,14 @@ step2:
 
   # --- Step 2.3 --- #
   # tmp before dh's merge
-  pop_pred_pca:
-    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
-    pca_loadings_file: '{mtdir}/pca_loadings_after_pruning.ht'
-    pca_evals_file: '{mtdir}/pca_evals_after_pruning.txt'
+  run_pca:
+    pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
+    pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
+    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt'
 
-  predict_populations:
-    pop_ht_file: '{mtdir}/pop_assignments.ht'
-    pop_ht_tsv: '{mtdir}/pop_assignments.tsv'
+  predict_pops:
+    pop_ht_outfile: '{mtdir}/pop_assignments.ht'
+    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
 
   # --- Step 2.4 --- #
 

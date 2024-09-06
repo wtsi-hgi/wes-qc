@@ -9,6 +9,7 @@ import hail as hl
 import hailtop.fs as hfs
 from pyspark import SparkContext
 import subprocess
+from utils.utils import download_test_data_from_s3
 
 # for test config rendering
 INTEGRATION_TESTS_DIR = '{INTEGRATION_TESTS_DIR}'
@@ -50,6 +51,9 @@ qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
+
+TEST_DATA_DOWNLOAD_URL = 'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/test_data.zip'
+
 class HailTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -59,17 +63,34 @@ class HailTestCase(unittest.TestCase):
         # specify paths to the test data and resources
         test_data_path = os.path.join(test_suite_path, 'control_set_small')
         resources_path = os.path.join(test_suite_path, 'resources')
+        ref_data_path = os.path.join(test_suite_path, 'unit_tests', 'reference_output_data')
 
-        # set up an s3cfg file
+        unzipped_path = os.path.join(test_suite_path, 'unzipped_data')
+        unzipped_control_set_path = os.path.join(unzipped_path, 'control_set_small')
+        unzipped_resources_path = os.path.join(unzipped_path, 'resources')
+        unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data') # not used in integration tests
         
         # download publicly available test data and resources from the s3 bucket
-        os.makedirs(test_data_path, exist_ok=True)
-        os.makedirs(resources_path, exist_ok=True)
-        print(f'Downloading data from the s3 bucket') # TODO: improve logging
+        # os.makedirs(test_data_path, exist_ok=True)
+        # os.makedirs(resources_path, exist_ok=True)
+        # os.makedirs(ref_data_path, exist_ok=True)
 
-        # TODO: switch to wget
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', test_data_path])
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resources_path])
+        print(f'Downloading data from the s3 bucket') # TODO: improve logging
+        # Download zipped archive with all the data
+        subprocess.run(['wget', '-nc', TEST_DATA_DOWNLOAD_URL, '-P', unzipped_path]) # skip existing
+
+        # Unzip the data
+        print(f'Unzipping the data')
+        subprocess.run(['unzip', '-n', os.path.join(unzipped_path, 'test_data.zip'), '-d', unzipped_path])
+        # Move unzipped data to correct folders in the test dir
+        print(f'Moving data to correct dirs')
+        
+        subprocess.run(['mv', '-vn', unzipped_control_set_path, test_suite_path])
+        subprocess.run(['mv', '-vn', unzipped_resources_path, test_suite_path])
+        subprocess.run(['mv', '-vn', unzipped_ref_data_path, os.path.join(test_suite_path, 'unit_tests')])
+        # Remove dir used to unzip data
+        # print(f'Removing unzipping dir')
+        # subprocess.run(['rm', '-r', unzipped_path])
         
         # # render test config from the template
         # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable

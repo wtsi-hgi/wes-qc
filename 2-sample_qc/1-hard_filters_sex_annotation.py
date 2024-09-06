@@ -143,7 +143,7 @@ def main():
 
     mt_infile = config['step1']['gatk_mt_outfile'] # input from 1.1
     print("Reading input matrix")
-    mt_unfiltered = hl.read_matrix_table(mt_infile)
+    mt_unfiltered = hl.read_matrix_table(path_spark(mt_infile))
 
     #apply hard fitlers
     mt_filtered = apply_hard_filters(mt_unfiltered, config)

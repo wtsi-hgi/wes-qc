@@ -20,7 +20,7 @@ general:
   resource_dir: {RESOURCES_DIR} # input
 
   # CVAR 1kg resource dir
-  1kg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
+  onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
   plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # input
@@ -63,7 +63,7 @@ step2:
       # keep_higher_maf:
       # block_size: 
 
-  pc_relate:
+  prune_pc_relate:
     relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht'
@@ -78,7 +78,7 @@ step2:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
     
-  population_pca:
+  prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
 
     pca_components: 4
@@ -118,6 +118,29 @@ step2:
     gnomad_min_prob: 0.5
     pop_ht_outfile: '{mtdir}/pop_assignments.ht'
     pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+
+  # --- Step 2.4 --- #
+  # func name: annotate_mt
+  annotate_with_pop:
+    annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt'
+
+  stratified_sample_qc:
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt'
+    ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht'
+    qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht'
+
+    min_depth: 20
+    min_genotype_quality: 20
+    min_vaf: 0.25
+    output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz'
+    output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json'
+  
+  # --- Step 2.5 --- #
+
+  remove_sample_qc_fails:
+    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz'
+    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
+
   
 
 

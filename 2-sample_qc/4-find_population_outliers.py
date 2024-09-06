@@ -130,15 +130,15 @@ def main():
 
     # annotate mt with runid and pop
     raw_mt_file = config['step1']['gatk_mt_outfile']
-    pop_ht_file = config['step2']['predict_populations']['pop_ht_file']
-    pop_ht_tsv = config['step2']['predict_populations']['pop_ht_tsv']
+    pop_ht_file = config['step2']['predict_pops']['pop_ht_outfile']
+    pop_ht_tsv = config['step2']['predict_pops']['pop_ht_outtsv']
     annotated_mt_file = config['step2']['annotate_with_pop']['annotated_mt_file']
     annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file)
 
     # run sample QC and stratify by population
-    mt_qc_outfile = config['step2']['mt_qc_outfile']
-    ht_qc_cols_outfile = config['step2']['ht_qc_cols_outfile']
-    qc_filter_file = config['step2']['qc_filter_file']
+    mt_qc_outfile = config['step2']['stratified_sample_qc']['mt_qc_outfile']
+    ht_qc_cols_outfile = config['step2']['stratified_sample_qc']['ht_qc_cols_outfile']
+    qc_filter_file = config['step2']['stratified_sample_qc']['qc_filter_file']
     stratified_sample_qc(annotated_mt_file, mt_qc_outfile,
                          ht_qc_cols_outfile, qc_filter_file, config)
 
