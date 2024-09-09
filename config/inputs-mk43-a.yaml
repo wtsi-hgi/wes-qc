@@ -190,6 +190,23 @@ step3:
     qc_ac_htoutfile: '{mtdir}/qc_ac.ht'
     allele_data_htoutfile: '{mtdir}/allele_data.ht'
 
+  # --- Step 3.2 --- #
+  create_rf_ht:
+    fail_hard_filters_QD_less_than: 2
+    fail_hard_filters_FS_greater_than: 60
+    fail_hard_filters_MQ_less_than: 30
+    
+
+
+    truthset_file: '{resdir}/truthset_table.ht'
+    trio_stats_file: '{mtdir}/trio_stats.ht'
+    allele_data_file: '{mtdir}/allele_data.ht'
+    allele_counts_file: '{mtdir}/qc_ac.ht'
+    inbreeding_file: '{mtdir}/inbreeding.ht'
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
+    htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+
   
 
 
