@@ -19,6 +19,7 @@ default_cvars = {
     'resdir': 'general.resource_dir',
     '1kg_resdir': 'general.onekg_resource_dir',
     'pltdir': 'general.plots_dir',
+    'traindir': 'general.training_sets_dir'
 }
 
 

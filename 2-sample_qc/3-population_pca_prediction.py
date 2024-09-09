@@ -210,8 +210,6 @@ def predict_pops(config: dict):
 def main():
     # get cli args
     args = get_options()
-
-    print(f'{args = } DEBUG') #DEBUG
     config = parse_config()
     tmp_dir = config['general']['tmp_dir']
     mtdir = config['general']['matrixtables_dir']

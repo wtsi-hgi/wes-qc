@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import argparse
 from typing import Tuple
-from utils.utils import parse_config, rm_mt
+from utils.utils import parse_config, rm_mt, path_spark, path_local
 from gnomad.utils.filtering import filter_to_adj, filter_to_autosomes
 from gnomad.utils.annotations import unphase_call_expr, bi_allelic_site_inbreeding_expr, add_variant_type, annotate_adj, bi_allelic_expr
 from gnomad.sample_qc.relatedness import generate_trio_stats_expr
@@ -28,7 +28,7 @@ def get_options():
     return args
 
 
-def get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file):
+def get_truth_ht(omni: str, mills: str, thousand_genomes: str, hapmap: str, truth_ht_file: str) -> None:
     '''
     Generate truth set HT
     :param str omni: file containing kgp_omni 1000 Genomes intersection Onni 2.5M array
@@ -37,19 +37,19 @@ def get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file):
     :param str hapmap: file containing hapmap
     :param str truth_ht_file: output file name
     '''
-    omni_ht = hl.read_table(omni)
-    mills_ht = hl.read_table(mills)
-    thousand_genomes_ht = hl.read_table(thousand_genomes)
-    hapmap_ht = hl.read_table(hapmap)
+    omni_ht = hl.read_table(path_spark(omni))
+    mills_ht = hl.read_table(path_spark(mills))
+    thousand_genomes_ht = hl.read_table(path_spark(thousand_genomes))
+    hapmap_ht = hl.read_table(path_spark(hapmap))
 
     truth_ht = hapmap_ht.select(hapmap=True).join(
         omni_ht.select(omni=True), how="outer").join(
             thousand_genomes_ht.select(kgp_phase1_hc=True), how="outer").join(
-                mills_ht.select(mills=True), how="outer").repartition(200, shuffle=False)
+                mills_ht.select(mills=True), how="outer").repartition(200, shuffle=False) # TODO: I suppose this number should not be considered as a config parameter candidate, should it?
     truth_ht.write(truth_ht_file, overwrite=True)
     
 
-def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str):
+def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str) -> None:
     '''
     Adapted from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     Run split_multi_hts and variant QC on inout mt after sample QC
@@ -57,7 +57,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     :param str varqc_mtfile: Output mt with adj annotation 
     :param str varqc_mtfile_split: Output mt with variant QC annotation and split multiallelics
     '''
-    mt = hl.read_matrix_table(mtfile)
+    mt = hl.read_matrix_table(path_spark(mtfile))
 
     #        # restrict to samples in trios
     # samplefile = "file:///lustre/scratch123/qc/resources/samples_in_trios.txt"
@@ -210,7 +210,9 @@ def generate_trio_stats(
     return ht
 
 
-def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, trio_stats_htfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, fam_stats_gnomad_mtfile: str, gnomad_htfile: str, dnm_htfile: str):
+def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str, 
+                               trio_stats_htfile: str, fam_stats_htfile: str, fam_stats_mtfile: str, 
+                               fam_stats_gnomad_mtfile: str, gnomad_htfile: str, dnm_htfile: str) -> None:
     '''
     Create matrixtable of just trios, create family stats
     :param str varqc_mtfile: Input matrixtable file
@@ -223,8 +225,8 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     :param str gnomad_htfile: Gnomad AF hail table
     :param str dnm_htfile: De novo hail table file
     '''
-    pedigree = hl.Pedigree.read(pedfile)
-    mt = hl.read_matrix_table(varqc_mtfile)
+    pedigree = hl.Pedigree.read(path_spark(pedfile))
+    mt = hl.read_matrix_table(path_spark(varqc_mtfile))
 
     #filter mt to samples that are in trios only and re-run varqc
     trio_sample_ht = hl.import_fam(pedfile)
@@ -245,7 +247,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
     mt = mt.checkpoint(fam_stats_mtfile, overwrite=True)
     #add gnomad AFs
-    gnomad_ht = hl.read_table(gnomad_htfile)
+    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
     mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
     mt.write(fam_stats_gnomad_mtfile, overwrite=True)
     #make DNM table
@@ -308,7 +310,7 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str
     :param str qc_ac_htfile: qc_ac hail table file
     :param str allele_data_htfile: Allele data htfile
     '''
-    mt = hl.read_matrix_table(varqc_mtfile)
+    mt = hl.read_matrix_table(path_spark(varqc_mtfile))
     # inbreeding ht
     mt_inbreeding = mt.annotate_rows(InbreedingCoeff=bi_allelic_site_inbreeding_expr(mt.GT))
     #mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
@@ -323,52 +325,52 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str
 
 
 def main():
-    #set up
+    # set up
     args = get_options()
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
-    training_sets_dir = inputs['training_set_dir']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    resourcedir = config['general']['resource_dir']
+    training_sets_dir = config['general']['training_set_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     # get truth set ht
-    truth_ht_file = resourcedir + "truthset_table.ht"
     if args.truth or args.all:
-        omni = training_sets_dir + "1000G_omni2.5.hg38.ht"
-        mills = training_sets_dir + "Mills_and_1000G_gold_standard.indels.hg38.ht"
-        thousand_genomes = training_sets_dir + "1000G_phase1.snps.high_confidence.hg38.ht"
-        hapmap = training_sets_dir + "hapmap_3.3.hg38.ht"
-        get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_file)
+        truth_ht_outfile = config['step3']['get_truth_ht']['truth_ht_outfile']
+        omni = config['step3']['get_truth_ht']['omni']
+        mills = config['step3']['get_truth_ht']['mills']
+        thousand_genomes = config['step3']['get_truth_ht']['thousand_genomes']
+        hapmap = config['step3']['get_truth_ht']['hapmap']
+        get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_outfile)
 
     #add hail variant QC
     if args.annotation or args.all:
-        mtfile = mtdir + "mt_pops_QC_filters_after_sample_qc.mt"
-        varqc_mtfile = mtdir + "mt_varqc.mt"
-        varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
+        mtfile = config['step3']['split_multi_and_var_qc']['mtfile']
+        varqc_mtoutfile = config['step3']['split_multi_and_var_qc']['varqc_mtoutfile']
+        varqc_mtoutfile_split = config['step3']['split_multi_and_var_qc']['varqc_mtoutfile_split']
 
-        split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
-        pedfile = "file:///lustre/scratch123/qc/BiB/trios.EGAN.complete.ped"
+        split_multi_and_var_qc(mtfile, varqc_mtoutfile, varqc_mtoutfile_split)
+        pedfile = config['step3']['pedfile']
 
         #get complete trios, family annotation, dnm annotation
-        trio_mtfile = mtdir + "trios.mt"
-        trio_stats_htfile = mtdir + "trio_stats.ht"
-        fam_stats_htfile = mtdir + "family_stats.ht"
-        fam_stats_mtfile = mtdir + "family_stats.mt"
-        fam_stats_gnomad_mtfile = mtdir + "family_stats_gnomad.mt"
-        gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
-        dnm_htfile = mtdir + "denovo_table.ht"
-        trio_family_dnm_annotation(varqc_mtfile_split, pedfile, trio_mtfile, trio_stats_htfile, fam_stats_htfile, fam_stats_mtfile, fam_stats_gnomad_mtfile, gnomad_htfile, dnm_htfile)
+        trio_mtoutfile = config['step3']['trio_family_dnm_annotation']['trio_mtoutfile']
+        trio_stats_htoutfile = config['step3']['trio_family_dnm_annotation']['trio_stats_htoutfile']
+        fam_stats_htoutfile = config['step3']['trio_family_dnm_annotation']['fam_stats_htoutfile']
+        fam_stats_mtoutfile = config['step3']['trio_family_dnm_annotation']['fam_stats_mtoutfile']
+        fam_stats_gnomad_mtoutfile = config['step3']['trio_family_dnm_annotation']['fam_stats_gnomad_mtoutfile']
+        gnomad_htfile = config['step3']['trio_family_dnm_annotation']['gnomad_htfile']
+        dnm_htoutfile = config['step3']['trio_family_dnm_annotation']['dnm_htoutfile']
+        trio_family_dnm_annotation(varqc_mtoutfile_split, pedfile, trio_mtoutfile, trio_stats_htoutfile, fam_stats_htoutfile, fam_stats_mtoutfile, fam_stats_gnomad_mtoutfile, gnomad_htfile, dnm_htoutfile)
 
         #create inbreeding ht
-        inbreeding_htfile = mtdir + "inbreeding.ht"
-        qc_ac_htfile = mtdir + "qc_ac.ht"
-        allele_data_htfile = mtdir + "allele_data.ht"
-        create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile, pedfile, inbreeding_htfile, qc_ac_htfile, allele_data_htfile)
+        inbreeding_htoutfile = config['step3']['create_inbreeding_ht_with_ac_and_allele_data']['inbreeding_htoutfile']
+        qc_ac_htoutfile = config['step3']['create_inbreeding_ht_with_ac_and_allele_data']['qc_ac_htoutfile']
+        allele_data_htoutfile = config['step3']['create_inbreeding_ht_with_ac_and_allele_data']['allele_data_htoutfile']
+        create_inbreeding_ht_with_ac_and_allele_data(varqc_mtoutfile, pedfile, inbreeding_htoutfile, qc_ac_htoutfile, allele_data_htoutfile)
 
 
 if __name__ == '__main__':
