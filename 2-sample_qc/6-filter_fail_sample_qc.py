@@ -21,6 +21,16 @@ def filter_to_sanger_only(annotated_mt_file: str, sanger_mt_file: str) -> None:
     mt.write(sanger_mt_file, overwrite=True)
 
 
+def save_sampleQC_stats(sample_qc_ht: hl.Table, sampleqc_stats_file: str) -> None:
+    res = sample_qc_ht.group_by("assigned_pop").aggregate(counts=hl.agg.counter(sample_qc_ht.filter_result))
+    res = res.annotate(sampleqc_pass=res.counts["Pass"], sampleqc_fail=res.counts["Fail"])
+    res = res.annotate(percent_fail=res.sampleqc_fail / res.sampleqc_pass * 100)
+    res = res.drop(res.counts)
+    res.export(sampleqc_stats_file)
+    res.show(10)
+    print(f"=== Total samples passing ")
+
+
 def remove_sample_qc_fails(
     annotated_mt_file: str,
     qc_filter_ht_file: str,
@@ -51,6 +61,10 @@ def remove_sample_qc_fails(
         .default("")
     )
     sample_qc_ht = sample_qc_ht.annotate(filter_result=filter_expr).key_by("s")
+
+    # Printing pass/fail stats by superpopulation
+    save_sampleQC_stats(sample_qc_ht, samples_failing_qc_file + ".stats.csv")  # FIXME: choose better name
+
     # save a list of samples that have failed QC
     fail_ht = sample_qc_ht.filter(sample_qc_ht.filter_result == "Fail").key_by()
     fails = fail_ht.select(fail_ht.s)
