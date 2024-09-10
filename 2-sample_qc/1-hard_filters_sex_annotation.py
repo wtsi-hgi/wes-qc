@@ -5,6 +5,8 @@ import os
 
 import hail as hl
 import pyspark
+import bokeh
+
 from utils.utils import parse_config
 from wes_qc import hail_utils
 
@@ -95,9 +97,11 @@ def identify_inconsistencies(
         | ((ht_joined.sex == "female") & (ht_joined.manifest_sex == "Male"))
     )
     conflicting_sex_ht.export("file://" + conflicting_sex)
+    print(f"=== Total samples with conflicting sex: {conflicting_sex_ht.count()}")
 
     # identify samples where f stat is between 0.2 and 0.8
     f_stat_ht = qc_ht.filter((qc_ht.f_stat > 0.2) & (qc_ht.f_stat < 0.8))
+    print(f"=== Total F-stat outliers (0.2 < f_stat < 0.8): {f_stat_ht.count()}")
     f_stat_ht.export("file://" + f_stat_outliers)
 
 
@@ -110,6 +114,7 @@ def main() -> None:
 
     mtdir: str = os.path.join(data_root, inputs["matrixtables_lustre_dir"])
     annot_dir: str = os.path.join(data_root, inputs["annotation_lustre_dir"])
+    plot_dir = os.path.join(data_root, inputs["plots_lustre_dir"])
 
     # initialise hail
     tmp_dir = inputs["tmp_dir"]
@@ -120,6 +125,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--hard-filter", help="Apply hard filters", action="store_true")
     parser.add_argument("-i", "--impute-sex", help="Impute sex information", action="store_true")
+    parser.add_argument("-p", "--plot-fstat", help="Plot f-statistics graph", action="store_true")
     parser.add_argument("-c", "--check-consistency", help="Annotate and filter merged mt", action="store_true")
     parser.add_argument("-r", "--run", help="Run all steps", action="store_true")
     args = parser.parse_args()
@@ -135,6 +141,15 @@ def main() -> None:
         filtered_mt_file = "file://" + os.path.join(mtdir, "mt_hard_filters_annotated.mt")
         mt_filtered = hl.read_matrix_table(filtered_mt_file)
         impute_sex(mt_filtered, mtdir, annot_dir, male_threshold=0.6)
+
+    if args.plot_fstat or args.run:
+        sex_mt_file = "file://" + os.path.join(mtdir, "mt_sex_annotated.mt")
+        sex_mt = hl.read_matrix_table(sex_mt_file)
+        sex_ht = sex_mt.cols()
+        plot = hl.plot.histogram(sex_ht.f_stat, legend="Fstat")
+        plot_file = os.path.join(plot_dir, "sampleqc_fstat_histogram.html")
+        bokeh.plotting.output_file(plot_file)
+        bokeh.plotting.save(plot)
 
     # Check for conflicting sex
     if args.check_consistency or args.run:
