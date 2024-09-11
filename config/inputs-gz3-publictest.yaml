@@ -3,33 +3,40 @@
 ---
 
 general:
-  # Dataset_root_directory
+  # Dataset name - to name plots, files, legends, etc
+  # CVAR dataname
+  dataset_name: 'wes-qc-manual'
+
+  # Dataset root directory - to use in folder paths
+  # CVAR dataroot
+  data_root: '/lustre/scratch126/gz3/{general.dataset_name}'
+
   # CVAR tmpdir
-  tmp_dir: /lustre/scratch126/gz3/wes-qc-manual/tmp
+  tmp_dir: '{general.data_root}/tmp'
   # tmp_dir: hdfs://spark-master:9820/
 
   # CVAR anndir
-  annotation_dir: /lustre/scratch126/gz3/wes-qc-manual/annotations/
+  annotation_dir: '{general.data_root}/annotations/'
 
   # CVAR mtdir
-  matrixtables_dir: /lustre/scratch126/gz3/wes-qc-manual/matrixtables/
+  matrixtables_dir: '{general.data_root}/matrixtables/'
 
   # TODO: document resource_dir
   # TODO: add option to override in `resources` config field
   # TODO: add Jira ticket
   # CVAR resdir
-  resource_dir: /lustre/scratch126/gz3/wes-qc-manual/resources/
+  resource_dir: '{general.data_root}/resources/'
 
   # CVAR 1kg_resdir
-  1kg_resource_dir: /lustre/scratch126/gz3/wes-qc-manual/resources/mini_1000G/
+  1kg_resource_dir: '{general.data_root}/resources/mini_1000G/'
 
   # CVAR pltdir
-  plots_dir: /lustre/scratch126/gz3/wes-qc-manual/plots/
+  plots_dir: '{general.data_root}/plots/'
 
 # --- Step 1.1 --- #
 step1:
   gatk_vcf_header_infile:
-  gatk_vcf_indir: /lustre/scratch126/gz3/wes-qc-manual/control_set_small/
+  gatk_vcf_indir: '{general.data_root}/control_set_small/'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
 step2:
