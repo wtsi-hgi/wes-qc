@@ -1,4 +1,5 @@
 # generate truth sets for variant QC random forest
+import os.path
 import hail as hl
 import pyspark
 import argparse
@@ -331,7 +332,7 @@ def main():
     training_sets_dir = inputs['training_set_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -352,7 +353,7 @@ def main():
         varqc_mtfile_split = mtdir + "mt_varqc_splitmulti.mt"
 
         split_multi_and_var_qc(mtfile, varqc_mtfile, varqc_mtfile_split)
-        pedfile = "file:///lustre/scratch123/qc/BiB/trios.EGAN.complete.ped"
+        pedfile = os.path.join(resourcedir, 'trios.fam')
 
         #get complete trios, family annotation, dnm annotation
         trio_mtfile = mtdir + "trios.mt"
