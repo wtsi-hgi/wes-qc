@@ -103,6 +103,9 @@ def stratified_sample_qc(
     pop_ht.write(qc_filter_file, overwrite=True)
     pop_ht.export(sampleqc_report, delimiter="\t")
 
+    output_globals_json = sampleqc_report + ".globals.json"
+    pop_ht.globals.export(output_globals_json)
+
 
 def main() -> None:
     # set up
@@ -127,13 +130,13 @@ def main() -> None:
     mt_qc_outfile = os.path.join(mtdir, "mt_pops_sampleqc.mt")
     ht_qc_cols_outfile = os.path.join(mtdir, "mt_pops_sampleqc.ht")
     qc_filter_file = os.path.join(mtdir, "mt_pops_QC_filters.ht")
-    sampleqc_report = os.path.join(annotdir, "sample_qc_by_pop.tsv.gz")
+    sampleqc_report = os.path.join(annotdir, "sample_qc_by_pop.tsv")
     stratified_sample_qc(
         "file://" + annotated_mt_file,
         "file://" + mt_qc_outfile,
         "file://" + ht_qc_cols_outfile,
         "file://" + qc_filter_file,
-        sampleqc_report,
+        "file://" + sampleqc_report,
     )
     hail_utils.stop_hl(sc)
 
