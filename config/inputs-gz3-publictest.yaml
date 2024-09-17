@@ -28,7 +28,7 @@ general:
   resource_dir: '{general.data_root}/resources/'
 
   # CVAR 1kg_resdir
-  1kg_resource_dir: '{general.data_root}/resources/mini_1000G/'
+  onekg_resource_dir: '{general.data_root}/resources/mini_1000G/'
 
   # CVAR pltdir
   plots_dir: '{general.data_root}/plots/'
@@ -36,7 +36,7 @@ general:
 # --- Step 1.1 --- #
 step1:
   gatk_vcf_header_infile:
-  gatk_vcf_indir: '{general.data_root}/control_set_small/'
+  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
 step2:
