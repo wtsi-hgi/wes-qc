@@ -43,9 +43,9 @@ hard_filters:
   snp:
     relaxed:
       bin: 78
-      dp: 0
-      gq: 0
-      ab: 0.0
+      dp: 5
+      gq: 10
+      ab: 0.2
     medium:
       bin: 72
       dp: 5
@@ -58,17 +58,17 @@ hard_filters:
       ab: 0.2
   indel:
     relaxed:
-      bin: 66
+      bin: 72
       dp: 5
       gq: 10
-      ab: 0.3
+      ab: 0.2
     medium:
-      bin: 52
-      dp: 0
-      gq: 0
+      bin: 64
+      dp: 5
+      gq: 10
       ab: 0.2
     stringent:
-      bin: 48
-      dp: 0
-      gq: 0
+      bin: 52
+      dp: 5
+      gq: 10
       ab: 0.2
