@@ -26,6 +26,9 @@ general:
   # CVAR traindir
   training_sets_dir: /lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
 
+  # CVAR rfdir
+  var_qc_rf_dir: /lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
+
 # --- Step 1.1 --- #
 step1:
   gatk_vcf_header_infile:
@@ -195,8 +198,6 @@ step3:
     fail_hard_filters_QD_less_than: 2
     fail_hard_filters_FS_greater_than: 60
     fail_hard_filters_MQ_less_than: 30
-    
-
 
     truthset_file: '{resdir}/truthset_table.ht'
     trio_stats_file: '{mtdir}/trio_stats.ht'
@@ -206,6 +207,18 @@ step3:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
     htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
     htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+
+  # --- Step 3.3 --- #
+  rf_test_interval: chr20 # used in multiple functions
+  runs_json: '{rfdir}/rf_runs.json'
+
+  train_rf:
+    input_ht_file: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    gnomad_train_rf_fp_to_tp: 1.0
+    gnomad_train_rf_num_trees: 500
+    gnomad_train_rf_max_depth: 5
+
+
 
   
 

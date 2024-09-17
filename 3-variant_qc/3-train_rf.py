@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 import utils.constants as constants
-from utils.utils import parse_config, get_rf
+from utils.utils import parse_config, get_rf, path_spark, path_local
 from gnomad.utils.file_utils import file_exists
 from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
@@ -28,13 +28,14 @@ def get_rf_runs(rf_json_fp: str) -> Dict:
         return {}
 
 
-def train_rf(ht: hl.Table, test_intervals: str) -> Tuple[hl.Table, pyspark.ml.PipelineModel]:
+def train_rf(ht: hl.Table, test_intervals: str, config: dict) -> Tuple[hl.Table, pyspark.ml.PipelineModel]:
     '''
     Train RF model
     :param hl.Table ht: Hail table containing input data
     :param str test_intervals: Test intervals
     :return: Hail table and RF model
     '''
+    conf = config['step3']['train_rf']
     features = constants.FEATURES
     print("test_intervals")
     print(test_intervals)
@@ -53,15 +54,16 @@ def train_rf(ht: hl.Table, test_intervals: str) -> Tuple[hl.Table, pyspark.ml.Pi
         print(hl.eval(test_intervals))
 
     ht=ht.persist()
-   
+    
+    # TODO: use kwargs expantions from the config as this is a gnomad package function
     rf_ht, rf_model = train_rf_model(
         ht,
         rf_features=features,
         tp_expr=ht.tp,
         fp_expr=ht.fp,
-        fp_to_tp=1.0,
-        num_trees=500,
-        max_depth=5,
+        fp_to_tp=conf['gnomad_train_rf_fp_to_tp'],
+        num_trees=conf['gnomad_train_rf_num_trees'],
+        max_depth=conf['gnomad_train_rf_num_trees'],
         test_expr=hl.literal(test_intervals).any(
             lambda interval: interval.contains(ht.locus)),
     )
@@ -124,28 +126,29 @@ def get_run_data(
 
 def main():
     # set up
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-    test_interval = inputs['rf_test_interval']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    rf_dir = config['general']['var_qc_rf_dir']
+
+    test_interval = config['step3']['rf_test_interval'] # used in multiple functions
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     # hash for new RF
-    run_hash = str(uuid.uuid4())[:8]
+    run_hash = str(uuid.uuid4())[:8] # TODO: move to utils
     rf_runs = get_rf_runs(rf_dir)
     while run_hash in rf_runs:
         run_hash = str(uuid.uuid4())[:8]
     
 
     # train RF
-    input_ht_file = mtdir + "ht_for_RF_by_variant_type_all_cols.ht"
-    input_ht = hl.read_table(input_ht_file)
-    runs_json = rf_dir + "rf_runs.json"
+    input_ht_file = config['step3']['train_rf']['input_ht_file']
+    input_ht = hl.read_table(path_spark(input_ht_file))
+    runs_json = config['step3']['runs_json']
     ht_result, rf_model = train_rf(input_ht, test_interval)
     print("Writing out ht_training data")
     ht_result = ht_result.checkpoint(get_rf(rf_dir, data="training", run_hash=run_hash).path, overwrite=True)
