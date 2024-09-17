@@ -52,7 +52,7 @@ def getp(_dict: dict, keypath: str, silent: bool = False, default = None):
 def checkp(_dict: dict, keypath: str):
     """
     checkPath: Check if a value is in a nested dict using dot-notation. That is, 
-    `isinp(conf, "a.b.c")` is True if `conf['a']['b']['c']` is valid.
+    `checkp(conf, "a.b.c")` is True if `conf['a']['b']['c']` is valid.
     That is, `conf['a']` and `conf['a']['b']` are dicts and `conf['a']['b']['c']` is 
     either a dict or a value.  
     This function will not check if a value is a dict or a field.
@@ -138,7 +138,7 @@ def flat_to_nested(flat_dictionary: collections.abc.MutableMapping, parent_key=N
                 section[k] = dict()
             section = section[k]
         section[keyp[-1]] = value
-        
+
     return nested_dict
 
 def is_subsection(subsection_key: str, supersection_key: str) -> bool:
@@ -168,51 +168,50 @@ def parent_section(section_key: str) -> str:
     if dot_idx < 0: return ''
     return section_key[:dot_idx]
 
-def resolve_cvar(cvar: str, base_config: dict, fieldname: str = '', undefined_ok: bool = False) -> str:
+def resolve_cvar_flat(cvar_expr: str, flat_base_config: dict, fieldname: str = '', undefined_ok: bool = False) -> str:
     """
     Get a value that cvar (without braces) should be substituted with.
     
     Parameters:
-    - cvar: a cvar expression without braces. A field key in a nested dict, or a cvar constant
-    - base_config: a context for cvar resolution. cvar will be resolved using data from base_config
+    - cvar_expr: a cvar expression without braces. A field key in a nested dict, or a cvar constant
+    - flat_base_config: a FLAT config, a context for cvar resolution. cvar_expr will be resolved using data from flat_base_config
     - fieldname: an optional key of the field that contains this cvar (in a dot-notation).  
         This is used to resolve local config variables and for logging
     - undefined_ok: If True and a cvar expression cannot be resolved, then return it as it is.  
         If False, throw a ValueError in that case.
 
-    - If cvar is a cvar shortcut (a name defined in cvars section), then use the field it refers to
-    - If cvar is a field name then 
-        - try to use a field with that key in the same section (you can skip this by starting your cvar with a dot "{.foo.bar}")
+    - If cvar_expr is a cvar shortcut (a name defined in cvars section), then use the field it refers to
+    - If cvar_expr is a field name then 
+        - try to use a field with that key in the same section (you can skip this by starting your cvar_expr with a dot "{.foo.bar}")
         - try to find that field in the whole config 
     - If cannot find a suitable value and undefined_ok is False, raise a ValueError
     - If cannot find a suitable value and undefined_ok is True, return None 
     """
     try:    
         # 1. cvar shortcuts. Always absolute. At most once.
-        cvar_shortcut_def = f"cvar.{cvar}"
-        
-        if checkp(base_config, cvar_shortcut_def):
+        cvar_shortcut_def = f"cvars.{cvar_expr}"
+        if cvar_shortcut_def in flat_base_config:
             if undefined_ok:
-                return getp(base_config, getp(base_config, cvar_shortcut_def), True, '{'+cvar+'}')
-            return getp(base_config, getp(base_config, cvar_shortcut_def))
+                return flat_base_config.get(flat_base_config[cvar_shortcut_def], '{'+cvar_expr+'}')
+            return flat_base_config[flat_base_config[cvar_shortcut_def]]
 
         # 2. config variable in the same section, providing we have a fieldname.
-        #    skip if cvar is explicit full key (starts with `.`) or field is top-level (no `.`).
-        if cvar[0] != '.' and '.' in fieldname:
-            cvar_as_local = f"{parent_section(fieldname)}.{cvar}"
-            if fieldname and (cvar_as_local in base_config):
-                return getp(base_config, cvar_as_local)
+        #    skip if cvar is explicit full key (starts with `.`).
+        if cvar_expr[0] != '.':
+            cvar_as_local = f"{parent_section(fieldname)}.{cvar_expr}"
+            if fieldname and (cvar_as_local in flat_base_config):
+                return flat_base_config[cvar_as_local]
             # note that we still need to check a full key
         
         # 3. config variable with a full key
-        if cvar[0] == '.':
-            cvar = cvar[1:]
+        if cvar_expr[0] == '.':
+            cvar_expr = cvar_expr[1:]
         if undefined_ok:
-            return getp(base_config, cvar, True, '{'+cvar+'}')
-        return getp(base_config, cvar)
+            return flat_base_config.get(cvar_expr, '{'+cvar_expr+'}')
+        return flat_base_config[cvar_expr]
 
     except KeyError as e:
-        raise ValueError(f"cannot substitute undefined config variable '{cvar}' referenced in field '{fieldname}'")
+        raise ValueError(f"cannot substitute undefined config variable '{cvar_expr}' referenced in field '{fieldname}'")
 
 """
 Detect field names that end in dir, file, indir, outdir, infile, outfile + optionally _local.
@@ -226,7 +225,7 @@ def __is_path_field(fieldname: str):
 def _expand_cvars_str(base_config: dict, str_with_cvar: str, fieldname: str, as_path: bool = False, undefined_ok: bool = False):
     """
     Substitute config variables in a string.  
-    Will follow cvar_shortcuts, this helps avoid specifying the full field name for frequently used fields.  
+    You can specify config field alisases in `cvars` config section to avoid specifying the full field name for frequently used fields.  
     If undefined_ok, ignore errors, leave invalid cvars as is.
 
     :param dict base_config: a flat config dictionary and a source for values to substitute
@@ -248,7 +247,7 @@ def _expand_cvars_str(base_config: dict, str_with_cvar: str, fieldname: str, as_
     cvar_re = re.compile(r"\{([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)\}")
     def repl(cvar_match):
         cvar_expr = cvar_match.group(1)
-        return str(resolve_cvar(cvar_expr, base_config, fieldname, undefined_ok))
+        return str(resolve_cvar_flat(cvar_expr, base_config, fieldname, undefined_ok))
     expanded_str = cvar_re.sub(repl, str_with_cvar)
 
     if as_path:
@@ -265,42 +264,83 @@ def _expand_cvars_str(base_config: dict, str_with_cvar: str, fieldname: str, as_
 
     return expanded_str
 
-#TODO mk43: MERGE
-def _process_cvars_in_config(unprocessed_config: dict, base_config: dict = dict()):
+def _process_cvars_in_flat_config(flat_unprocessed_config: dict, base_config: dict = dict()):
     """
     Recursively expand cvars in all string fields in a FLAT `unprocessed_config`
     using data from `base_config`.  
     Detect and activate path mode automatically based on __is_path_field.
     Specify additional config field aliases in `custom_shortcuts`.
 
-    :param dict unprocessed_config: a flat dictionary with string values that needs cvar expansion
+    :param dict flat_unprocessed_config: a flat dictionary with string values that needs cvar expansion
     :param dict base_config: a read-only dictionary, a base config, that will act as an additional source for config variables
-    :return dict: 
+    :return dict: a FLAT config with all cvar expression replaced (where possible)
 
     Order of config variable resolution:
-    1. `cvar_shortcuts` section from the unprocessed_config
-    2. `cvar_shortcuts` section from the base_config
+    1. `cvars` section from the unprocessed_config
+    2. `cvars` section from the base_config
     3. unprocessed_config fields in same section
     4. base_config fields in same section
     5. unprocessed_config fields by full key
     6. base_config fields by full key
     """
 
-    raise NotImplementedError()
+    # the full context for variable substitution
+    context = base_config.copy()
+    # we only need cvar shortcuts for now
+    for k,v in flat_unprocessed_config.items():
+        if k.startswith('cvar_shortcuts.'):
+            context[k] = v
+    # note that context does not contain unprocessed_config at start, but will contain in the end
+    config = flat_unprocessed_config.copy()
+
+    for key in config:
+        val = config[key]
+        if isinstance(val, str):
+            processed_str = _expand_cvars_str(context, val, key, as_path=__is_path_field(key))
+            context[key] = processed_str
+            config[key] = processed_str
+        elif isinstance(val, dict):
+            raise ValueError(f"This function accepts only a flat config. Nested dict detected at {key=}")
 
     return config
 
-#TODO mk43: MERGE
+def _process_cvars_in_config(unprocessed_config: dict, base_config: dict = dict()):
+    """
+    Same as utils.config._process_cvars_in_flat_config, but supports both NESTED and FLAT configs.
+
+    If input config is FLAT, output config will be FLAT. If input config is NESTED, output config will be NESTED.
+
+    :param dict unprocessed_config: a flat dictionary with string values that needs cvar expansion
+    :param dict base_config: a read-only dictionary, a base config, that will act as an additional source for config variables
+    :return dict: a FLAT config with all cvar expression replaced (where possible)
+
+    NOTE: _process_cvars_in_flat_config is a backward-compatible way to introduce flat configs, as it is a difficult task to refactor all config usages *again*.
+    """
+    is_flat_config = any(map((lambda key: '.' in key), unprocessed_config.keys()))
+    is_nested_config = any(map((lambda v: isinstance(v, dict)), unprocessed_config.values()))
+
+    if is_flat_config and is_nested_config:
+        raise ValueError("Cannot determine wether unprocessed_config is FLAT or NESTED")
+    if not is_flat_config and not is_nested_config:
+        # Only top-level fields, config is both flat and nested.
+        # Using flat to increase performance a bit.
+        is_flat_config = True
+
+    flat_unprocessed_config = flatten(unprocessed_config) if is_nested_config else unprocessed_config
+    flat_config = _process_cvars_in_flat_config(flat_unprocessed_config)
+    return flat_to_nested(flat_config) if is_nested_config else flat_config
+
 def parse_config_file(file_obj, additional_cvar_shortcuts: dict = dict()):
     config = yaml.safe_load(file_obj)
-    if 'cvar_shortcuts' not in config:
-        config['cvar_shortcuts'] = dict()
-    config['cvar_shortcuts'].update(additional_cvar_shortcuts)
+    if 'cvars' not in config:
+        config['cvars'] = dict()
+    config['cvars'].update(additional_cvar_shortcuts)
     config = flatten(config)
+    # NOTE mk43: This will use NESTED config style
+    # TODO mk43: Replace with FLAT config style in future
     config = _process_cvars_in_config(config)
     return config
 
-#TODO mk43: MERGE
 # TODO: rename to load_config or get_config
 def parse_config(path: str = None, additional_cvar_shortcuts: dict = dict()):
     """

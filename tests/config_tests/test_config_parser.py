@@ -1,6 +1,7 @@
-from utils.config import parse_config, getp, parent_section, is_subsection, flatten, flat_to_nested, resolve_cvar
+from utils.config import parse_config, parse_config_file, getp, parent_section, is_subsection, flatten, flat_to_nested, resolve_cvar_flat
 from pathlib import PurePath
 import unittest
+import os
 
 class TestConfigParser(unittest.TestCase):
 
@@ -103,20 +104,23 @@ class TestConfigParser(unittest.TestCase):
             'a.y': 'ayyyy',
             'b': '{cvar0}'
         }
-        config = flat_to_nested(config)
 
-        self.assertEqual(resolve_cvar('cvar0', config, 'field', True), 'axxxx') # cvar shortcut
-        self.assertEqual(resolve_cvar('a.x', config, 'field', True), 'axxxx') # full key
-        self.assertEqual(resolve_cvar('x', config, 'field', True), 'toplevel') # full key
-        self.assertEqual(resolve_cvar('x', config, 'a.other', True), 'axxxx') # local key in section a
-        self.assertEqual(resolve_cvar('.x', config, 'a.other', True), 'toplevel') # explicit full key / absolute key
-        self.assertEqual(resolve_cvar('cvar1', config, 'a.other', True), 'toplevel') # cvar shortcut points to the full key
+        # config is FLAT on purpose
+        self.assertEqual(resolve_cvar_flat('cvar0', config, 'field', True), 'axxxx') # cvar shortcut
+        self.assertEqual(resolve_cvar_flat('a.x', config, 'field', True), 'axxxx') # full key
+        self.assertEqual(resolve_cvar_flat('x', config, 'field', True), 'toplevel') # full key
+        self.assertEqual(resolve_cvar_flat('x', config, 'a.other', True), 'axxxx') # local key in section a
+        self.assertEqual(resolve_cvar_flat('.x', config, 'a.other', True), 'toplevel') # explicit full key / absolute key
+        self.assertEqual(resolve_cvar_flat('cvar1', config, 'a.other', True), 'toplevel') # cvar shortcut points to the full key
+        self.assertEqual(resolve_cvar_flat('a.nonexistant', config, '', True), '{a.nonexistant}')
+        self.assertEqual(resolve_cvar_flat('a.nonexistant.nonexistant', config, '', True), '{a.nonexistant.nonexistant}')
 
 
     def test_cvars(self):
         expected_config = {
-            'cvars.cvar_custom': 'group_0.not_cvar',
             'cvars.cvar_3': 'group_0.not_cvar',
+            'cvars.cvar_custom': 'group_0.not_cvar', # This should be the second one, as custom cvars are inserted in the end, 
+                                                     # and we are doing a depth-first iteration
             'cvar_1': '/dev/null/',
             'group_0.not_cvar': '/lorem/ipsum/',
             'group_1.cvar_2': '/foo/bar/',
@@ -139,9 +143,14 @@ class TestConfigParser(unittest.TestCase):
         }
         config = parse_config('tests/config_tests/sample-config.yaml', { 'cvar_custom': 'group_0.not_cvar' })
         # print(config)        
-
         flat_config = flatten(config)
+        self.assertTupleEqual(tuple(expected_config.items()), tuple(flat_config.items()))
 
+        # Test the whole file loading process
+
+        os.environ['WES_CONFIG'] = os.path.abspath('tests/config_tests/sample-config.yaml')
+        config = parse_config(additional_cvar_shortcuts={ 'cvar_custom': 'group_0.not_cvar' })
+        flat_config = flatten(config)
         self.assertTupleEqual(tuple(expected_config.items()), tuple(flat_config.items()))
 
     # TODO
@@ -151,7 +160,6 @@ class TestConfigParser(unittest.TestCase):
             "cannot substitute undefined config variable 'b' referenced in field 'a'" 
             ) as cm:
             config = parse_config('tests/config_tests/undefined-cvar-config.yaml')
-
 
 if __name__ == '__main__':
     unittest.main()
