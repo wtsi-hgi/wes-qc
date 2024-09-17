@@ -27,7 +27,7 @@
 # TODO: custom yaml type for paths
 # TODO: ensure strict variable substitution, from top to bottom of the config
 # TODO: add testcases for cvars, for order of variables, for nested variables  
-cvar_shortcuts:
+cvars:
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir
   mtdir: general.matrixtables_dir

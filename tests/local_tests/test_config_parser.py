@@ -1,4 +1,4 @@
-from utils.config import parse_config, getp, parent_section, is_subsection, flatten, resolve_cvar
+from utils.config import parse_config, getp, parent_section, is_subsection, flatten, flat_to_nested, resolve_cvar
 from pathlib import PurePath
 import unittest
 
@@ -71,16 +71,40 @@ class TestConfigParser(unittest.TestCase):
         expected_d['a.b'] = 'a.b'
         self.assertFalse(tuple(expected_d.keys()) == tuple(flat_d.keys()))
 
+    def test_flat_to_nested(self):
+        flat_d = {
+            'a.b': 'a.b',
+            'a.c': 'a.c',
+            'a.d.e': 'a.d.e',
+            'a.d.i1': 100,
+            'a.i2': 200,
+            'a.f.e': 'a.f.e',
+            'a.f.i4': 400,
+            # 'a.empty': dict(), # should not be added
+            'L1': [10, 20, 30],
+            'L2': ['xx','yy','zz'],
+            # 'b': dict(), # should not be added
+            'i3': 300
+        }
+        d = flat_to_nested(flat_d)
+        flat_again_d = flatten(d, separator='$')
+        expected_flat_again_d = { key.replace('.','$'): val for key,val in flat_d.items() }
+
+        # Idempotence. Basically, flat_d == flatten(flat_to_nested(flat_d)).
+        # Insertion/iteration order is important as well.
+        self.assertTupleEqual(tuple(expected_flat_again_d.items()), tuple(flat_again_d.items()))
 
     def test_resolve_cvar(self):
         config = {
-            'cvar_shortcuts.cvar0': 'a.x',
-            'cvar_shortcuts.cvar1': 'x',
+            'cvars.cvar0': 'a.x',
+            'cvars.cvar1': 'x',
             'x': 'toplevel',
             'a.x': 'axxxx',
             'a.y': 'ayyyy',
             'b': '{cvar0}'
         }
+        config = flat_to_nested(config)
+
         self.assertEqual(resolve_cvar('cvar0', config, 'field', True), 'axxxx') # cvar shortcut
         self.assertEqual(resolve_cvar('a.x', config, 'field', True), 'axxxx') # full key
         self.assertEqual(resolve_cvar('x', config, 'field', True), 'toplevel') # full key
@@ -91,8 +115,8 @@ class TestConfigParser(unittest.TestCase):
 
     def test_cvars(self):
         expected_config = {
-            'cvar_shortcuts.cvar_custom': 'group_0.not_cvar',
-            'cvar_shortcuts.cvar_3': 'group_0.not_cvar',
+            'cvars.cvar_custom': 'group_0.not_cvar',
+            'cvars.cvar_3': 'group_0.not_cvar',
             'cvar_1': '/dev/null/',
             'group_0.not_cvar': '/lorem/ipsum/',
             'group_1.cvar_2': '/foo/bar/',
@@ -114,12 +138,11 @@ class TestConfigParser(unittest.TestCase):
             'group_3.f1_1': '12345_1x12345_123',
         }
         config = parse_config('tests/config_tests/sample-config.yaml', { 'cvar_custom': 'group_0.not_cvar' })
-        print(config)        
+        # print(config)        
 
-        for keyp, correct_val in expected_config.items():
-            val = config[keyp]
-            self.assertEqual(val, correct_val, f"config[{keyp}] is '{val}' ({type(val)}) and not '{correct_val}' ({type(val)})")
-        self.assertEqual(len(config), len(expected_config), str(set(config.keys()).symmetric_difference(expected_config.keys())))
+        flat_config = flatten(config)
+
+        self.assertTupleEqual(tuple(expected_config.items()), tuple(flat_config.items()))
 
     # TODO
     def test_undefined_cvar(self):

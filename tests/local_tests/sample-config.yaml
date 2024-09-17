@@ -1,7 +1,7 @@
 # Sample config to test config parser
 # - cvar_custom should point to group_0.not_cvar
 
-cvar_shortcuts:
+cvars:
   cvar_3: group_0.not_cvar
 
 cvar_1: /dev/null/

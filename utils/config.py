@@ -16,9 +16,11 @@ def get_script_path() -> str:
     #returns the path of the script that is being run
     return os.path.dirname(os.path.realpath(sys.argv[0]))
 
+# TODO: move this stuff to another utils file. Something like `common.py`
+
 def getp(_dict: dict, keypath: str, silent: bool = False, default = None):
     """
-    Get a value from a tree of dicts using dot-notation. That is, 
+    getPath: Get a value from a tree of dicts using dot-notation. That is, 
     `getp(conf, "a.b.c") == conf['a']['b']['c']`
 
     - `_dict` is a structure of nested dicts
@@ -47,14 +49,61 @@ def getp(_dict: dict, keypath: str, silent: bool = False, default = None):
             raise KeyError(f"{keypath} : {breadcrumbs + '.' + nextkey} is a field, not a section")
     return section
 
+def checkp(_dict: dict, keypath: str):
+    """
+    checkPath: Check if a value is in a nested dict using dot-notation. That is, 
+    `isinp(conf, "a.b.c")` is True if `conf['a']['b']['c']` is valid.
+    That is, `conf['a']` and `conf['a']['b']` are dicts and `conf['a']['b']['c']` is 
+    either a dict or a value.  
+    This function will not check if a value is a dict or a field.
+
+    Parameters
+    - `_dict` is a nested dict
+    - `keypath` is a sequence of keys joined by '.'
+    """
+    keyseq = keypath.strip('.').split('.')
+    if keyseq[0] not in _dict:
+        return False
+    
+    section = _dict
+    breadcrumbs = ''
+    for nextkey in keyseq:
+        if isinstance(section, dict):
+            if nextkey in section:
+                section = section[nextkey]
+                breadcrumbs += '.' + nextkey
+            else:
+                return False
+        else:
+            return True
+    return True
+
+def subdict(_dict: dict, keys: Iterable[str]) -> dict:
+    """
+    Get a subset of a dictionary safely. Output dictionary will only have those keys that are in both _dict and keys list.
+
+    Useful for constructing a kwargs dict
+    """
+    correct_keys = _dict.keys() & set(keys)
+    return {k: _dict[k] for k in correct_keys}
+
+def multigetp(_dict: dict, keypaths: Iterable[str], silent: bool = False, default = None) -> tuple:
+    """
+    MultiGetPath: Get a series of items by keys using `utils.getp`.
+    Useful when you want to get several items at once (via unpacking).
+    """
+    return (getp(_dict, k, silent, default) for k in keypaths)
+
 import collections
 def flatten(dictionary: collections.abc.MutableMapping, parent_key=False, separator='.') -> dict:
     """
+    Turn a nested dictionary into a flattened dictionary.
+
+    Maintains an insertion order.
     From https://stackoverflow.com/a/62186053
 
-    Turn a nested dictionary into a flattened dictionary
     :param dictionary: The dictionary to flatten
-    :param parent_key: The string to prepend to dictionary's keys
+    :param parent_key: The string to prepend to dictionary's keys.
     :param separator: The string used to separate flattened keys
     :return: A flattened dictionary
     """
@@ -68,51 +117,109 @@ def flatten(dictionary: collections.abc.MutableMapping, parent_key=False, separa
             items.append((new_key, value))
     return dict(items)
 
+def flat_to_nested(flat_dictionary: collections.abc.MutableMapping, parent_key=None, separator='.') -> dict:
+    """
+    Turn a flat dictionary with `separator`-separated keys into a nested dictionary.
+    Maintains an insertion order only for fields.
+
+    :param dictionary: A flat dictionary to transform to a nested one 
+    :param parent_key: The string to prepend to dictionary's keys
+    :param separator: The string used to separate flattened keys (default ".", a dot)
+    :return: A nested dictionary
+    """
+
+    nested_dict = dict()
+
+    for key, value in flat_dictionary.items():
+        keyp = key.strip(separator).split(separator)
+        section = nested_dict
+        for k in keyp[:-1]:
+            if k not in section:
+                section[k] = dict()
+            section = section[k]
+        section[keyp[-1]] = value
+        
+    return nested_dict
+
 def is_subsection(subsection_key: str, supersection_key: str) -> bool:
+    """
+    Compare two string keys for a nested directory in a dot-notation.
+    Return True if `subsection_key` is a possible field of a dict at `supersection_key`.
+
+    Examples: 
+    - `is_subsection('foo.bar.baz', 'foo.bar') == True`
+    - `is_subsection('foo.bar.baz', 'foo') == True`
+    - `is_subsection('any.other.key', '') == True`
+    """
     if supersection_key == '': 
         return True
     return subsection_key.startswith(supersection_key + '.')
 
 def parent_section(section_key: str) -> str:
+    """
+    Extract a parent section for a nested dictionary string key in a dot notation.
+
+    Examples: 
+    - `parent_section('foo.bar.baz') == 'foo.bar'`
+    - `parent_section('foo') == ''`
+    - `parent_section('') == ''`
+    """
     dot_idx = section_key.rfind('.')
     if dot_idx < 0: return ''
     return section_key[:dot_idx]
 
 def resolve_cvar(cvar: str, base_config: dict, fieldname: str = '', undefined_ok: bool = False) -> str:
     """
-    Get a value that cvar should be substituted with
+    Get a value that cvar (without braces) should be substituted with.
+    
+    Parameters:
+    - cvar: a cvar expression without braces. A field key in a nested dict, or a cvar constant
+    - base_config: a context for cvar resolution. cvar will be resolved using data from base_config
+    - fieldname: an optional key of the field that contains this cvar (in a dot-notation).  
+        This is used to resolve local config variables and for logging
+    - undefined_ok: If True and a cvar expression cannot be resolved, then return it as it is.  
+        If False, throw a ValueError in that case.
+
+    - If cvar is a cvar shortcut (a name defined in cvars section), then use the field it refers to
+    - If cvar is a field name then 
+        - try to use a field with that key in the same section (you can skip this by starting your cvar with a dot "{.foo.bar}")
+        - try to find that field in the whole config 
+    - If cannot find a suitable value and undefined_ok is False, raise a ValueError
+    - If cannot find a suitable value and undefined_ok is True, return None 
     """
     try:    
         # 1. cvar shortcuts. Always absolute. At most once.
-        cvar_shortcut_def = f"cvar_shortcuts.{cvar}"
-        if cvar_shortcut_def in base_config:
+        cvar_shortcut_def = f"cvar.{cvar}"
+        
+        if checkp(base_config, cvar_shortcut_def):
             if undefined_ok:
-                return base_config.get(base_config[cvar_shortcut_def], '{'+cvar+'}')
-            return base_config[base_config[cvar_shortcut_def]]
+                return getp(base_config, getp(base_config, cvar_shortcut_def), True, '{'+cvar+'}')
+            return getp(base_config, getp(base_config, cvar_shortcut_def))
 
         # 2. config variable in the same section, providing we have a fieldname.
         #    skip if cvar is explicit full key (starts with `.`) or field is top-level (no `.`).
         if cvar[0] != '.' and '.' in fieldname:
             cvar_as_local = f"{parent_section(fieldname)}.{cvar}"
             if fieldname and (cvar_as_local in base_config):
-                return base_config[cvar_as_local]
+                return getp(base_config, cvar_as_local)
             # note that we still need to check a full key
         
         # 3. config variable with a full key
         if cvar[0] == '.':
             cvar = cvar[1:]
         if undefined_ok:
-            return base_config.get(cvar, '{'+cvar+'}')
-        return base_config[cvar]
+            return getp(base_config, cvar, True, '{'+cvar+'}')
+        return getp(base_config, cvar)
 
     except KeyError as e:
         raise ValueError(f"cannot substitute undefined config variable '{cvar}' referenced in field '{fieldname}'")
 
 """
 Detect field names that end in dir, file, indir, outdir, infile, outfile + optionally _local.
-Capture groups are (in/out/None, dir/file, _local/None) 
+Capture groups are (in/out/None, dir/file, _local/None).  
+The first group does not matter for a match, but is useful for parsing. 
 """
-__is_path_field_re = re.compile(r"(dir|file)(_local)?$")
+__is_path_field_re = re.compile(r"(out|in)?(dir|file)(_local)?$")
 def __is_path_field(fieldname: str):
     return __is_path_field_re.search(fieldname) is not None
 
@@ -130,7 +237,7 @@ def _expand_cvars_str(base_config: dict, str_with_cvar: str, fieldname: str, as_
     
     Perform basic path normalization if `as_path`.
     
-    Will config `cvar_shortcuts` from the `base_config` first, 
+    Will use `cvars` section from the `base_config` first, 
     and literal field names from the `base_config` second.
     """
 
@@ -158,6 +265,7 @@ def _expand_cvars_str(base_config: dict, str_with_cvar: str, fieldname: str, as_
 
     return expanded_str
 
+#TODO mk43: MERGE
 def _process_cvars_in_config(unprocessed_config: dict, base_config: dict = dict()):
     """
     Recursively expand cvars in all string fields in a FLAT `unprocessed_config`
@@ -178,26 +286,11 @@ def _process_cvars_in_config(unprocessed_config: dict, base_config: dict = dict(
     6. base_config fields by full key
     """
 
-    # the full context for variable substitution
-    context = base_config.copy()
-    # we only need cvar shortcuts for now
-    for k,v in unprocessed_config.items():
-        if k.startswith('cvar_shortcuts.'):
-            context[k] = v
-    # note that context does not contain unprocessed_config at start, but will contain in the end
-    config = unprocessed_config.copy()
-
-    for key in config:
-        val = config[key]
-        if isinstance(val, str):
-            processed_str = _expand_cvars_str(context, val, key, as_path=__is_path_field(key))
-            context[key] = processed_str
-            config[key] = processed_str
-        elif isinstance(val, dict):
-            raise ValueError(f"This function accepts only a flat config. Nested dict detected at {key=}")
+    raise NotImplementedError()
 
     return config
 
+#TODO mk43: MERGE
 def parse_config_file(file_obj, additional_cvar_shortcuts: dict = dict()):
     config = yaml.safe_load(file_obj)
     if 'cvar_shortcuts' not in config:
@@ -207,6 +300,7 @@ def parse_config_file(file_obj, additional_cvar_shortcuts: dict = dict()):
     config = _process_cvars_in_config(config)
     return config
 
+#TODO mk43: MERGE
 # TODO: rename to load_config or get_config
 def parse_config(path: str = None, additional_cvar_shortcuts: dict = dict()):
     """
