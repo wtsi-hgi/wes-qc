@@ -42,17 +42,17 @@ hard_filters:
   missingness: 0.5
   snp:
     relaxed:
-      bin: 78
+      bin: 92
       dp: 5
       gq: 10
       ab: 0.2
     medium:
-      bin: 72
+      bin: 84
       dp: 5
       gq: 10
       ab: 0.2
     stringent:
-      bin: 64
+      bin: 78
       dp: 5
       gq: 10
       ab: 0.2
