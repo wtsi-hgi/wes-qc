@@ -223,8 +223,19 @@ def main() -> None:
         print(f"Plotting PCA components for assigned populations: {pca_scores_file}")
         pop_ht = hl.read_table("file://" + pop_ht_file)
         pop_ht = pop_ht.transmute(scores=pop_ht.pca_scores)
+        print(f"Total samples: {pop_ht.count()}")
         visualize.plot_pca_bokeh(
             pop_ht, os.path.join(plotdir, f"PCA_assigned_populations_{n_pca}.html"), n_pca, pop="pop"
+        )
+
+        print(f"Plotting PCA components for the dataset:")
+        pop_ht_datasetonly = pop_ht.filter(~hl.is_defined(pop_ht.known_pop))
+        print(f"Total samples: {pop_ht_datasetonly.count()}")
+        visualize.plot_pca_bokeh(
+            pop_ht_datasetonly,
+            os.path.join(plotdir, f"PCA_assigned_populations_{n_pca}.datasetonly.html"),
+            n_pca,
+            pop="pop",
         )
 
     hail_utils.stop_hl(sc)

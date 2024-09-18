@@ -26,7 +26,7 @@ def plot_pca_bokeh(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Op
     """
     # Making fixed color mapping for superpopulations
     pops = ["EUR", "EAS", "AFR", "AMR", "SAS", "oth"]
-    colors = ["green", "goldenrod", "brown", "indigo", "red", "grey"]
+    colors = ["#F0E442", "#D55E00", "#0072B2", "#009E73", "#E69F00", "#56B4E9"]
     pop_colors_mapper = bokeh.models.CategoricalColorMapper(factors=pops, palette=colors)
 
     colors_map = pop_colors_mapper if pop is not None else None
