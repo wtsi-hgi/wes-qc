@@ -22,6 +22,9 @@ general:
   # CVAR traindir
   training_sets_dir: {TRAINING_SETS_DIR}
 
+  # CVAR rfdir
+  var_qc_rf_dir: {VARIANT_QC_RANDOM_FOREST_DIR}
+
   # CVAR 1kg resource dir
   onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
 
@@ -143,6 +146,125 @@ step2:
   remove_sample_qc_fails:
     samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz'
     sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
+
+
+step3:
+  # Parameters used in multiple functions # 
+  pedfile: '{resdir}/trios.EGAN.complete.ped'
+
+  # --- Step 3.1 --- #
+  get_truth_ht:
+    truth_ht_outfile: '{resdir}/truthset_table.ht'
+    omni: '{traindir}/1000G_omni2.5.hg38.ht'
+    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht' 
+    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+
+  split_multi_and_var_qc:
+    mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
+    varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
+    varqc_mtoutfile_split: '{mtdir}/mt_varqc_splitmulti.mt'
+
+  # not used for non-trios mode
+  trio_family_dnm_annotation:
+    trio_mtoutfile: '{mtdir}/trios.mt'
+    trio_stats_htoutfile: '{mtdir}/trio_stats.ht'
+    fam_stats_htoutfile: '{mtdir}/family_stats.ht'
+    fam_stats_mtoutfile: '{mtdir}/family_stats.mt'
+    fam_stats_gnomad_mtoutfile: '{mtdir}/family_stats_gnomad.mt'
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    dnm_htoutfile: '{mtdir}/denovo_table.ht'
+
+  create_inbreeding_ht_with_ac_and_allele_data:
+    inbreeding_htoutfile: '{mtdir}/inbreeding.ht'
+    qc_ac_htoutfile: '{mtdir}/qc_ac.ht'
+    allele_data_htoutfile: '{mtdir}/allele_data.ht'
+
+  # --- Step 3.2 --- #
+  create_rf_ht:
+    fail_hard_filters_QD_less_than: 2
+    fail_hard_filters_FS_greater_than: 60
+    fail_hard_filters_MQ_less_than: 30
+
+    truthset_file: '{resdir}/truthset_table.ht'
+    trio_stats_file: '{mtdir}/trio_stats.ht'
+    allele_data_file: '{mtdir}/allele_data.ht'
+    allele_counts_file: '{mtdir}/qc_ac.ht'
+    inbreeding_file: '{mtdir}/inbreeding.ht'
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
+    htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+
+  # --- Step 3.3 --- #
+  rf_test_interval: chr20 # used in multiple functions
+  runs_json: '{rfdir}/rf_runs.json'
+
+  train_rf:
+    input_ht_file: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    gnomad_train_rf_fp_to_tp: 1.0
+    gnomad_train_rf_num_trees: 500
+    gnomad_train_rf_max_depth: 5
+
+
+  # --- Step 3.4 --- #
+  # only var_qc_rf_dir is needed
+
+
+  # --- Step 3.5 --- #
+  add_cq_annotation:
+    synonymous_file: '{resdir}/synonymous_variants.txt'
+
+  dnm_and_family_annotation:
+    dnm_htfile: '{mtdir}/denovo_table.ht'
+    fam_stats_htfile: '{mtdir}/family_stats.ht'
+    trio_stats_htfile: '{mtdir}/trio_stats.ht'
+
+  transmitted_singleton_annotation:
+    trio_mtfile: '{mtdir}/trios.mt'
+    trio_filtered_mtfile: '{mtdir}/trios_filtered_.mt'
+
+  annotate_gnomad:
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+
+  
+  # --- Step 3.6 --- #
+  add_rank:
+    subrank_expr_de_novo_high_quality_rank: 0.9
+    subrank_expr_de_novo_medium_quality_rank: 0.5
+
+  create_binned_data_initial:
+    truth_htfile: '{resdir}/truthset_table.ht'
+
+    high_quality_p_de_novo: 0.99
+    medium_quality_p_de_novo: 0.5
+
+    # TODO: merge these into a single parameter?
+    n_trans_common_gnomad_af: 0.1
+    n_untrans_common_gnomad_af: 0.1
+
+  
+  # --- Step 3.7 --- #
+  create_plots:
+    qc_plots_settings:
+      mean_point_size: 4.0
+      min_point_size: 1.0
+      max_point_size: 16.0
+      label_text_font_size: "14pt"
+      title.text_font_size: "16pt"
+      subtitle.text_font_size: "14pt"
+      axis.axis_label_text_font_size: "16pt"
+      axis.axis_label_text_font_style: "normal"
+      axis.major_label_text_font_size: "14pt"
+
+
+  # --- Step 3.8 --- #
+  # no config parameters used
+
+  # --- Step 3.9 --- #
+  annotate_mt_with_cq_rf_score_and_bin:
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '{resdir}/all_consequences.txt'
+    mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
   
 

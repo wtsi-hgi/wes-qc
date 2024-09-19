@@ -44,7 +44,7 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
 
     ht = hl.read_table(path_spark(htfile))
     ht=ht.annotate(consequence=synonymous_ht[ht.key].consequence)
-    ht.write(ht_cq_file, overwrite=True)
+    ht.write(path_spark(ht_cq_file), overwrite=True)
 
 
 def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, family_annot_htfile: str):
@@ -63,7 +63,7 @@ def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile:
     ht=ht.annotate(de_novo_data=dnm_ht[ht.key].de_novo_data)
     ht=ht.annotate(family_stats=fam_stats_ht[ht.key].family_stats)
     ht=ht.annotate(fam=trio_stats_ht[ht.key])
-    ht.write(family_annot_htfile, overwrite=True)
+    ht.write(path_spark(family_annot_htfile), overwrite=True)
 
 
 def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Table) -> hl.Table:
@@ -144,7 +144,7 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     mt_filtered = mt_filtered.checkpoint(trio_filtered_mtfile, overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
-    ht.write(trans_sing_htfile, overwrite=True)
+    ht.write(path_spark(trans_sing_htfile), overwrite=True)
     rm_mt(trio_filtered_mtfile)
 
 
@@ -186,7 +186,7 @@ def main():
     args = get_options()
     config = parse_config()
     rf_dir = config['general']['var_qc_rf_dir']
-    mtdir = config['general']['matrixtables_lustre_dir']
+    mtdir = config['general']['matrixtables_dir']
     resourcedir = config['general']['resource_dir']
 
     # initialise hail
@@ -199,7 +199,7 @@ def main():
     htfile = rf_dir + args.runhash + "/rf_result.ht" 
 
     # annotate with synonymous CQs
-    synonymous_file = config['step3']['add_cq_annotations']['synonymous_file']
+    synonymous_file = config['step3']['add_cq_annotation']['synonymous_file']
     ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht" # outfile
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
 

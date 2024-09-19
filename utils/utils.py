@@ -86,7 +86,7 @@ def get_rf(
 
 
 def rm_mt(path: str):
-    rmtree(path.replace('file:/', '/'))
+    rmtree(path_local(path))
 
 
 def collect_pedigree_samples(ped: hl.Pedigree) -> Set[str]:

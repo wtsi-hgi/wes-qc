@@ -16,9 +16,10 @@ INTEGRATION_TESTS_DIR = '{INTEGRATION_TESTS_DIR}'
 TEST_DATA_DIR = '{TEST_DATA_DIR}'
 RESOURCES_DIR = '{RESOURCES_DIR}'
 TRAINING_SETS_DIR = '{TRAINING_SETS_DIR}'
+VARIANT_QC_RANDOM_FOREST_DIR = '{VARIANT_QC_RANDOM_FOREST_DIR}'
 
 def render_config(path_to_template: str, test_data_dir: Optional[str],
-                  resources_dir: Optional[str], training_sets_dir: Optional[str],
+                  resources_dir: Optional[str], training_sets_dir: Optional[str], variant_qc_random_forest_dir: Optional[str],
                   savefile: str='inputs_test_rendered.yaml'):
     """
     Read the config template and fill in the paths.
@@ -29,6 +30,7 @@ def render_config(path_to_template: str, test_data_dir: Optional[str],
     test_data_dir = test_data_dir if test_data_dir else os.path.join(integration_tests_dir, 'control_set') 
     resources_dir = resources_dir if resources_dir else os.path.join(integration_tests_dir, 'resources')
     training_sets_dir = training_sets_dir if training_sets_dir else os.path.join(integration_tests_dir, 'training_sets')
+    variant_qc_random_forest_dir = variant_qc_random_forest_dir if variant_qc_random_forest_dir else os.path.join(integration_tests_dir, 'variant_qc_random_forest_dir')
 
     with open(path_to_template, 'r') as f:
         template = f.read()
@@ -38,6 +40,7 @@ def render_config(path_to_template: str, test_data_dir: Optional[str],
     template = template.replace(TEST_DATA_DIR, test_data_dir)
     template = template.replace(RESOURCES_DIR, resources_dir)
     template = template.replace(TRAINING_SETS_DIR, training_sets_dir)
+    template = template.replace(VARIANT_QC_RANDOM_FOREST_DIR, variant_qc_random_forest_dir)
 
     with open(savefile, 'w') as f:
         f.write(template)
@@ -69,6 +72,7 @@ class HailTestCase(unittest.TestCase):
         test_data_path = os.path.join(test_suite_path, 'control_set_small')
         resources_path = os.path.join(test_suite_path, 'resources')
         training_sets_path = os.path.join(test_suite_path, 'training_sets')
+        variant_qc_random_forest_path = os.path.join(test_suite_path, 'variant_qc_random_forest')
         ref_data_path = os.path.join(test_suite_path, 'unit_tests')
 
         unzipped_path = os.path.join(test_suite_path, 'unzipped_data')

@@ -63,7 +63,7 @@ def train_rf(ht: hl.Table, test_intervals: str, config: dict) -> Tuple[hl.Table,
         fp_expr=ht.fp,
         fp_to_tp=conf['gnomad_train_rf_fp_to_tp'],
         num_trees=conf['gnomad_train_rf_num_trees'],
-        max_depth=conf['gnomad_train_rf_num_trees'],
+        max_depth=conf['gnomad_train_rf_max_depth'],
         test_expr=hl.literal(test_intervals).any(
             lambda interval: interval.contains(ht.locus)),
     )
@@ -149,7 +149,7 @@ def main():
     input_ht_file = config['step3']['train_rf']['input_ht_file']
     input_ht = hl.read_table(path_spark(input_ht_file))
     runs_json = config['step3']['runs_json']
-    ht_result, rf_model = train_rf(input_ht, test_interval)
+    ht_result, rf_model = train_rf(input_ht, test_interval, config)
     print("Writing out ht_training data")
     ht_result = ht_result.checkpoint(get_rf(rf_dir, data="training", run_hash=run_hash).path, overwrite=True)
 

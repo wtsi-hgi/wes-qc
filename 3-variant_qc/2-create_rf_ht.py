@@ -113,7 +113,7 @@ def main():
     create_rf_ht(mtfile, truthset_file, trio_stats_file, 
                  allele_data_file, allele_counts_file, 
                  inbreeding_file, htoutfile_rf_all_cols, 
-                 htoutfile_rf_var_type_all_cols)
+                 htoutfile_rf_var_type_all_cols, config)
 
 
 if __name__ == '__main__':

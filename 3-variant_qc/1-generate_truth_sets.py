@@ -1,5 +1,6 @@
 # generate truth sets for variant QC random forest
 import hail as hl
+import hailtop.fs as hfs
 import pyspark
 import argparse
 from typing import Tuple
@@ -68,10 +69,10 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     #before splitting annotate with sum_ad
     mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
     mt = annotate_adj(mt)
-    mt = mt.checkpoint(varqc_mtfile, overwrite=True)
+    mt = mt.checkpoint(path_spark(varqc_mtfile), overwrite=True)
 
     mt = hl.split_multi_hts(mt)
-    tmp_mt = varqc_mtfile_split + "_tmp"
+    tmp_mt = path_spark(varqc_mtfile_split + "_tmp")
     print("writing split mt")
     mt = mt.checkpoint(tmp_mt, overwrite=True)
 
@@ -108,7 +109,9 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
 
     print("writing split mt")
     mt.write(varqc_mtfile_split, overwrite=True)
-    rm_mt(tmp_mt)
+    # rm_mt(tmp_mt) # DEBUG: this doesn't work for me
+    hfs.rmtree(tmp_mt)
+
 
 
 def read_fam(fam_file: str) -> hl.Table:
@@ -116,14 +119,14 @@ def read_fam(fam_file: str) -> hl.Table:
     Taken from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     '''
     columns = ['fam_id', 's', 'pat_id', 'mat_id', 'is_female']
-    return hl.import_table(fam_file, no_header=True).rename({f'f{i}': c for i, c in enumerate(columns)}).key_by('s')
+    return hl.import_table(path_spark(fam_file), no_header=True).rename({f'f{i}': c for i, c in enumerate(columns)}).key_by('s')
 
 
 def annotate_unrelated_sample(mt: hl.MatrixTable, fam_file: str) -> hl.MatrixTable:
     '''
     Taken from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     '''
-    fam_ht = read_fam(fam_file)
+    fam_ht = read_fam(path_spark(fam_file))
     return mt.annotate_cols(unrelated_sample=hl.is_missing(fam_ht[mt.s]))
 
 
@@ -159,7 +162,7 @@ def generate_family_stats(mt: hl.MatrixTable, fam_file: str, calculate_adj: bool
 
     # Unphased for now, since mendel_errors does not support phased alleles
     mt = mt.annotate_entries(GT=unphase_call_expr(mt.GT))
-    ped = hl.Pedigree.read(fam_file, delimiter='\\t')
+    ped = hl.Pedigree.read(path_spark(fam_file), delimiter='\\t')
     family_stats_struct, family_stats_sample_ht = family_stats(mt, ped, 'raw')
     mt = mt.annotate_rows(family_stats=[family_stats_struct])
 
@@ -229,7 +232,7 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt = hl.read_matrix_table(path_spark(varqc_mtfile))
 
     #filter mt to samples that are in trios only and re-run varqc
-    trio_sample_ht = hl.import_fam(pedfile)
+    trio_sample_ht = hl.import_fam(path_spark(pedfile))
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
     mt2 = mt.filter_cols(hl.set(sample_list).contains(mt.s))
     mt2 = hl.variant_qc(mt2, name = 'varqc_trios')
@@ -330,7 +333,7 @@ def main():
     config = parse_config()
     mtdir = config['general']['matrixtables_dir']
     resourcedir = config['general']['resource_dir']
-    training_sets_dir = config['general']['training_set_dir']
+    training_sets_dir = config['general']['training_sets_dir']
 
     # initialise hail
     tmp_dir = config['general']['tmp_dir']

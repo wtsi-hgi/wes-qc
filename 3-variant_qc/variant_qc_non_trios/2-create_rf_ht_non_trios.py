@@ -1,7 +1,7 @@
-#create hail table for random forest
+# create hail table for random forest
 import hail as hl
 import pyspark
-import wes_qc.utils.constants as constants
+import utils.constants as constants
 from utils.utils import parse_config, path_spark, path_local
 from gnomad.variant_qc.random_forest import median_impute_features
 
@@ -22,11 +22,11 @@ def create_rf_ht(mtfile: str, truthset_file: str, allele_data_file: str,
     conf = config['step3']['create_rf_ht']
 
     n_partitions = 200
-    mt = hl.read_matrix_table(mtfile)
-    truth_data_ht = hl.read_table(truthset_file)
-    allele_data_ht = hl.read_table(allele_data_file)
-    allele_counts_ht = hl.read_table(allele_counts_file)
-    inbreeding_ht = hl.read_table(inbreeding_file)
+    mt = hl.read_matrix_table(path_spark(mtfile))
+    truth_data_ht = hl.read_table(path_spark(truthset_file))
+    allele_data_ht = hl.read_table(path_spark(allele_data_file))
+    allele_counts_ht = hl.read_table(path_spark(allele_counts_file))
+    inbreeding_ht = hl.read_table(path_spark(inbreeding_file))
 
     allele_counts_ht = allele_counts_ht.select(*['ac_qc_samples_raw', 'ac_qc_samples_adj'])
     group = "raw"
@@ -78,9 +78,9 @@ def create_rf_ht(mtfile: str, truthset_file: str, allele_data_file: str,
     )
 
     ht = ht.repartition(n_partitions, shuffle=False)
-    ht = ht.checkpoint(htfile_rf_all_cols, overwrite=True)
+    ht = ht.checkpoint(path_spark(htfile_rf_all_cols), overwrite=True)
     ht = median_impute_features(ht, strata={"variant_type": ht.variant_type})
-    ht = ht.checkpoint(htfile_rf_var_type_all_cols, overwrite=True)
+    ht = ht.checkpoint(path_spark(htfile_rf_var_type_all_cols), overwrite=True)
 
 
 def main():
@@ -108,7 +108,7 @@ def main():
     create_rf_ht(mtfile, truthset_file, 
                  allele_data_file, allele_counts_file, 
                  inbreeding_file, htoutfile_rf_all_cols, 
-                 htoutfile_rf_var_type_all_cols)
+                 htoutfile_rf_var_type_all_cols, config)
 
 
 if __name__ == '__main__':

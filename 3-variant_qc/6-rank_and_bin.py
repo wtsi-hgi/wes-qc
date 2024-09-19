@@ -300,7 +300,7 @@ def main():
                         }
                         )
     ht_ranked = ht_ranked.annotate(score=(1 - ht_ranked.rf_probability["TP"]))
-    ht_ranked.write(htrankedfile, overwrite=True)
+    ht_ranked.write(path_spark(htrankedfile), overwrite=True)
     # add bins
     truth_htfile = config['step3']['create_binned_data_initial']['truth_htfile']
     bin_tmp_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"

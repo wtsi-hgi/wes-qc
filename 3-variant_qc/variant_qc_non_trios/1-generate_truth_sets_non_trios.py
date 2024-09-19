@@ -46,7 +46,7 @@ def get_truth_ht(omni: str, mills: str, thousand_genomes: str, hapmap: str, trut
         omni_ht.select(omni=True), how="outer").join(
             thousand_genomes_ht.select(kgp_phase1_hc=True), how="outer").join(
                 mills_ht.select(mills=True), how="outer").repartition(200, shuffle=False)
-    truth_ht.write(truth_ht_file, overwrite=True)
+    truth_ht.write(path_spark(truth_ht_file), overwrite=True)
     
 
 def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str) -> None:
@@ -62,12 +62,12 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     #before splitting annotate with sum_ad
     mt = mt.annotate_entries(sum_AD = hl.sum(mt.AD))
     mt = annotate_adj(mt)
-    mt.write(varqc_mtfile, overwrite=True)
+    mt.write(path_spark(varqc_mtfile), overwrite=True)
     mt = hl.split_multi_hts(mt)
     
     tmp_mt = varqc_mtfile_split + "_tmp"
     print("writing split mt")
-    mt.write(tmp_mt, overwrite=True)
+    mt.write(path_spark(tmp_mt), overwrite=True)
 
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref == 0, keep = False)
@@ -88,7 +88,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     )
 
     print("writing split mt")
-    mt.write(varqc_mtfile_split, overwrite=True)
+    mt.write(path_spark(varqc_mtfile_split), overwrite=True)
 
 
 def read_fam(fam_file: str) -> hl.Table:
@@ -96,14 +96,14 @@ def read_fam(fam_file: str) -> hl.Table:
     Taken from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     '''
     columns = ['fam_id', 's', 'pat_id', 'mat_id', 'is_female']
-    return hl.import_table(fam_file, no_header=True).rename({f'f{i}': c for i, c in enumerate(columns)}).key_by('s')
+    return hl.import_table(path_spark(fam_file), no_header=True).rename({f'f{i}': c for i, c in enumerate(columns)}).key_by('s')
 
 
 def annotate_unrelated_sample(mt: hl.MatrixTable, fam_file: str) -> hl.MatrixTable:
     '''
     Taken from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     '''
-    fam_ht = read_fam(fam_file)
+    fam_ht = read_fam(path_spark(fam_file))
     return mt.annotate_cols(unrelated_sample=hl.is_missing(fam_ht[mt.s]))
 
 
@@ -135,11 +135,11 @@ def generate_family_stats(mt: hl.MatrixTable, fam_file: str, calculate_adj: bool
     """
     #mt = mt.select_cols(high_quality=mt.meta.high_quality)
     mt = mt.select_rows()
-    mt = annotate_unrelated_sample(mt, fam_file)
+    mt = annotate_unrelated_sample(mt, path_spark(fam_file))
 
     # Unphased for now, since mendel_errors does not support phased alleles
     mt = mt.annotate_entries(GT=unphase_call_expr(mt.GT))
-    ped = hl.Pedigree.read(fam_file, delimiter='\\t')
+    ped = hl.Pedigree.read(path_spark(fam_file), delimiter='\\t')
     family_stats_struct, family_stats_sample_ht = family_stats(mt, ped, 'raw')
     mt = mt.annotate_rows(family_stats=[family_stats_struct])
 
@@ -215,25 +215,25 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt2 = hl.variant_qc(mt2, name = 'varqc_trios')
 
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
-    trio_dataset.write(trio_mtfile, overwrite=True)
+    trio_dataset.write(path_spark(trio_mtfile), overwrite=True)
 
     trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=True)
-    trio_stats_ht.write(trio_stats_htfile, overwrite=True)
+    trio_stats_ht.write(path_spark(trio_stats_htfile), overwrite=True)
 
     print("Generating family stats")
     (ht1, famstats_ht) = generate_family_stats(mt, pedfile)
-    ht1.write(fam_stats_htfile ,overwrite=True)
+    ht1.write(path_spark(fam_stats_htfile) ,overwrite=True)
 
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
-    mt.write(fam_stats_mtfile , overwrite=True)
+    mt.write(path_spark(fam_stats_mtfile) , overwrite=True)
     #add gnomad AFs
     gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
     mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
-    mt.write(fam_stats_gnomad_mtfile, overwrite=True)
+    mt.write(path_spark(fam_stats_gnomad_mtfile), overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
-    de_novo_table.write(dnm_htfile, overwrite=True)
+    de_novo_table.write(path_spark(dnm_htfile), overwrite=True)
 
 
 def generate_allele_data(mt: hl.MatrixTable) -> hl.Table:
@@ -297,9 +297,9 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, inbreeding_h
     allele_data_ht = generate_allele_data(mt)
     qc_ac_ht = generate_ac(mt)
     # write to file
-    ht_inbreeding.write(inbreeding_htfile , overwrite=True)
-    qc_ac_ht.write(qc_ac_htfile , overwrite=True)
-    allele_data_ht.write(allele_data_htfile, overwrite=True)
+    ht_inbreeding.write(path_spark(inbreeding_htfile) , overwrite=True)
+    qc_ac_ht.write(path_spark(qc_ac_htfile) , overwrite=True)
+    allele_data_ht.write(path_spark(allele_data_htfile), overwrite=True)
 
 
 def main():
@@ -308,7 +308,7 @@ def main():
     config = parse_config()
     mtdir = config['general']['matrixtables_dir']
     resourcedir = config['general']['resource_dir']
-    training_sets_dir = config['general']['training_set_dir']
+    training_sets_dir = config['general']['training_sets_dir']
 
     # initialise hail
     tmp_dir = config['general']['tmp_dir']
