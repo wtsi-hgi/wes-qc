@@ -19,6 +19,9 @@ general:
   # CVAR resdir
   resource_dir: {RESOURCES_DIR} # input
 
+  # CVAR traindir
+  training_sets_dir: {TRAINING_SETS_DIR}
+
   # CVAR 1kg resource dir
   onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
 

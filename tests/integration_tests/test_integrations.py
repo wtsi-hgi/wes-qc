@@ -15,9 +15,11 @@ from utils.utils import download_test_data_from_s3
 INTEGRATION_TESTS_DIR = '{INTEGRATION_TESTS_DIR}'
 TEST_DATA_DIR = '{TEST_DATA_DIR}'
 RESOURCES_DIR = '{RESOURCES_DIR}'
+TRAINING_SETS_DIR = '{TRAINING_SETS_DIR}'
 
 def render_config(path_to_template: str, test_data_dir: Optional[str],
-                  resources_dir: Optional[str], savefile: str='inputs_test_rendered.yaml'):
+                  resources_dir: Optional[str], training_sets_dir: Optional[str],
+                  savefile: str='inputs_test_rendered.yaml'):
     """
     Read the config template and fill in the paths.
     """
@@ -26,13 +28,16 @@ def render_config(path_to_template: str, test_data_dir: Optional[str],
     # TODO agree on test and resources folder naming convention
     test_data_dir = test_data_dir if test_data_dir else os.path.join(integration_tests_dir, 'control_set') 
     resources_dir = resources_dir if resources_dir else os.path.join(integration_tests_dir, 'resources')
+    training_sets_dir = training_sets_dir if training_sets_dir else os.path.join(integration_tests_dir, 'training_sets')
 
     with open(path_to_template, 'r') as f:
         template = f.read()
 
+    # TODO: make versatile
     template = template.replace(INTEGRATION_TESTS_DIR, integration_tests_dir)
     template = template.replace(TEST_DATA_DIR, test_data_dir)
     template = template.replace(RESOURCES_DIR, resources_dir)
+    template = template.replace(TRAINING_SETS_DIR, training_sets_dir)
 
     with open(savefile, 'w') as f:
         f.write(template)
@@ -52,7 +57,7 @@ qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
 
-TEST_DATA_DOWNLOAD_URL = 'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/test_data.zip'
+# TEST_DATA_DOWNLOAD_URL = 'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/test_data.zip' # moved to utils
 
 class HailTestCase(unittest.TestCase):
     @classmethod
@@ -63,11 +68,13 @@ class HailTestCase(unittest.TestCase):
         # specify paths to the test data and resources
         test_data_path = os.path.join(test_suite_path, 'control_set_small')
         resources_path = os.path.join(test_suite_path, 'resources')
+        training_sets_path = os.path.join(test_suite_path, 'training_sets')
         ref_data_path = os.path.join(test_suite_path, 'unit_tests')
 
         unzipped_path = os.path.join(test_suite_path, 'unzipped_data')
         unzipped_control_set_path = os.path.join(unzipped_path, 'control_set_small')
         unzipped_resources_path = os.path.join(unzipped_path, 'resources')
+        unzipped_training_sets_path = os.path.join(unzipped_path, 'training_sets')
 
         # not used in integration tests, but prolly better download it as well
         unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data')
@@ -76,6 +83,7 @@ class HailTestCase(unittest.TestCase):
         test_data_dirs_to_move = {
             unzipped_control_set_path: test_suite_path,
             unzipped_resources_path: test_suite_path,
+            unzipped_training_sets_path: test_suite_path,
             unzipped_ref_data_path: ref_data_path
         }
 
@@ -86,7 +94,7 @@ class HailTestCase(unittest.TestCase):
         
         # # render test config from the template
         # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
-        render_config('new_config_test_template.yaml', test_data_path, resources_path, 
+        render_config('new_config_test_template.yaml', test_data_path, resources_path, training_sets_path,
                       savefile=rendered_config_savefile)
 
         # set up path to test config
