@@ -219,6 +219,66 @@ step3:
     gnomad_train_rf_max_depth: 5
 
 
+  # --- Step 3.4 --- #
+  # only var_qc_rf_dir is needed
+
+
+  # --- Step 3.5 --- #
+  add_cq_annotation:
+    synonymous_file: '{resdir}/synonymous_variants.txt'
+
+  dnm_and_family_annotation:
+    dnm_htfile: '{mtdir}/denovo_table.ht'
+    fam_stats_htfile: '{mtdir}/family_stats.ht'
+    trio_stats_htfile: '{mtdir}/trio_stats.ht'
+
+  transmitted_singleton_annotation:
+    trio_mtfile: '{mtdir}/trios.mt'
+    trio_filtered_mtfile: '{mtdir}/trios_filtered_.mt'
+
+  annotate_gnomad:
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+
+  
+  # --- Step 3.6 --- #
+  add_rank:
+    subrank_expr_de_novo_high_quality_rank: 0.9
+    subrank_expr_de_novo_medium_quality_rank: 0.5
+
+  create_binned_data_initial:
+    truth_htfile: '{resdir}/truthset_table.ht'
+
+    high_quality_p_de_novo: 0.99
+    medium_quality_p_de_novo: 0.5
+
+    # TODO: merge these into a single parameter?
+    n_trans_common_gnomad_af: 0.1
+    n_untrans_common_gnomad_af: 0.1
+
+  
+  # --- Step 3.7 --- #
+  create_plots:
+    qc_plots_settings:
+      mean_point_size: 4.0
+      min_point_size: 1.0
+      max_point_size: 16.0
+      label_text_font_size: "14pt"
+      title.text_font_size: "16pt"
+      subtitle.text_font_size: "14pt"
+      axis.axis_label_text_font_size: "16pt"
+      axis.axis_label_text_font_style: "normal"
+      axis.major_label_text_font_size: "14pt"
+
+
+  # --- Step 3.8 --- #
+  # no config parameters used
+
+  # --- Step 3.9 --- #
+  annotate_mt_with_cq_rf_score_and_bin:
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '{resdir}/all_consequences.txt'
+    mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
+
 
   
 

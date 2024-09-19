@@ -3,7 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
-from utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -11,7 +11,7 @@ def get_options():
     Get options from the command line
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument("--runhash", help="RF run hash")
+    parser.add_argument("--runhash", help = "RF run hash") # TODO: move to config?
     parser.add_argument("--snv", help = "Proposed SNV threshold")
     parser.add_argument("--indel", help = "Proposed Indel threshold")
     args = parser.parse_args()
@@ -35,7 +35,7 @@ def analyse_thresholds(htfile: str, snv_threshold: int, indel_threshold: int):
     snv_t = get_threshold_range(snv_threshold)
     indel_t = get_threshold_range(indel_threshold)
     
-    ht = hl.read_table(htfile)
+    ht = hl.read_table(path_spark(htfile))
     #keep only those with rank_id = rank
     ht = ht.filter(ht.rank_id == 'rank')
     #split by snv and indel
@@ -52,21 +52,21 @@ def analyse_thresholds(htfile: str, snv_threshold: int, indel_threshold: int):
     print_results(indel_result)
 
 
+# TODO: move to utils?
 def print_results(result: dict):
     '''
     Print percentages of variants kept at each threshold
     :param dict result: Results to print
     '''
     for t in result.keys():
-        print("bin " + str(t) + ": " + '{0:.3f}'.format(result[t]['tp_pc']) + " percent TPs remain, "
-         + '{0:.3f}'.format(result[t]['fp_pc']) + " percent FPs remain" )
+        print(f"bin {str(t)}: {result[t]['tp_pc']:.3f} percent TPs remain, {result[t]['fp_pc']:.3f} percent FPs remain")
 
-
-def get_vars_kept(ht: hl.Table, t_list: list):
+def get_vars_kept(ht: hl.Table, t_list: list) -> dict:
     '''
     find proportions fo TP and FPs kept in ht for each threshold in t_list
     :param hl.Table ht: input Hail Table
     :param list t_list: List of thresholds
+    :return: Dictionary with TP and FP proportions for the gived thresholds
     '''
     results = {}
     ht_TP = ht.filter(ht.tp == True)
@@ -77,28 +77,30 @@ def get_vars_kept(ht: hl.Table, t_list: list):
         results[t] = {}
         ht_tp_pass = ht_TP.filter(ht_TP.bin <= t)
         tp_pass = ht_tp_pass.count()
-        results[t]['tp_pc'] = 100*(tp_pass/tp_total)
+        results[t]['tp_pc'] = 100 * (tp_pass / tp_total)
         ht_fp_pass = ht_FP.filter(ht_FP.bin <= t)
         fp_pass = ht_fp_pass.count()
-        results[t]['fp_pc'] = 100*(fp_pass/fp_total)
+        results[t]['fp_pc'] = 100 * (fp_pass / fp_total)
 
     return results
     
 
+# TODO: should this be configurable through config? 
 def get_threshold_range(threshold: int):
     '''
     Given a single threshold value convert to a range - for each threshold also look at 3 bins on either 
     side and +/-5 (unless <1 or >101)
     :param int threshold: single threshold value
+    :return: list of thresholds
     '''
-    t_list = list(range(threshold-3, threshold+4))
-    min_t = t_list[0]-5
-    max_t = t_list[6]+5
-    t_list.insert(0,min_t)
+    t_list = list(range(threshold - 3, threshold + 4))
+    min_t = t_list[0] - 5
+    max_t = t_list[6] + 5
+    t_list.insert(0, min_t)
     t_list.append(max_t)
-    while t_list[len(t_list)-1] > 101:
+    while t_list[len(t_list) - 1] > 101:
         t_list.pop()
-    while(t_list[0] < 1):
+    while t_list[0] < 1:
         t_list.pop[0]
 
     return t_list
@@ -107,14 +109,14 @@ def get_threshold_range(threshold: int):
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
+    config = parse_config()
+    rf_dir = config['general']['var_qc_rf_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     analyse_thresholds(htfile, args.snv, args.indel)

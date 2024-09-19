@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from utils.utils import parse_config, get_rf
+from utils.utils import parse_config, get_rf, path_spark, path_local
 import utils.constants as constants
 from gnomad.variant_qc.random_forest import apply_rf_model, load_model
 
@@ -24,12 +24,12 @@ def get_options():
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
+    config = parse_config()
+    rf_dir = config['general']['var_qc_rf_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
