@@ -1,0 +1,11 @@
+hard_filters_combinations:
+    runhash: 5278832e
+    #giab_sample: "EGAN00004265526" # For BiB
+    #giab_sample: EGAN00003332049 # For ALSPAC
+    giab_sample: bibkidex13951069 # For Fenland, taken from here: https://docs.google.com/document/d/1xbDrfBuiAA9Bl8LkF817HHHboxQNeRSS-DozGHH4lro/edit
+    snp_bins: [56, 60, 64, 68, 72, 76, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 94]
+    indel_bins: [48, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76]
+    gq_vals: [0, 10]
+    dp_vals: [0, 5, 10]
+    ab_vals: [0.0, 0.2, 0.3]
+    missingness_vals: [0.0, 0.5]
