@@ -26,19 +26,20 @@ general:
   var_qc_rf_dir: {VARIANT_QC_RANDOM_FOREST_DIR}
 
   # CVAR 1kg resource dir
-  onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input and must be without trailing slash (TODO: make more robust)
+  onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # dir with inputs, must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
   plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # input
 
-# --- Step 1.1 --- #
 step1:
+  # --- Step 1.1 --- #
   gatk_vcf_header_infile:
   gatk_vcf_indir: {TEST_DATA_DIR}
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
-# --- Step 2.1 --- #
+
 step2:
+  # --- Step 2.1 --- #
   sex_annotation_hard_filters:
     filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
     n_alt_alleles_threshold: 0.001
@@ -59,7 +60,7 @@ step2:
     fstat_low: 0.2
     fstat_high: 0.8
 
-# --- Step 2.2 --- #
+  # --- Step 2.2 --- #
   prune:
     pruned_mt_file: '{mtdir}/mt_ldpruned.mt'
     ld_prune_args:
@@ -69,6 +70,7 @@ step2:
       # keep_higher_maf:
       # block_size: 
 
+  # previously pc_relate
   prune_pc_relate:
     relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'
@@ -84,6 +86,7 @@ step2:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
     
+  # previously population_pca
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
 
@@ -102,7 +105,7 @@ step2:
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg'
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt'
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
@@ -263,58 +266,5 @@ step3:
   # --- Step 3.9 --- #
   annotate_mt_with_cq_rf_score_and_bin:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{resdir}/all_consequences.txt'
+    cqfile: '{resdir}/all_consequences.txt' # TODO: this file is originally missing in resource dir, using a copy of synonymous_variants.txt 
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
-
-  
-
-
-# unprocessed below this line
-
-plots_lustre_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/plots/
-plots_dir_local: /lustre/scratch126/dh24_test/qc_test/BiB/plots/
-
-training_set_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/training_sets/
-var_qc_rf_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/variant_qc_random_forest/
-vcf_output_dir: file:///lustre/scratch126/dh24_test/qc_test/BiB/filtered_vcfs/
-
-load_matrixtables_lustre_dir: /lustre/scratch126/dh24_test/qc_test/BiB/matrixtables/
-
-
-rf_test_interval: chr20
-
-#hard filter
-hard_filters:
-  missingness: 0.5
-  snp:
-    relaxed:
-      bin: 92
-      dp: 5
-      gq: 10
-      ab: 0.2
-    medium:
-      bin: 88
-      dp: 5
-      gq: 10
-      ab: 0.2
-    stringent:
-      bin: 84
-      dp: 5
-      gq: 15
-      ab: 0.2
-  indel:
-    relaxed:
-      bin: 68
-      dp: 5
-      gq: 10
-      ab: 0.2
-    medium:
-      bin: 66
-      dp: 5
-      gq: 15
-      ab: 0.2
-    stringent:
-      bin: 58
-      dp: 5
-      gq: 20
-      ab: 0.3
