@@ -268,3 +268,87 @@ step3:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
     cqfile: '{resdir}/all_consequences.txt' # TODO: this file is originally missing in resource dir, using a copy of synonymous_variants.txt 
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
+
+step4:
+  # --- Step 4.1 --- #
+  filter_mt:
+    mtfile: '{mtdir}/mt_after_var_qc.mt'
+    mtoutfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
+
+  # --- Step 4.1a --- #
+
+  annotate_cq_rf:
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt' # TODO: this file is originally missing in resource dir, using all_consequences.txt with 3 dummy columns added 
+
+  apply_hard_filters:
+    hard_filters:
+      missingness: 0.5
+      snp:
+        relaxed:
+          bin: 92
+          dp: 5
+          gq: 10
+          ab: 0.2
+        medium:
+          bin: 88
+          dp: 5
+          gq: 10
+          ab: 0.2
+        stringent:
+          bin: 84
+          dp: 5
+          gq: 15
+          ab: 0.2
+      indel:
+        relaxed:
+          bin: 68
+          dp: 5
+          gq: 10
+          ab: 0.2
+        medium:
+          bin: 66
+          dp: 5
+          gq: 15
+          ab: 0.2
+        stringent:
+          bin: 58
+          dp: 5
+          gq: 20
+          ab: 0.3
+
+  # used as an output of the whole step
+  mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'
+
+  # --- Step 4.2 --- #
+  annotate_gnomad:
+    # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+
+  get_trans_untrans_synon_singleton_counts:
+    pedfile: '{resdir}/trios.ped'
+
+  get_counts_per_cq:
+    cqfile: '{pltdir}/variant_counts_per_cq_post_qc.txt'
+  
+  get_ca_fractions:
+    cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
+
+  # --- Step 4.3 --- #
+  export_vcfs:
+    mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
+    # TODO: after adopting new config render change to substitution
+    vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs/' 
+
+  # --- Step 4.3a --- #
+
+  # using vcf_output_dir from the previous step
+  export_vcfs_a:
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
+    vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations/'
+
+  # --- Ster 4.3b --- #
+  export_vcfs_b:
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
+    filtered_vcf_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations_stringent/'  

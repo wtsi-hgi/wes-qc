@@ -3,7 +3,7 @@ import hail as hl
 import pyspark
 import argparse
 import os.path
-from utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -28,7 +28,7 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
     :param dict hard_filters: details of all sets of filters
     :param str run_hash: random forest run hash used
     '''
-    mt = hl.read_matrix_table(mtfile)
+    mt = hl.read_matrix_table(path_spark(mtfile))
     # remove control samples
     samples_to_exclude = ['EGAN00003332049', 'EGAN00003332050', 'EGAN00003332051', 'EGAN00003332052', 
                           'EGAN00003332053', 'EGAN00003332049_remapped', 'EGAN00003332050_remapped', 
@@ -90,32 +90,32 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         }
     }
 
-    #export per chromosome
-    chroms=[*range(1,23),"X","Y"]
-    chromosomes=["chr"+ str(chr) for chr in chroms]
+    # export per chromosome
+    chroms = [*range(1, 23), "X", "Y"]
+    chromosomes=[f'chr{str(chr)}' for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
         mt_chrom = mt.annotate_globals(chromosome=chromosome)
         mt_chrom = mt_chrom.filter_rows(mt_chrom.locus.contig == mt_chrom.chromosome)
-        outfile = os.path.join(filtered_vcf_dir,  f"{chromosome}_stringent_filters.vcf.bgz")
+        outfile = os.path.join(path_spark(filtered_vcf_dir),  f"{chromosome}_stringent_filters.vcf.bgz")
         hl.export_vcf(mt_chrom, outfile, metadata = metadata)
 
 
 def main():
     # set up
-    inputs = parse_config()
     args = get_options()
-    mtdir = inputs['matrixtables_lustre_dir']
-    hard_filters = inputs['hard_filters']
-    filtered_vcf_dir = 'file:///lustre/scratch123/qc/BiB/filtered_vcfs_stringent/'
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    hard_filters = config['step4']['apply_hard_filters']['hard_filters'] # set during step 4.1a
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    mtfile = mtdir + "mt_hard_filter_combinations.mt"
+    mtfile = config['step4']['export_vcfs_b']['mtfile']
+    filtered_vcf_dir = config['step4']['export_vcfs_b']['filtered_vcf_dir']
     export_vcfs(mtfile, filtered_vcf_dir, hard_filters, args.runhash)
 
 
