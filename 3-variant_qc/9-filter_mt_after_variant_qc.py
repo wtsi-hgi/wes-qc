@@ -48,7 +48,6 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     )
 
     # annotate with VEP consequence
-    # TODO DEBUG: test if prefix adapter needed for this Hail function
     cq_ht = hl.import_table(path_spark(cqfile), 
                             types={'f0': 'str', 'f1': 'int32', 'f2': 'str',
                             'f3': 'str', 'f4': 'str', 'f5': 'str'}, 
@@ -83,7 +82,7 @@ def main():
     # set up
     args = get_options()
     config = parse_config()
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
     mtdir = config['general']['matrixtables_dir']
     resourcedir = config['general']['resource_dir']
 

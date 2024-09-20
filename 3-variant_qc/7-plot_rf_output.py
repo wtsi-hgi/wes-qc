@@ -377,7 +377,7 @@ def main():
     # set up
     args = get_options()
     config = parse_config()
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
     root_plot_dir = config['general']['plots_dir']
 
     # TODO DEBUG: test if this way works
@@ -396,7 +396,7 @@ def main():
     #     'axis.major_label_text_font_size': "14pt"
     # }
 
-    plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/"
+    plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/" # TODO: use path joining
     os.makedirs(plot_dir, exist_ok=True) # create if doesn't exist
 
     bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"

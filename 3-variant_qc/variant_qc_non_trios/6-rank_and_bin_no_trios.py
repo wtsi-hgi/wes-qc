@@ -270,7 +270,7 @@ def main():
     # set up
     args = get_options()
     config = parse_config()
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
     resourcedir = config['general']['resource_dir']
 
     # initialise hail
@@ -297,9 +297,9 @@ def main():
     ht_ranked = ht_ranked.annotate(score=(1-ht_ranked.rf_probability["TP"]))
     ht_ranked.write(path_spark(htrankedfile), overwrite=True)
     # add bins
-    truth_htfile = resourcedir + "truthset_table.ht"
+    truth_htfile = config['step3']['create_binned_data_initial']['truth_htfile']
     bin_tmp_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100)
+    ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100, config=config)
     bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
     ht_bins.write(path_spark(bin_htfile), overwrite=True)
 

@@ -167,17 +167,17 @@ def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
     :param str final_htfile: Final RF htfile for ranking and binning
     '''
     print("Annotating with gnomad AF")
-    ht = hl.read_table(tdt_htfile)
-    gnomad_ht = hl.read_table(gnomad_htfile)
-    ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].maf)
-    ht.write(final_htfile, overwrite = True)
+    ht = hl.read_table(path_spark(tdt_htfile))
+    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
+    ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].faf) # DEBUG: maf or faf? maf results in an error for me
+    ht.write(path_spark(final_htfile), overwrite = True)
 
 
 def main():
     # set up
     args = get_options()
     config = parse_config()
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
     mtdir = config['general']['matrixtables_dir']
     resourcedir = config['general']['resource_dir']
 

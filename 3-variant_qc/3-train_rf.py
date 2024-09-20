@@ -128,7 +128,7 @@ def main():
     # set up
     config = parse_config()
     mtdir = config['general']['matrixtables_dir']
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir'])
 
     test_interval = config['step3']['rf_test_interval'] # used in multiple functions
 

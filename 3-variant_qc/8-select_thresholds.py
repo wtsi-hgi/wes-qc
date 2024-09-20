@@ -110,7 +110,7 @@ def main():
     # set up
     args = get_options()
     config = parse_config()
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
 
     # initialise hail
     tmp_dir = config['general']['tmp_dir']

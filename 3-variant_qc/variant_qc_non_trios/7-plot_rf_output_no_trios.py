@@ -1,3 +1,5 @@
+# TODO: fix bokeh Deprecation Warnings
+
 # create plots from binned random forest output
 import hail as hl
 import pyspark
@@ -7,6 +9,8 @@ import pandas as pd
 import numpy as np
 from typing import Union, Dict, List, Set, Tuple, Callable
 import bokeh.models as bm
+
+from bokeh.models.layouts import TabPanel, Tabs
 from bokeh.plotting import output_file, save, figure
 from gnomad.utils.plotting import *
 from hail.plot import show, output_notebook
@@ -165,9 +169,13 @@ def plot_metric(df: pd.DataFrame,
         # Compute non-cumulative values by applying `y_fun`
         df['non_cumul'] = df[cols].apply(y_fun, axis=1)
 
+        # TODO: check if the result is the same after refactoring
         # Compute cumulative values for each of the data columns
         for col in cols:
-            df[f'{col}_cumul'] = df.groupby('model').aggregate(np.cumsum)[col]
+            # skip non-numeric colums
+            if pd.api.types.is_numeric_dtype(df[col]):
+                df[f'{col}_cumul'] = df.groupby('model')[col].cumsum()
+
         df['cumul'] = df[[f'{col}_cumul' for col in cols]].apply(y_fun, axis=1)
 
         # Create data ranges that are either shared or distinct depending on the y_cumul parameter
@@ -210,7 +218,7 @@ def plot_metric(df: pd.DataFrame,
                 print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(bm.Panel(child=Column(children=children), title='All'))
+            tabs.append(TabPanel(child=Column(children=children), title='All'))
 
    
     if plot_singletons:
@@ -225,7 +233,7 @@ def plot_metric(df: pd.DataFrame,
                     print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(bm.Panel(child=Column(children=children), title='Singletons'))
+            tabs.append(TabPanel(child=Column(children=children), title='Singletons'))
 
     return Tabs(tabs=tabs)
 
@@ -356,7 +364,7 @@ def main():
     # set up
     args = get_options()
     config = parse_config()
-    rf_dir = config['general']['var_qc_rf_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
     root_plot_dir = config['general']['plots_dir']
 
     # TODO DEBUG: test if this way works
