@@ -71,7 +71,7 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     mt_filtered = mt.filter_rows(((hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.info.rf_bin <= snv_threshold)) | (
         (hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.info.rf_bin <= indel_threshold)))
 
-    mt_filtered.write(filtered_mtfile, overwrite = True)
+    mt_filtered.write(path_spark(filtered_mtfile), overwrite = True)
 
     nvars = mt.count_rows()
     nvar_filtered = mt_filtered.count_rows()
