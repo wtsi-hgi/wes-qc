@@ -58,7 +58,15 @@ qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
-
+qc_step_3_1 = importlib.import_module("3-variant_qc.1-generate_truth_sets")
+qc_step_3_2 = importlib.import_module("3-variant_qc.2-create_rf_ht")
+qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
+qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
+qc_step_3_5 = importlib.import_module("3-variant_qc.5-annotate_ht_after_rf")
+qc_step_3_6 = importlib.import_module("3-variant_qc.6-rank_and_bin")
+qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
+qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
+qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
 # TEST_DATA_DOWNLOAD_URL = 'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/test_data.zip' # moved to utils
 
@@ -98,7 +106,7 @@ class HailTestCase(unittest.TestCase):
         
         # # render test config from the template
         # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
-        render_config('new_config_test_template.yaml', test_data_path, resources_path, training_sets_path,
+        render_config('new_config_test_template.yaml', test_data_path, resources_path, training_sets_path, variant_qc_random_forest_path,
                       savefile=rendered_config_savefile)
 
         # set up path to test config
@@ -148,6 +156,81 @@ class IntegrationTests(HailTestCase):
             qc_step_2_5.main()
         except Exception as e:
             self.fail(f'Step 2.5 failed with an exception: {e}')
+    
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(all=True))
+    def test_3_1_variant_qc(self, mock_args):
+        try:
+            qc_step_3_1.main()
+        except Exception as e:
+            self.fail(f'Step 3.1 failed with an exception: {e}')
+    
+    def test_3_2_variant_qc(self):
+        try:
+            qc_step_3_2.main()
+        except Exception as e:
+            self.fail(f'Step 3.2 failed with an exception: {e}')
+
+    def test_3_3_variant_qc(self):
+        try:
+            qc_step_3_3.main()
+        except Exception as e:
+            self.fail(f'Step 3.3 failed with an exception: {e}')
+
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(runhash='beep')) # vk11: do not know what to set in here
+    def test_3_4_variant_qc(self, mock_args):
+        try:
+            qc_step_3_4.main()
+        except Exception as e:
+            self.fail(f'Step 3.4 failed with an exception: {e}')
+
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(runhash='beep')) 
+    def test_3_5_variant_qc(self, mock_args):
+        try:
+            qc_step_3_5.main()
+        except Exception as e:
+            self.fail(f'Step 3.5 failed with an exception: {e}')
+
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(runhash='beep')) 
+    def test_3_6_variant_qc(self, mock_args):
+        try:
+            qc_step_3_6.main()
+        except Exception as e:
+            self.fail(f'Step 3.6 failed with an exception: {e}')
+
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(runhash='beep')) 
+    def test_3_7_variant_qc(self, mock_args):
+        try:
+            qc_step_3_7.main()
+        except Exception as e:
+            self.fail(f'Step 3.7 failed with an exception: {e}')
+
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(runhash='beep', snv=0.1, indel=0.1)) # vk11: again, I do not know what values to set 
+    def test_3_8_variant_qc(self, mock_args):
+        try:
+            qc_step_3_8.main()
+        except Exception as e:
+            self.fail(f'Step 3.8 failed with an exception: {e}')
+
+    # mock cli arguments
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(runhash='beep', snv=0.1, indel=0.1)) 
+    def test_3_9_variant_qc(self):
+        try:
+            qc_step_3_9.main()
+        except Exception as e:
+            self.fail(f'Step 3.9 failed with an exception: {e}')
 
 if __name__ == '__main__':
     unittest.main()

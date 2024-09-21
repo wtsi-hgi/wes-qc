@@ -168,6 +168,8 @@ step3:
     varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
     varqc_mtoutfile_split: '{mtdir}/mt_varqc_splitmulti.mt'
 
+  pedfile: '{resdir}/trios.EGAN.complete.ped'
+
   # not used for non-trios mode
   trio_family_dnm_annotation:
     trio_mtoutfile: '{mtdir}/trios.mt'
