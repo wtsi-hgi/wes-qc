@@ -295,12 +295,14 @@ class TestQCSteps(HailTestCase):
         resources_path = os.path.join(cls.test_suite_path, 'resources')
         ref_dataset_parent_path = os.path.join(cls.test_suite_path, 'unit_tests')
 
+        # TODO: add training sets dir when creating unit tests for steps 3-4
         test_data_dirs_to_move = {
             unzipped_control_set_path: cls.test_suite_path,
             unzipped_resources_path: cls.test_suite_path,
             unzipped_ref_data_path: ref_dataset_parent_path
         }
 
+        print(f'Downloading control set from the s3 bucket')
         download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
 
 
@@ -309,8 +311,6 @@ class TestQCSteps(HailTestCase):
         resdir = path_local(cls.test_resourcedir)
         os.makedirs(resdir, exist_ok=True)
 
-        print(f'Downloading resources from the s3 bucket')
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resdir]) #BEEP
         cls.onekg_resdir = os.path.join(cls.test_resourcedir, 'mini_1000G')
         
 
@@ -347,10 +347,6 @@ class TestQCSteps(HailTestCase):
         cls.import_vcf_dir = f"file://{test_data_path}"
         vcfdir = path_local(cls.import_vcf_dir)
         os.makedirs(vcfdir, exist_ok=True)
-
-        print(f'Downloading control set from the s3 bucket')
-        # TODO: switch to http-based download (e.g. using wget)
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir]) #BEEP
         
         cls.vcf_header = '' # not available for test dataset. TODO: create one to ensure test completeness
         # outputs
@@ -551,7 +547,7 @@ class TestQCSteps(HailTestCase):
         }
         
         config['step2']['predict_pops'] = {
-            'pca_scores_file' : '{mtdir}/pca_scores_after_pruning.ht',
+            'pca_scores_file' : cls.ref_pca_scores_path,
             'gnomad_pc_n_estimators' : 100,
             'gnomad_prop_train' : 0.8,
             'gnomad_min_prob' : 0.5,
@@ -782,8 +778,6 @@ class TestQCSteps(HailTestCase):
 
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
 
-    # vk11 : unprocessed after this line
-
     def test_2_4_1_annotate_mt(self):
         qc_step_2_4.annotate_mt(self.ref_mt_file, self.ref_pop_ht_file, self.annotated_mt_file)
 
@@ -801,7 +795,7 @@ class TestQCSteps(HailTestCase):
         out_text_identical = compare_bgzed_txts(path_local(self.output_text_file), 
                 path_local(self.ref_output_text_file))
 
-        unique_hail_id_replace = [[r'__uid_\d+\n', '']]
+        unique_hail_id_replace = [[r'__uid_\d+\n', '']] # compare files up to a unique Hail file id
         out_globals_json_identical = compare_txts(path_local(self.output_globals_json), 
                 path_local(self.ref_output_globals_json), replace_strings=unique_hail_id_replace)
 
