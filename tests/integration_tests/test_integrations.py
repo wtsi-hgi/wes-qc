@@ -68,7 +68,6 @@ qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
 qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
 qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
-# TEST_DATA_DOWNLOAD_URL = 'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/test_data.zip' # moved to utils
 
 class HailTestCase(unittest.TestCase):
     @classmethod
@@ -117,6 +116,7 @@ class HailTestCase(unittest.TestCase):
         # TODO: clean up logs
         pass
 
+RF_RUN_TEST_HASH = 'testhash' # manually set rf run id 
 class IntegrationTests(HailTestCase):
     def test_1_1_import_data(self):
         try:
@@ -139,7 +139,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(kg_to_mt=True, run=True, merge=True, filter=True, pca=True, assign_pops=True))
-    def test_2_3_sample_qc(self, mock_args):
+    def test_2_3_sample_qc(self):
         try:
             qc_step_2_3.main()
         except Exception as e:
@@ -159,7 +159,7 @@ class IntegrationTests(HailTestCase):
     
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(all=True))
+    return_value=argparse.Namespace(all=True, truth=True))
     def test_3_1_variant_qc(self, mock_args):
         try:
             qc_step_3_1.main()
@@ -172,6 +172,8 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f'Step 3.2 failed with an exception: {e}')
 
+    @patch('argparse.ArgumentParser.parse_args',
+    return_value=argparse.Namespace(manual_runhash=RF_RUN_TEST_HASH))
     def test_3_3_variant_qc(self):
         try:
             qc_step_3_3.main()
@@ -180,8 +182,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) # vk11: do not know what to set in here
-    def test_3_4_variant_qc(self, mock_args):
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) # vk11: do not know what to set in here
+    def test_3_4_variant_qc(self):
         try:
             qc_step_3_4.main()
         except Exception as e:
@@ -189,8 +191,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) 
-    def test_3_5_variant_qc(self, mock_args):
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) 
+    def test_3_5_variant_qc(self):
         try:
             qc_step_3_5.main()
         except Exception as e:
@@ -198,8 +200,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) 
-    def test_3_6_variant_qc(self, mock_args):
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) 
+    def test_3_6_variant_qc(self):
         try:
             qc_step_3_6.main()
         except Exception as e:
@@ -207,8 +209,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) 
-    def test_3_7_variant_qc(self, mock_args):
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) 
+    def test_3_7_variant_qc(self):
         try:
             qc_step_3_7.main()
         except Exception as e:
@@ -216,8 +218,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep', snv=0.1, indel=0.1)) # vk11: again, I do not know what values to set 
-    def test_3_8_variant_qc(self, mock_args):
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH, snv=92, indel=68)) # vk11: again, I do not know what values to set 
+    def test_3_8_variant_qc(self):
         try:
             qc_step_3_8.main()
         except Exception as e:
@@ -225,7 +227,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep', snv=0.1, indel=0.1)) 
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH, snv=84, indel=60)) 
     def test_3_9_variant_qc(self):
         try:
             qc_step_3_9.main()
