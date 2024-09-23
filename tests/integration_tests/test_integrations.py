@@ -58,13 +58,13 @@ qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
-qc_step_3_1 = importlib.import_module("3-variant_qc.1-generate_truth_sets")
-qc_step_3_2 = importlib.import_module("3-variant_qc.2-create_rf_ht")
+qc_step_3_1 = importlib.import_module("3-variant_qc.variant_qc_non_trios.1-generate_truth_sets_non_trios")
+qc_step_3_2 = importlib.import_module("3-variant_qc.variant_qc_non_trios.2-create_rf_ht_non_trios")
 qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
 qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
-qc_step_3_5 = importlib.import_module("3-variant_qc.5-annotate_ht_after_rf")
-qc_step_3_6 = importlib.import_module("3-variant_qc.6-rank_and_bin")
-qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
+qc_step_3_5 = importlib.import_module("3-variant_qc.variant_qc_non_trios.5-annotate_ht_after_rf_no_trios")
+qc_step_3_6 = importlib.import_module("3-variant_qc.variant_qc_non_trios.6-rank_and_bin_no_trios")
+qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_rf_output_no_trios")
 qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
 qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
@@ -159,7 +159,7 @@ class IntegrationTests(HailTestCase):
     
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(all=True))
+    return_value=argparse.Namespace(all=True, truth=True, annotation=True))
     def test_3_1_variant_qc(self, mock_args):
         try:
             qc_step_3_1.main()
@@ -180,7 +180,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) # vk11: do not know what to set in here
+    return_value=argparse.Namespace(runhash='f1a4e8c')) # vk11: do not know what to set in here
     def test_3_4_variant_qc(self, mock_args):
         try:
             qc_step_3_4.main()
@@ -189,7 +189,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) 
+    return_value=argparse.Namespace(runhash='f1a4e8c')) 
     def test_3_5_variant_qc(self, mock_args):
         try:
             qc_step_3_5.main()
@@ -198,7 +198,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) 
+    return_value=argparse.Namespace(runhash='f1a4e8c')) 
     def test_3_6_variant_qc(self, mock_args):
         try:
             qc_step_3_6.main()
@@ -207,7 +207,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep')) 
+    return_value=argparse.Namespace(runhash='f1a4e8c')) 
     def test_3_7_variant_qc(self, mock_args):
         try:
             qc_step_3_7.main()
@@ -216,7 +216,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep', snv=0.1, indel=0.1)) # vk11: again, I do not know what values to set 
+    return_value=argparse.Namespace(runhash='f1a4e8c', snv=0.1, indel=0.1)) # vk11: again, I do not know what values to set 
     def test_3_8_variant_qc(self, mock_args):
         try:
             qc_step_3_8.main()
@@ -225,8 +225,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash='beep', snv=0.1, indel=0.1)) 
-    def test_3_9_variant_qc(self):
+    return_value=argparse.Namespace(runhash='f1a4e8c', snv=0.1, indel=0.1)) 
+    def test_3_9_variant_qc(self, mock_args):
         try:
             qc_step_3_9.main()
         except Exception as e:
