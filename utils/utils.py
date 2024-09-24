@@ -13,14 +13,13 @@ Config
 
 # TODO: cleanup these imports
 from utils.config import (
-    default_cvars,
     getp,
     subdict,
     multigetp,
     __is_path_field_re,
     __is_path_field,
-    _expand_cvars,
-    _expand_cvars_recursively,
+    _expand_cvars_str,
+    _process_cvars_in_flat_config,
     parse_config,
     path_local,
     path_spark
@@ -136,10 +135,10 @@ def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir:
     print(f'Unzipping the data')
     subprocess.run(['unzip', '-n', os.path.join(outdir, TEST_DATA_FILENAME), '-d', outdir])
     # Move unzipped data to correct folders in the test dir
-    print(f'Moving data to correct dirs')
+    print(f'Copying data to correct dirs')
 
     for dir_to_move, destination_dir in move_dirs.items():
-        subprocess.run(['mv', '-vn', dir_to_move, destination_dir])
+        subprocess.run(['cp', '-vn', dir_to_move, destination_dir])
 
     if clean_up_unzip_dir:
         subprocess.run(['rm', '-r', outdir])

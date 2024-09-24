@@ -4,7 +4,7 @@ import os
 import hail as hl
 import hailtop.fs as hfs
 import pyspark
-from utils.utils import parse_config, path_local, path_spark, _expand_cvars
+from utils.utils import parse_config, path_local, path_spark
 import os
 
 def apply_hard_filters(mt: hl.MatrixTable, config: dict) -> hl.MatrixTable:
