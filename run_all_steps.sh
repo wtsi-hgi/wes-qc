@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Set up
-export PYTHONPATH=/lustre/scratch126/dh24_test/wes-qc
-export WES_CONFIG=/lustre/scratch126/dh24_test/wes-qc/config/inputs-mk43-a.yaml
+export PYTHONPATH=$(pwd)
+export WES_CONFIG=$(pwd)/config/new_config_example.yaml
+echo "Using config ${WES_CONFIG}"
 
 
 # Step 1
