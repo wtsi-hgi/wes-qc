@@ -1,5 +1,42 @@
 ---
 
+# - You can insert a variable in the string value via '{}'. For example, 
+#   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'. 
+#
+# - If a config field ends with 'dir' or 'file', then parser will consider 
+#   this field as a path and normalize it, thus removing double slashes (foo//bar -> foo/bar)
+#   and redundand dots (foo/./bar -> foo/bar).
+#
+# - Note that string quotes are MANDATORY if using cvars.
+#   That is, variable should be used only inside an explicit string.
+#   Curly braces outside a string will break the YAML parser.
+#
+# - You can use dot-separated name of any config field as a variable name like this:
+#   a:
+#     a1: bar
+#     a2: baz
+#   b: 'foo {a.a1} {a.a2}' (will render to 'foo bar baz')
+#
+# - Special variables from 'cvars' list will be replaced with field  
+#   they are referring to. For example, '{mtdir}/gatk_unprocessed.mt' is 
+#   equivalent to '{general.matrixtables_dir}/gatk_unprocessed.mt'
+#
+# - Parser can only insert variables that were already defined. 
+#   You can't use a variable that will be defined further down the config.
+
+# TODO: custom yaml type for paths
+# TODO: ensure strict variable substitution, from top to bottom of the config
+# TODO: add testcases for cvars, for order of variables, for nested variables  
+cvars:
+  tmpdir: general.tmp_dir
+  anndir: general.annotation_dir
+  mtdir: general.matrixtables_dir
+  resdir: general.resource_dir
+  1kg_resdir: general.onekg_resource_dir
+  pltdir: general.plots_dir
+  traindir: general.training_sets_dir
+  rfdir: general.var_qc_rf_dir
+
 general:
   # CVAR tmpdir
   tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp/ # output
@@ -243,11 +280,11 @@ step3:
       min_point_size: 1.0
       max_point_size: 16.0
       label_text_font_size: "14pt"
-      title.text_font_size: "16pt"
-      subtitle.text_font_size: "14pt"
-      axis.axis_label_text_font_size: "16pt"
-      axis.axis_label_text_font_style: "normal"
-      axis.major_label_text_font_size: "14pt"
+      title_text_font_size: "16pt"
+      subtitle_text_font_size: "14pt"
+      axis_axis_label_text_font_size: "16pt"
+      axis_axis_label_text_font_style: "normal"
+      axis_major_label_text_font_size: "14pt"
 
 
   # --- Step 3.8 --- #

@@ -33,10 +33,10 @@ def get_options():
 
 def set_plots_defaults(p: bm.Plot, qc_plots_settings: dict) -> None:
     p.legend.label_text_font_size = qc_plots_settings['label_text_font_size']
-    p.title.text_font_size = qc_plots_settings['title.text_font_size']
-    p.axis.axis_label_text_font_size = qc_plots_settings['axis.axis_label_text_font_size']
-    p.axis.axis_label_text_font_style = qc_plots_settings['axis.axis_label_text_font_style']
-    p.axis.major_label_text_font_size = qc_plots_settings['axis.major_label_text_font_size']
+    p.title.text_font_size = qc_plots_settings['title_text_font_size']
+    p.axis.axis_label_text_font_size = qc_plots_settings['axis_axis_label_text_font_size']
+    p.axis.axis_label_text_font_style = qc_plots_settings['axis_axis_label_text_font_style']
+    p.axis.major_label_text_font_size = qc_plots_settings['axis_major_label_text_font_size']
 
     
 def get_point_size_col(data: pd.Series, size_prop: str, qc_plots_settings: dict) -> pd.Series:
@@ -163,7 +163,7 @@ def plot_metric(df: pd.DataFrame,
 
             # Add subtitles if any
             for title in titles[1:]:
-                p.add_layout(Title(text=title, text_font_size=qc_plots_settings['subtitle.text_font_size']), 'above')
+                p.add_layout(Title(text=title, text_font_size=qc_plots_settings['subtitle_text_font_size']), 'above')
 
             return p
         # Compute non-cumulative values by applying `y_fun`
@@ -375,11 +375,11 @@ def main():
     # 'min_point_size': 1.0,
     # 'max_point_size': 16.0,
     # 'label_text_font_size': "14pt",
-    # 'title.text_font_size': "16pt",
-    # 'subtitle.text_font_size': "14pt",
-    # 'axis.axis_label_text_font_size': "16pt",
-    # 'axis.axis_label_text_font_style': "normal",
-    # 'axis.major_label_text_font_size': "14pt"
+    # 'title_text_font_size': "16pt",
+    # 'subtitle_text_font_size': "14pt",
+    # 'axis_axis_label_text_font_size': "16pt",
+    # 'axis_axis_label_text_font_style': "normal",
+    # 'axis_major_label_text_font_size': "14pt"
     # }
 
     plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/"
