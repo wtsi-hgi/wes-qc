@@ -139,7 +139,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(kg_to_mt=True, run=True, merge=True, filter=True, pca=True, assign_pops=True))
-    def test_2_3_sample_qc(self):
+    def test_2_3_sample_qc(self, mock_args):
         try:
             qc_step_2_3.main()
         except Exception as e:
@@ -172,9 +172,10 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f'Step 3.2 failed with an exception: {e}')
 
+    # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(manual_runhash=RF_RUN_TEST_HASH))
-    def test_3_3_variant_qc(self):
+    def test_3_3_variant_qc(self, mock_args):
         try:
             qc_step_3_3.main()
         except Exception as e:
@@ -182,8 +183,8 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
-    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) # vk11: do not know what to set in here
-    def test_3_4_variant_qc(self):
+    return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
+    def test_3_4_variant_qc(self, mock_args):
         try:
             qc_step_3_4.main()
         except Exception as e:
@@ -192,7 +193,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) 
-    def test_3_5_variant_qc(self):
+    def test_3_5_variant_qc(self, mock_args):
         try:
             qc_step_3_5.main()
         except Exception as e:
@@ -201,7 +202,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) 
-    def test_3_6_variant_qc(self):
+    def test_3_6_variant_qc(self, mock_args):
         try:
             qc_step_3_6.main()
         except Exception as e:
@@ -210,7 +211,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH)) 
-    def test_3_7_variant_qc(self):
+    def test_3_7_variant_qc(self, mock_args):
         try:
             qc_step_3_7.main()
         except Exception as e:
@@ -219,7 +220,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH, snv=92, indel=68)) # vk11: again, I do not know what values to set 
-    def test_3_8_variant_qc(self):
+    def test_3_8_variant_qc(self, mock_args):
         try:
             qc_step_3_8.main()
         except Exception as e:
@@ -228,7 +229,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH, snv=84, indel=60)) 
-    def test_3_9_variant_qc(self):
+    def test_3_9_variant_qc(self, mock_args):
         try:
             qc_step_3_9.main()
         except Exception as e:
