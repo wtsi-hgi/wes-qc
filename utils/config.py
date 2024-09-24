@@ -335,9 +335,9 @@ def parse_config_file(file_obj, additional_cvar_shortcuts: dict = dict()):
     if 'cvars' not in config:
         config['cvars'] = dict()
     config['cvars'].update(additional_cvar_shortcuts)
-    config = flatten(config)
     # NOTE mk43: This will use NESTED config style
     # TODO mk43: Replace with FLAT config style in future
+    #            using `config = flatten(config)`
     config = _process_cvars_in_config(config)
     return config
 

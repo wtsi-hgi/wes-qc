@@ -95,6 +95,11 @@ class TestConfigParser(unittest.TestCase):
         # Insertion/iteration order is important as well.
         self.assertTupleEqual(tuple(expected_flat_again_d.items()), tuple(flat_again_d.items()))
 
+        # Ensure the dict is really nested
+        self.assertEqual(d['a']['b'], 'a.b')
+        self.assertEqual(d['a']['d']['e'], 'a.d.e')
+        self.assertEqual(d['a']['d']['i1'], 100) # ensure types are ok
+
     def test_resolve_cvar(self):
         config = {
             'cvars.cvar0': 'a.x',
@@ -145,6 +150,11 @@ class TestConfigParser(unittest.TestCase):
         # print(config)        
         flat_config = flatten(config)
         self.assertTupleEqual(tuple(expected_config.items()), tuple(flat_config.items()))
+        
+        # ensure config is NESTED and not FLAT
+        self.assertEqual(config['group_1']['cvar_2'], expected_config['group_1.cvar_2'])
+        self.assertEqual(config['group_2']['f1_file'], expected_config['group_2.f1_file'])
+        self.assertEqual(config['group_3']['subgroup']['f3'], expected_config['group_3.subgroup.f3'])
 
         # Test the whole file loading process
 
@@ -152,6 +162,12 @@ class TestConfigParser(unittest.TestCase):
         config = parse_config(additional_cvar_shortcuts={ 'cvar_custom': 'group_0.not_cvar' })
         flat_config = flatten(config)
         self.assertTupleEqual(tuple(expected_config.items()), tuple(flat_config.items()))
+
+        # ensure config is NESTED and not FLAT
+        self.assertEqual(config['group_1']['cvar_2'], expected_config['group_1.cvar_2'])
+        self.assertEqual(config['group_2']['f1_file'], expected_config['group_2.f1_file'])
+        self.assertEqual(config['group_3']['subgroup']['f3'], expected_config['group_3.subgroup.f3'])
+
 
     # TODO
     def test_undefined_cvar(self):
