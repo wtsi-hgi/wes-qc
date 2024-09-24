@@ -34,12 +34,12 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     run_hash = args.runhash
-    rf_model = load_model(get_rf(rf_dir, data="model", run_hash=run_hash))
-    ht = get_rf(rf_dir, data="training", run_hash=run_hash).ht()
+    rf_model = load_model(get_rf(path_spark(rf_dir), data="model", run_hash=run_hash))
+    ht = get_rf(path_spark(rf_dir), data="training", run_hash=run_hash).ht()
     features = hl.eval(ht.features)
     ht = apply_rf_model(ht, rf_model, features, label=constants.LABEL_COL)
     ht = ht.annotate_globals(rf_hash=run_hash)
-    ht = ht.checkpoint(get_rf(rf_dir, "rf_result", run_hash=run_hash).path, overwrite=True)
+    ht = ht.checkpoint(get_rf(path_spark(rf_dir), "rf_result", run_hash=run_hash).path, overwrite=True)
     ht_summary = ht.group_by("tp", "fp", constants.TRAIN_COL, constants.LABEL_COL, constants.PREDICTION_COL).aggregate(n=hl.agg.count())
     ht_summary.show(n=20)
     
