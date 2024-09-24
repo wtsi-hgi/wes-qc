@@ -2,7 +2,7 @@
 #TODO fix header. decide what fields are needed in the VCF
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def export_vcfs(mtfile: str, vcf_dir: str):
@@ -24,32 +24,32 @@ def export_vcfs(mtfile: str, vcf_dir: str):
                 }
     }
 
-    mt = hl.read_matrix_table(mtfile)
+    mt = hl.read_matrix_table(path_spark(mtfile))
     #drop boolean format field adj
     mt = mt.drop(mt.adj)
 
-    chroms=[*range(1,23),"X","Y"]
+    chroms=[*range(1,23), "X", "Y"]
     chromosomes=["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
-        mt_chrom=mt.filter_rows(mt.locus.contig==chromosome)
+        mt_chrom = mt.filter_rows(mt.locus.contig==chromosome)
         outfile = vcf_dir + chromosome + "_filtered.vcf.bgz"
         hl.export_vcf(mt_chrom, outfile, metadata = metadata)
 
 
 def main():
     #set up
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    filtered_vcf_dir = inputs['vcf_output_dir']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
+    filtered_vcf_dir = config['step4']['export_vcfs']['vcf_output_dir']
+    mtfile_filtered = config['step4']['export_vcfs']['mtfile_filtered']
     export_vcfs(mtfile_filtered, filtered_vcf_dir)
 
 
