@@ -3,13 +3,10 @@
 # - You can insert a variable in the string value via '{}'. For example, 
 #   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'. 
 #
-# - If a config field ends with 'dir' or 'file', then parser will consider 
-#   this field as a path and normalize it, thus removing double slashes (foo//bar -> foo/bar)
-#   and redundand dots (foo/./bar -> foo/bar).
-#
 # - Note that string quotes are MANDATORY if using cvars.
 #   That is, variable should be used only inside an explicit string.
 #   Curly braces outside a string will break the YAML parser.
+#   `field: hello {cvar_world}` will not work, you need to do `field: 'hello {cvar_world}'` 
 #
 # - You can use dot-separated name of any config field as a variable name like this:
 #   a:
@@ -24,9 +21,6 @@
 # - Parser can only insert variables that were already defined. 
 #   You can't use a variable that will be defined further down the config.
 
-# TODO: custom yaml type for paths
-# TODO: ensure strict variable substitution, from top to bottom of the config
-# TODO: add testcases for cvars, for order of variables, for nested variables  
 cvars:
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir

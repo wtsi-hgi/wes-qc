@@ -14,24 +14,47 @@ group_1:
   cvar_2: /foo/bar/
 
 group_2:
-  # should become /dev/null/baz.baz
+  # should become /dev/null//baz.baz
   f1_file: '{cvar_1}/baz.baz'
-  # should become /foo/bar/baz.baz
+  # should become /foo/bar//baz.baz
   f2_file: '{group_1.cvar_2}/baz.baz'
-  # should become /lorem/ipsum/baz.baz
+  # should become /lorem/ipsum//baz.baz
   f3_file: '{cvar_3}/baz.baz'
-  # should become /lorem/ipsum/baz.baz
+  # should become /lorem/ipsum//baz.baz
   f4_file: '{cvar_custom}/baz.baz'
 
+  # should become /something//dev/null//baz.baz
+  # note: this differs from os.path.join behavior, where leading slash in cvar_1 
+  #       would have resulted in path reset and /dev/null/baz.baz
+  f5_anomal_file: '/something/{cvar_1}/baz.baz'
+
+  # should maintain leading `./` and remain './foo.bar'
+  local_dotfile: ./foo.bar
+
+  # should become /something/./foo.bar
+  # note: this differs from os.path.join behavior, where leading ./ in f6_local_dotfile 
+  #       would be ignored and resulted in /something/foo.bar
+  # note: this test case also verifies that local config variable substitution works fine
+  f6_anomal_file: '/something/{local_dotfile}'
+
   subgroup:
-    # should become /dev/null/baz.baz
+    # should become /dev/null//baz.baz
     f1_file: '{cvar_1}/baz.baz'
-    # should become /foo/bar/baz.baz
+    # should become /foo/bar//baz.baz
     f2_file: '{group_1.cvar_2}/baz.baz'
-    # should become /lorem/ipsum/baz.baz
+    # should become /lorem/ipsum//baz.baz
     f3_file: '{cvar_3}/baz.baz'
-    # should become /lorem/ipsum/baz.baz
+    # should become /lorem/ipsum//baz.baz
     f4_file: '{cvar_custom}/baz.baz'
+
+    # should maintain leading `./` and remain './NOT.foobar'
+    local_dotfile: ./NOT.foobar
+
+    # should be './NOT.foobar is not ./foo.bar'
+    f5_local_cvar: '{local_dotfile} is not ./foo.bar'
+
+    # should be './foo.bar is indeed ./foo.bar'
+    f6_abs_cvar: '{group_2.local_dotfile} is indeed ./foo.bar'
 
   a1: 100.0
 

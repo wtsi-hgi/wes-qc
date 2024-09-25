@@ -2,5 +2,5 @@
 # This config should raise an exception
 
 section_1:
-  a: '{unknown_cvar}'
-  b: 'something'
+  a: '{section_1.b}'
+  b: 'foo'

@@ -296,7 +296,7 @@ def _process_cvars_in_flat_config(flat_unprocessed_config: dict, base_config: di
     for key in config:
         val = config[key]
         if isinstance(val, str):
-            processed_str = _expand_cvars_str(context, val, key, as_path=__is_path_field(key))
+            processed_str = _expand_cvars_str(context, val, key, as_path=False)
             context[key] = processed_str
             config[key] = processed_str
         elif isinstance(val, dict):

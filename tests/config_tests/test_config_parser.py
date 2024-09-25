@@ -1,5 +1,5 @@
 from utils.config import parse_config, parse_config_file, getp, parent_section, is_subsection, flatten, flat_to_nested, resolve_cvar_flat
-from pathlib import PurePath
+from pathlib import PurePath, PurePosixPath
 import unittest
 import os
 
@@ -122,6 +122,10 @@ class TestConfigParser(unittest.TestCase):
 
 
     def test_cvars(self):
+        # Note: formerly this test suite was also testing path normalization for fields that
+        # end with '_file' or '_path', but we disabled this feature for simplicity.
+        # Note the double slashes and no slash conversion between windows and linux.
+
         expected_config = {
             'cvars.cvar_3': 'group_0.not_cvar',
             'cvars.cvar_custom': 'group_0.not_cvar', # This should be the second one, as custom cvars are inserted in the end, 
@@ -129,14 +133,20 @@ class TestConfigParser(unittest.TestCase):
             'cvar_1': '/dev/null/',
             'group_0.not_cvar': '/lorem/ipsum/',
             'group_1.cvar_2': '/foo/bar/',
-            'group_2.f1_file': str(PurePath('/dev/null/baz.baz')),
-            'group_2.f2_file': str(PurePath('/foo/bar/baz.baz')),
-            'group_2.f3_file': str(PurePath('/lorem/ipsum/baz.baz')),
-            'group_2.f4_file': str(PurePath('/lorem/ipsum/baz.baz')),
-            'group_2.subgroup.f1_file': str(PurePath('/dev/null/baz.baz')),
-            'group_2.subgroup.f2_file': str(PurePath('/foo/bar/baz.baz')),
-            'group_2.subgroup.f3_file': str(PurePath('/lorem/ipsum/baz.baz')),
-            'group_2.subgroup.f4_file': str(PurePath('/lorem/ipsum/baz.baz')),
+            'group_2.f1_file': '/dev/null//baz.baz',
+            'group_2.f2_file': '/foo/bar//baz.baz',
+            'group_2.f3_file': '/lorem/ipsum//baz.baz',
+            'group_2.f4_file': '/lorem/ipsum//baz.baz',
+            'group_2.f5_anomal_file': '/something//dev/null//baz.baz',
+            'group_2.local_dotfile': './foo.bar',
+            'group_2.f6_anomal_file': '/something/./foo.bar',
+            'group_2.subgroup.f1_file': '/dev/null//baz.baz',
+            'group_2.subgroup.f2_file': '/foo/bar//baz.baz',
+            'group_2.subgroup.f3_file': '/lorem/ipsum//baz.baz',
+            'group_2.subgroup.f4_file': '/lorem/ipsum//baz.baz',
+            'group_2.subgroup.local_dotfile': './NOT.foobar',
+            'group_2.subgroup.f5_local_cvar': './NOT.foobar is not ./foo.bar',
+            'group_2.subgroup.f6_abs_cvar': './foo.bar is indeed ./foo.bar',
             'group_2.a1': 100.0,
             'empty_file': '',
             'group_3.subgroup.f1': '12345',
@@ -169,13 +179,20 @@ class TestConfigParser(unittest.TestCase):
         self.assertEqual(config['group_3']['subgroup']['f3'], expected_config['group_3.subgroup.f3'])
 
 
-    # TODO
     def test_undefined_cvar(self):
         with self.assertRaisesRegex(
             ValueError, 
-            "cannot substitute undefined config variable 'b' referenced in field 'a'" 
+            "cannot substitute undefined config variable 'unknown_cvar' referenced in field 'section_1.a'" 
             ) as cm:
             config = parse_config('tests/config_tests/undefined-cvar-config.yaml')
+
+
+    def test_wrong_cvar_order(self):
+        with self.assertRaisesRegex(
+            ValueError, 
+            "cannot substitute undefined config variable 'section_1.b' referenced in field 'section_1.a'" 
+            ) as cm:
+            config = parse_config('tests/config_tests/wrong-order-config.yaml')
 
 if __name__ == '__main__':
     unittest.main()
