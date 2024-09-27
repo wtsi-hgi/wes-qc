@@ -6,7 +6,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import os
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable:
@@ -16,7 +16,7 @@ def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable
     :param str gnomad_htfile: gnomAD Hail table file
     :return: Annotated MatrixTable
     '''
-    gnomad_ht = hl.read_table(gnomad_htfile)
+    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
     #ac = gnomadht.freq[0].AC
     #af = gnomadht.freq[0].AF
     mt_in = mt_in.annotate_rows(gnomad_AF=gnomad_ht[mt_in.row_key].freq[0].AF)
@@ -31,9 +31,9 @@ def get_trans_untrans_synon_singleton_counts(mt_in: hl.MatrixTable, pedfile: str
     :param hl.MatrixTable mt_in: Input MatrixTable
     :param str pedfile: Path to pedfile
     '''
-    pedigree = hl.Pedigree.read(pedfile)
+    pedigree = hl.Pedigree.read(path_spark(pedfile))
     # get trios only then filter to trioAC == 1 or 2
-    trio_sample_ht = hl.import_fam(pedfile)
+    trio_sample_ht = hl.import_fam(path_spark(pedfile))
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
     mt2 = mt_in.filter_cols(hl.set(sample_list).contains(mt_in.s))
     mt2 = hl.variant_qc(mt2, name='varqc_trios')
@@ -105,7 +105,7 @@ def get_counts_per_cq(mt_in: hl.MatrixTable, outfile: str):
 
     n_rows = len(synonymous_all)
     n_cols = len(header)
-    with open(outfile, 'w') as o:
+    with open(path_local(outfile), 'w') as o:
         o.write(("\t").join(header))
         o.write("\n")
         for i in range(0, n_rows):
@@ -125,7 +125,7 @@ def median_count_for_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     '''
 
     mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
-    mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
+    mt_rare = mt.filter_rows(mt.gnomad_AC < 5) # TODO: should be in the config?
 
     mt = hl.sample_qc(mt)
     mt_rare = hl.sample_qc(mt_rare)
@@ -145,7 +145,7 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     :return: dict
     '''
     mt = mt_in.filter_rows(hl.literal(cqs).contains(mt_in.info.consequence))
-    mt_rare = mt.filter_rows(mt.gnomad_AC < 5)
+    mt_rare = mt.filter_rows(mt.gnomad_AC < 5) # TODO: move to config?
     mt = hl.sample_qc(mt)
     mt_rare = hl.sample_qc(mt_rare)
     sampleqc_ht = mt.cols()
@@ -153,12 +153,13 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     counts_all = sampleqc_ht.sample_qc.n_non_ref.collect()
     counts_rare = sampleqc_rare_ht.sample_qc.n_non_ref.collect()
 
-    #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
-    aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
-    aggfiles = os.listdir(aggdir)
-    for af in aggfiles:
-        aggpath = aggdir + af
-        os.remove(aggpath)
+    # TODO: refactor this
+    # #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+    # aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
+    # aggfiles = os.listdir(aggdir)
+    # for af in aggfiles:
+    #     aggpath = aggdir + af
+    #     os.remove(aggpath)
 
     return counts_all, counts_rare
 
@@ -171,7 +172,7 @@ def get_ca_fractions(mt_in: hl.MatrixTable, outfile: str):
     '''
     # filter to SNVs and to rare
     snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
-    snv_mt_rare = snv_mt.filter_rows(snv_mt.gnomad_AC < 5)
+    snv_mt_rare = snv_mt.filter_rows(snv_mt.gnomad_AC < 5) # TODO: to config?
 
     # total_ca_frac = get_median_ca_per_sample(snv_mt)
     # rare_ca_frac = get_median_ca_per_sample(snv_mt_rare)
@@ -186,7 +187,7 @@ def get_ca_fractions(mt_in: hl.MatrixTable, outfile: str):
     n_rows = len(outdata)
     n_cols = len(header)
 
-    with open(outfile, 'w') as o:
+    with open(path_local(outfile), 'w') as o:
         o.write(("\t").join(header))
         o.write("\n")
         for i in range(0, n_rows):
@@ -211,12 +212,13 @@ def get_ca_per_sample(mt_in: hl.MatrixTable) -> list:
     mt_in = hl.sample_qc(mt_in)
     ca_mt = hl.sample_qc(ca_mt)
 
-    #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
-    aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
-    aggfiles = os.listdir(aggdir)
-    for af in aggfiles:
-        aggpath = aggdir + af
-        os.remove(aggpath)
+    # TODO: refactor this
+    # #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
+    # aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
+    # aggfiles = os.listdir(aggdir)
+    # for af in aggfiles:
+    #     aggpath = aggdir + af
+    #     os.remove(aggpath)
 
     snv_qc = mt_in.cols()
     ca_qc = ca_mt.cols()
@@ -274,29 +276,28 @@ def get_median_ca_per_sample(mt_in: hl.MatrixTable) -> float:
 
 def main():
     # set up
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
-    plot_dir = inputs['plots_dir_local']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    resourcedir = config['general']['resource_dir']
+    plot_dir = config['general']['plots_dir']
 
     # initialise hail
-    #tmp_dir = "hdfs://spark-master:9820/"
-    tmp_dir = "file:///lustre/scratch123/qc/tmp"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    mtfile = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
-    gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
-    mt = hl.read_matrix_table(mtfile)
-
+    mtfile = config['step4']['annotate_gnomad']['mtfile']
+    gnomad_htfile = config['step4']['annotate_gnomad']['gnomad_htfile']
+    mt = hl.read_matrix_table(path_spark(mtfile))
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    pedfile = resourcedir + "trios.ped"
-    get_trans_untrans_synon_singleton_counts(mt, pedfile)
+    # TODO: make optional as it only prints info to stdout
+    pedfile = config['step4']['get_trans_untrans_synon_singleton_counts']['pedfile']
+    # get_trans_untrans_synon_singleton_counts(mt, pedfile) # test data has no trios
 
-    cqfile = plot_dir + "/variant_counts_per_cq_post_qc.txt"
-    cafile = plot_dir + "/frac_ca_per_sample_post_qc_snv.txt"
+    cqfile = config['step4']['get_counts_per_cq']['cqfile']
+    cafile = config['step4']['get_ca_fractions']['cafile']
 
     get_counts_per_cq(mt, cqfile)
     get_ca_fractions(mt, cafile)

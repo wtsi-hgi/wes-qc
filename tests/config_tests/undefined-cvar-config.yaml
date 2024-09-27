@@ -1,0 +1,5 @@
+# Sample config to test config parser.
+# This config should raise an exception
+
+a: '{b}'
+b: 'foo'
