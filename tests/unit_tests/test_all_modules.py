@@ -7,8 +7,9 @@ import hail as hl
 import hailtop.fs as hfs
 import shutil as sh
 from pyspark import SparkContext
-from utils.config import parse_config, path_local, path_spark, getp, _expand_cvars_recursively
+from utils.config import parse_config, path_local, path_spark, getp, _process_cvars_in_config
 from utils.utils import download_test_data_from_s3
+from typing import Union
 import subprocess
 
 
@@ -95,7 +96,7 @@ def compare_plinks(bed1_path: str, bim1_path: str, fam1_path: str,
         print(f'MatrixTables are not equal: {num_differences} differing entries found')
         return False
 
-def compare_matrixtables(mt1_path: str, mt2_path: str) -> bool:
+def compare_matrixtables(mt1_path: Union[str, hl.MatrixTable], mt2_path: Union[str, hl.MatrixTable]) -> bool:
     """
     Compare the contents of two Hail MatrixTables.
 
@@ -107,8 +108,19 @@ def compare_matrixtables(mt1_path: str, mt2_path: str) -> bool:
     bool: True if the MatrixTables are equal, False otherwise.
     """
     # Load the MatrixTables
-    mt1 = hl.read_matrix_table(mt1_path)
-    mt2 = hl.read_matrix_table(mt2_path)
+    if isinstance(mt1_path, str):
+        mt1 = hl.read_table(mt1_path)
+    elif isinstance(mt1_path, hl.MatrixTable):
+        mt1 = mt1_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(mt1_path)}")
+    
+    if isinstance(mt2_path, str):
+        mt2 = hl.read_table(mt2_path)
+    elif isinstance(mt2_path, hl.MatrixTable):
+        mt2 = mt2_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(mt2_path)}")
 
     # Ensure the schemas are the same
     if mt1.row.dtype != mt2.row.dtype or mt1.col.dtype != mt2.col.dtype or mt1.entry.dtype != mt2.entry.dtype:
@@ -140,7 +152,7 @@ def compare_entries_to_other_ht(this_row_value, row_key, other_ht):
     other_row_value = other_ht[row_key]
     return ~compare_structs(this_row_value, other_row_value)
 
-def compare_tables(ht1_path: str, ht2_path: str) -> bool:
+def compare_tables(ht1_path: Union[str, hl.Table], ht2_path: Union[str, hl.Table]) -> bool:
     """
     Compare the contents of two Hail Tables.
 
@@ -152,8 +164,19 @@ def compare_tables(ht1_path: str, ht2_path: str) -> bool:
     bool: True if the Tables are equal, False otherwise.
     """
     # Load the Tables
-    ht1 = hl.read_table(ht1_path)
-    ht2 = hl.read_table(ht2_path)
+    if isinstance(ht1_path, str):
+        ht1 = hl.read_table(ht1_path)
+    elif isinstance(ht1_path, hl.Table):
+        ht1 = ht1_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(ht1_path)}")
+    
+    if isinstance(ht2_path, str):
+        ht2 = hl.read_table(ht2_path)
+    elif isinstance(ht2_path, hl.Table):
+        ht2 = ht2_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(ht2_path)}")
 
     # Ensure the schemas are the same
     if ht1.row.dtype != ht2.row.dtype:
@@ -228,19 +251,23 @@ def compare_bgzed_txts(path_1: str, path_2: str, replace_strings: list[list[str,
 
     return contents_1 == contents_2
 
-# ensure sequential test execution order
-# unittest.TestLoader.sortTestMethodsUsing = None
-
 # DEBUG: might be useful https://spark.apache.org/docs/latest/api/python/getting_started/testing_pyspark.html
 # TODO: clean up hail logs
 
-# /path/to/wes_qc must be in PYTHONPATH
+# /path/to/wes-qc must be in PYTHONPATH
 qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
+
+qc_step_4_1 = importlib.import_module("4-genotype_qc.1-apply_hard_filters")
+qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
+qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
+qc_step_4_3 = importlib.import_module("4-genotype_qc.3-export_vcfs")
+qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
+qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
 
 
 class HailTestCase(unittest.TestCase):
@@ -293,6 +320,7 @@ class TestQCSteps(HailTestCase):
 
         test_data_path = os.path.join(cls.test_suite_path, 'control_set_small')
         resources_path = os.path.join(cls.test_suite_path, 'resources')
+        training_sets_path = os.path.join(cls.test_suite_path, 'training_sets')
         ref_dataset_parent_path = os.path.join(cls.test_suite_path, 'unit_tests')
 
         # TODO: add training sets dir when creating unit tests for steps 3-4
@@ -312,6 +340,7 @@ class TestQCSteps(HailTestCase):
         os.makedirs(resdir, exist_ok=True)
 
         cls.onekg_resdir = os.path.join(cls.test_resourcedir, 'mini_1000G')
+        cls.training_sets = path_spark(training_sets_path) # DEBUG: the adapters on paths are actually not mandatory
         
 
         # TODO: switch to config rendering as in integration tests?
@@ -331,15 +360,31 @@ class TestQCSteps(HailTestCase):
         # TODO: separate this functions into steps
         
         # ===== QC General Params ===== #
+        var_qc_rf_dir_path = os.path.join(cls.test_suite_path, 'var_qc_rf_dir') # output dir
+        cls.var_qc_rf_dir = path_spark(var_qc_rf_dir_path)
+
         # add general params into the config object
         config = dict()
+        config['cvars'] = {
+            'tmpdir': 'general.tmp_dir',
+            'anndir': 'general.annotation_dir',
+            'mtdir': 'general.matrixtables_dir',
+            'resdir': 'general.resource_dir',
+            '1kg_resdir': 'general.onekg_resource_dir',
+            'pltdir': 'general.plots_dir',
+            'traindir': 'general.training_sets_dir',
+            'rfdir': 'general.var_qc_rf_dir'
+        }
+
         config['general'] = dict(
             tmp_dir = cls.tmp_dir,
             annotation_dir = cls.annotdir,
             matrixtables_dir = cls.mtdir,
             resource_dir = cls.test_resourcedir,
             plots_dir = cls.plots_dir,
-            onekg_resource_dir = cls.onekg_resdir
+            onekg_resource_dir = cls.onekg_resdir, 
+            training_sets_dir = cls.training_sets, 
+            var_qc_rf_dir = cls.var_qc_rf_dir
         )
 
         # ===== QC Step 1.1 ===== #
@@ -609,7 +654,49 @@ class TestQCSteps(HailTestCase):
             'sample_qc_filtered_mt_file' : '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
         }
 
-        cls.config = _expand_cvars_recursively(config, config)
+        # ===== QC Step 3.1 ===== #
+        # split_multi_and_var_qc()
+        # reference inputs: `` # TODO: fill in
+        # outputs
+        # TODO: fill in
+        # reference outputs
+        cls.ref_mt_varqc_splitmulti = os.path.join(cls.ref_mtdir, 'mt_varqc_splitmulti.mt')
+
+        # ===== QC Step 3.9 ===== #
+        # annotate_mt_with_cq_rf_score_and_bin()
+        # reference inputs: `` # TODO: fill in
+        # outputs
+        # TODO: fill in
+        # reference outputs
+        cls.ref_mt_after_var_qc = os.path.join(cls.ref_mtdir, 'mt_after_var_qc.mt')
+
+
+        # ===== QC Step 4.1 ===== #
+        # filter_mt()
+        # reference inputs: `cls.ref_mt_after_var_qc`
+        # outputs
+        cls.mtfile_filtered = os.path.join(cls.mtdir, 'mt_after_var_qc_hard_filter_gt.mt')
+        # reference outputs
+        cls.ref_mtfile_filtered = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_after_var_qc_hard_filter_gt.mt')
+
+        # ===== QC Step 4.1a ===== #
+        # remove_samples()
+        # reference inputs: `cls.ref_mt_varqc_splitmulti`
+
+        
+
+        # ===== QC Step 4.1b ===== #
+
+        # ===== QC Step 4.2 ===== #
+
+        # ===== QC Step 4.3 ===== #
+
+        # ===== QC Step 4.3a ===== #
+
+        # ===== QC Step 4.3b ===== #
+
+
+        cls.config = _process_cvars_in_config(config)
         
     # QC Step 1.1
     def test_1_1_load_vcfs_to_mt(self):
@@ -757,15 +844,17 @@ class TestQCSteps(HailTestCase):
         self.assertTrue(filtered_mt_identical)
 
     def test_2_3_4_run_pca(self):
-        # use reference outputs of Step 2.3 annotate_and_filter()
+        # Use reference output of Step 2.3 annotate_and_filter() as input
         ref_filtered_mt = hl.read_matrix_table(self.ref_filtered_mt_path)
-        # run function to test
+        # Run function to test
         qc_step_2_3.run_pca(ref_filtered_mt, self.config)
 
+        # Compare output files to the reference
         pca_scores_identical = compare_tables(self.pca_scores_path, self.ref_pca_scores_path)
         pca_loadings_identical = compare_tables(self.pca_loadings_path, self.ref_pca_loadings_path)
         pca_evals_identical = compare_txts(self.pca_evals_path, self.ref_pca_evals_path)
 
+        # Test passes when all files match the references
         self.assertTrue(pca_scores_identical and pca_loadings_identical and pca_evals_identical)
 
     def test_2_3_5_predict_pops(self):
@@ -812,6 +901,25 @@ class TestQCSteps(HailTestCase):
                 path_local(self.ref_samples_failing_qc_file))
 
         self.assertTrue(sample_qc_filtered_identical and samples_failing_qc_identical)
+
+
+    # tests for 4-genotype_qc
+    def test_4_1_1_filter_mt(self):
+        qc_step_4_1.filter_mt(self.ref_mt_after_var_qc, dp=5, gq=10, ab=0.2, 
+                              mtfile_filtered=self.mtfile_filtered)
+
+        mtfile_filetered_identical = compare_matrixtables(self.mtfile_filtered, self.ref_mtfile_filtered)
+
+        self.assertTrue(mtfile_filetered_identical)
+
+    def test_4_1a_1_remove_samples(self):
+        # not used during qc (commented out)
+        # TODO: implement when clarified the purpose of the function
+        pass
+
+    def test_4_1a_2_annotate_cq_rf(self):
+        qc_step_4_1a.annotate_cq_rf(self.ref_mt_varqc_splitmulti, self.ref_all_consequences_with_gene_and_csq)
+
 
 
     @classmethod

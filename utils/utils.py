@@ -104,7 +104,7 @@ import subprocess
 
 # === Utils for downloading test data from the s3 storage === #
 
-TEST_DATA_FILENAME = 'test_data_with_rf_training.zip'
+TEST_DATA_FILENAME = 'all_test_data.zip'
 TEST_DATA_DOWNLOAD_URL = f'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}'
 
 # TODO: make versatile, don't download if already exists
@@ -138,7 +138,7 @@ def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir:
     print(f'Copying data to correct dirs')
 
     for dir_to_move, destination_dir in move_dirs.items():
-        subprocess.run(['cp', '-vn', dir_to_move, destination_dir])
+        subprocess.run(['cp', '-vnr', dir_to_move, destination_dir])
 
     if clean_up_unzip_dir:
         subprocess.run(['rm', '-r', outdir])

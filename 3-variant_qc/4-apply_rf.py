@@ -31,7 +31,7 @@ def main():
     tmp_dir = config['general']['tmp_dir']
     sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     run_hash = args.runhash
     rf_model = load_model(get_rf(path_spark(rf_dir), data="model", run_hash=run_hash))

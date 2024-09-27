@@ -1,11 +1,18 @@
 ---
 
-general:
-  # TODO: separate input and output config variables
+cvars:
+  tmpdir: general.tmp_dir
+  anndir: general.annotation_dir
+  mtdir: general.matrixtables_dir
+  resdir: general.resource_dir
+  1kg_resdir: general.onekg_resource_dir
+  pltdir: general.plots_dir
+  traindir: general.training_sets_dir
+  rfdir: general.var_qc_rf_dir
 
+general:
   # CVAR tmpdir
   tmp_dir: {INTEGRATION_TESTS_DIR}/tmp_new_config/ # output
-  # tmp_dir: hdfs://spark-master:9820/
 
   # CVAR anndir
   annotation_dir: {INTEGRATION_TESTS_DIR}/annotations_new_config/ # output
@@ -13,23 +20,20 @@ general:
   # CVAR mtdir
   matrixtables_dir: {INTEGRATION_TESTS_DIR}/matrixtables_new_config/ # output
 
-  # TODO: document resource_dir
-  # TODO: add option to override in `resources` config field
-  # TODO: add Jira ticket
   # CVAR resdir
-  resource_dir: {RESOURCES_DIR} # input
-
-  # CVAR traindir
-  training_sets_dir: {TRAINING_SETS_DIR}
-
-  # CVAR rfdir
-  var_qc_rf_dir: {VARIANT_QC_RANDOM_FOREST_DIR}
+  resource_dir: {RESOURCES_DIR} # input and output
 
   # CVAR 1kg resource dir
-  onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # dir with inputs, must be without trailing slash (TODO: make more robust)
+  onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input; must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
-  plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # input
+  plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # output
+
+  # CVAR traindir
+  training_sets_dir: {TRAINING_SETS_DIR} # input
+
+  # CVAR rfdir
+  var_qc_rf_dir: {VARIANT_QC_RANDOM_FOREST_DIR} # output 
 
 step1:
   # --- Step 1.1 --- #
@@ -55,14 +59,14 @@ step2:
   sex_inconsistencies:
     # TODO: specify structure of a sex metadata file
     sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
-    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz'
-    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz'
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
     fstat_low: 0.2
     fstat_high: 0.8
 
   # --- Step 2.2 --- #
   prune:
-    pruned_mt_file: '{mtdir}/mt_ldpruned.mt'
+    pruned_mt_file: '{mtdir}/mt_ldpruned.mt' # output
     ld_prune_args:
       r2: 0.2
       # bp_window_size:
@@ -72,9 +76,9 @@ step2:
 
   # previously pc_relate
   prune_pc_relate:
-    relatedness_ht_file: '{mtdir}/mt_relatedness.ht'
-    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht'
-    scores_file: '{mtdir}/mt_pruned.pca_scores.ht'
+    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output 
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
+    scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
     pca_components: 3
     pc_relate_args:
       min_individual_maf: 0.05
@@ -89,23 +93,21 @@ step2:
   # previously population_pca
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
-
     pca_components: 4
-    pca_scores_file: '{mtdir}/mt_pca_scores.ht'
-    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht'
-    pca_mt_file: '{mtdir}/mt_pca.mt'
-
-    plot_outfile: '{pltdir}/pca.html'
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output
+    pca_mt_file: '{mtdir}/mt_pca.mt' # output
+    plot_outfile: '{pltdir}/pca.html' # output
   
   # --- Step 2.3 --- #
   create_1kg_mt:
     indir: '{1kg_resdir}'
-    vcfheader: '{1kg_resdir}/header_20201028.txt'
-    mt_out_file: '{mtdir}/kg_wes_regions.mt'
+    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt'
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
@@ -131,24 +133,23 @@ step2:
   # --- Step 2.4 --- #
   # func name: annotate_mt
   annotate_with_pop:
-    annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt'
+    annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
 
   stratified_sample_qc:
-    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt'
-    ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht'
-    qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht'
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
+    ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
+    qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
 
     min_depth: 20
     min_genotype_quality: 20
     min_vaf: 0.25
-    output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz'
-    output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json'
+    output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
+    output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
   
   # --- Step 2.5 --- #
-
   remove_sample_qc_fails:
-    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz'
-    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
+    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz' # output
+    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # output
 
 
 step3:
@@ -212,7 +213,7 @@ step3:
 
 
   # --- Step 3.4 --- #
-  # only var_qc_rf_dir is needed
+  # only var_qc_rf_dir (CVAR) is needed
 
 
   # --- Step 3.5 --- #
@@ -247,7 +248,7 @@ step3:
     n_trans_common_gnomad_af: 0.1
     n_untrans_common_gnomad_af: 0.1
 
-  
+
   # --- Step 3.7 --- #
   create_plots:
     qc_plots_settings:
@@ -268,7 +269,7 @@ step3:
   # --- Step 3.9 --- #
   annotate_mt_with_cq_rf_score_and_bin:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{resdir}/all_consequences.txt' # TODO: this file is originally missing in resource dir, using a copy of synonymous_variants.txt 
+    cqfile: '{resdir}/all_consequences.txt'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
 step4:
@@ -281,7 +282,7 @@ step4:
 
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt' # TODO: this file is originally missing in resource dir, using all_consequences.txt with 3 dummy columns added 
+    cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'
 
   apply_hard_filters:
     hard_filters:
