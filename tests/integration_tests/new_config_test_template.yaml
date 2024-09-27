@@ -256,11 +256,11 @@ step3:
       min_point_size: 1.0
       max_point_size: 16.0
       label_text_font_size: "14pt"
-      title.text_font_size: "16pt"
-      subtitle.text_font_size: "14pt"
-      axis.axis_label_text_font_size: "16pt"
-      axis.axis_label_text_font_style: "normal"
-      axis.major_label_text_font_size: "14pt"
+      title_text_font_size: "16pt"
+      subtitle_text_font_size: "14pt"
+      axis_axis_label_text_font_size: "16pt"
+      axis_axis_label_text_font_style: "normal"
+      axis_major_label_text_font_size: "14pt"
 
 
   # --- Step 3.8 --- #
