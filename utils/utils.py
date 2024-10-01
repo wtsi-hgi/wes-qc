@@ -75,9 +75,9 @@ def get_rf(
     :param str run_hash: Hash of RF run to load
     :return: Path to desired RF data
     """
-    hashdir = rf_dir + run_hash + "/"
-    model_file = hashdir + "rf.model"
-    data_file = hashdir + data + ".ht"
+    hashdir = os.path.join(rf_dir, run_hash)
+    model_file = os.path.join(hashdir, "rf.model")
+    data_file = os.path.join(hashdir, data + ".ht")
     if data == "model":
         return model_file
     else:

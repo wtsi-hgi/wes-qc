@@ -108,7 +108,7 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     )
 
     print("writing split mt")
-    mt.write(varqc_mtfile_split, overwrite=True)
+    mt.write(path_spark(varqc_mtfile_split), overwrite=True)
     # rm_mt(tmp_mt) # DEBUG: this doesn't work for me
     hfs.rmtree(tmp_mt)
 
@@ -238,25 +238,25 @@ def trio_family_dnm_annotation(varqc_mtfile: str, pedfile: str, trio_mtfile: str
     mt2 = hl.variant_qc(mt2, name = 'varqc_trios')
 
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
-    trio_dataset.write(trio_mtfile, overwrite=True)
+    trio_dataset.write(path_spark(trio_mtfile), overwrite=True)
 
     trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=False)
-    trio_stats_ht.write(trio_stats_htfile, overwrite=True)
+    trio_stats_ht.write(path_spark(trio_stats_htfile), overwrite=True)
 
     print("Generating family stats")
     (ht1, famstats_ht) = generate_family_stats(mt, pedfile)
-    ht1.write(fam_stats_htfile ,overwrite=True)
+    ht1.write(path_spark(fam_stats_htfile), overwrite=True)
 
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
-    mt = mt.checkpoint(fam_stats_mtfile, overwrite=True)
+    mt = mt.checkpoint(path_spark(fam_stats_mtfile), overwrite=True)
     #add gnomad AFs
     gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
     mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
-    mt.write(fam_stats_gnomad_mtfile, overwrite=True)
+    mt.write(path_spark(fam_stats_gnomad_mtfile), overwrite=True)
     #make DNM table
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by('locus', 'alleles').collect_by_key('de_novo_data')
-    de_novo_table.repartition(480).write(dnm_htfile, overwrite=True)
+    de_novo_table.repartition(480).write(path_spark(dnm_htfile), overwrite=True)
 
     rm_mt(fam_stats_mtfile)
 
@@ -293,7 +293,7 @@ def generate_ac(mt: hl.MatrixTable, fam_file: str) -> hl.Table:
     Creates Table with QC samples, QC samples removing children and release samples raw and adj ACs.
     """
     # mt = mt.filter_cols(mt.meta.high_quality)
-    fam_ht = hl.import_fam(fam_file, delimiter="\t")
+    fam_ht = hl.import_fam(path_spark(fam_file), delimiter="\t")
     mt = mt.annotate_cols(unrelated_sample=hl.is_missing(fam_ht[mt.s]))
     mt = mt.filter_rows(hl.len(mt.alleles) > 1)
     mt = mt.annotate_rows(
@@ -322,9 +322,9 @@ def create_inbreeding_ht_with_ac_and_allele_data(varqc_mtfile: str, pedfile: str
     allele_data_ht = generate_allele_data(mt)
     qc_ac_ht = generate_ac(mt, pedfile)
     # write to file
-    ht_inbreeding.write(inbreeding_htfile , overwrite=True)
-    qc_ac_ht.write(qc_ac_htfile , overwrite=True)
-    allele_data_ht.write(allele_data_htfile, overwrite=True)
+    ht_inbreeding.write(path_spark(inbreeding_htfile), overwrite=True)
+    qc_ac_ht.write(path_spark(qc_ac_htfile), overwrite=True)
+    allele_data_ht.write(path_spark(allele_data_htfile), overwrite=True)
 
 
 def main():
