@@ -427,7 +427,8 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str, giab_sample: Optional[str] = None
     tmpmtpr = os.path.join(mtdir, "pr.mt")
 
     mt_true = mt_true.checkpoint(tmpmtt, overwrite=True)
-    mt_false = mt_false.repartition(mt.n_partitions() // 10).checkpoint(tmpmtf, overwrite=True)
+    n_partitions = max(1, mt.n_partitions() // 10)
+    mt_false = mt_false.repartition(n_partitions).checkpoint(tmpmtf, overwrite=True)
     mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
 
     mt_prec_recall = None
@@ -436,7 +437,7 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str, giab_sample: Optional[str] = None
         mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
         mt_prec_recall = hl.variant_qc(mt_prec_recall)
         mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
-        mt_prec_recall = mt_prec_recall.repartition(mt.n_partitions() // 10).checkpoint(tmpmtpr, overwrite=True)
+        mt_prec_recall = mt_prec_recall.repartition(n_partitions).checkpoint(tmpmtpr, overwrite=True)
 
     return mt_true, mt_false, mt_syn, mt_prec_recall
 
