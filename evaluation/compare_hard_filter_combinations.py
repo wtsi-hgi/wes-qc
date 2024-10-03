@@ -5,7 +5,8 @@ import pyspark
 import datetime
 import argparse
 import json
-from utils.utils import parse_config
+from typing import Optional
+from utils.utils import parse_config, path_spark
 from utils.utils import select_founders, collect_pedigree_samples
 
 
@@ -92,8 +93,8 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
 
     mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
     giab_vars = mt.rows()
-    tmphtg = mtdir + "tmphtgx.ht"
-    giab_vars = giab_vars.checkpoint(tmphtg, overwrite = True)
+    tmphtg = path_spark(os.path.join(mtdir, "tmphtgx.ht"))
+    giab_vars = giab_vars.checkpoint(tmphtg, overwrite=True)
 
     return giab_vars
 
@@ -119,7 +120,7 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     return mt
 
 
-def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) -> dict:
+def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, config: dict) -> dict:
     '''
     Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
     :param hl.MatrixTable mt_tp: Input TP MatrixTable
@@ -132,6 +133,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
     :return: dict
     '''
     results = {'snv': {}, 'indel': {}}
+    giab_sample = config['evaluation']['giab_sample']
 
     mt = hl.read_matrix_table(mt_path)
     pedigree = hl.Pedigree.read(pedfile)
@@ -142,78 +144,78 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str) 
     mt_snp_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp.mt')
     mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
 
-    snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, mtdir=mtdir)
+    snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, mtdir=mtdir, giab_sample=None)
     results['snv_total_tp'] = snp_mt_tp.count_rows()
     results['snv_total_fp'] = snp_mt_fp.count_rows()
 
-    snp_bins = [80, 82, 84, 86, 88, 90]
-    indel_bins = [58, 60, 62, 64, 66, 68]
-    gq_vals = [10, 15, 20]
-    dp_vals = [5, 10]
-    ab_vals = [0.2, 0.3]
-    missing_vals = [0, 0.5, 0.9, 0.95]
+    snp_bins = config['evaluation']['snp_bins']
+    indel_bins = config['evaluation']['indel_bins']
+    gq_vals = config['evaluation']['gq_vals']
+    dp_vals = config['evaluation']['dp_vals']
+    ab_vals = config['evaluation']['ab_vals']
+    missing_vals = config['evaluation']['missing_vals']
 
     for bin in snp_bins:
-        bin_str = "bin_" + str(bin)
-        print("bin " + str(bin))
+        bin_str = f"bin_{bin}"
+        print(f"bin {bin}")
         mt_snp_bin = mt_snp.filter_rows(mt_snp.info.rf_bin <= bin)
 
         for dp in dp_vals:
-            dp_str = 'DP_' + str(dp)
+            dp_str = f'DP_{dp}'
             for gq in gq_vals:
-                gq_str = 'GQ_' + str(gq)
+                gq_str = f'GQ_{gq}'
                 for ab in ab_vals:
-                    ab_str = 'AB_' + str(ab)
+                    ab_str = f'AB_{ab}'
                     for call_rate in missing_vals:
                         missing_str = f'missing_{call_rate}'
-                        print(dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
-                        filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
+                        print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
+                        filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_snp_hard = apply_hard_filters(mt_snp_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
                         mt_snp_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp-hard.mt')
                         mt_snp_hard = mt_snp_hard.checkpoint(mt_snp_hard_path, overwrite=True)
 
-                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_snp_hard, mtdir=mtdir)
+                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_snp_hard, mtdir=mtdir, giab_sample=giab_sample)
 
                         snp_counts = count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp, ht_giab, pedigree, 'snv', mtdir)
                         results['snv'][filter_name] = snp_counts
 
-                        with open('/lustre/scratch123/qc/BiB/evaluation.snp.json', 'w') as f:
+                        with open(config['evaluation']['snp_json'], 'w') as f:
                             json.dump(results, f)
 
     mt_indel_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel.mt')
     mt_indel = mt_indel.repartition(mt.n_partitions() // 4).checkpoint(mt_indel_path, overwrite=True)
 
-    indel_mt_tp, indel_mt_fp, _, _ = filter_mts(mt_indel, mtdir=mtdir)
+    indel_mt_tp, indel_mt_fp, _, _ = filter_mts(mt_indel, mtdir=mtdir, giab_sample=None)
     results['indel_total_tp'] = indel_mt_tp.count_rows()
     results['indel_total_fp'] = indel_mt_fp.count_rows()
 
     for bin in indel_bins:
-        bin_str = "bin_" + str(bin)
-        print("bin " + str(bin))
+        bin_str = f"bin_{bin}"
+        print(f"bin {bin}")
         mt_indel_bin = mt_indel.filter_rows(mt_indel.info.rf_bin <= bin)
 
         for dp in dp_vals:
-            dp_str = 'DP_' + str(dp)
+            dp_str = f'DP_{dp}'
             for gq in gq_vals:
-                gq_str = 'GQ_' + str(gq)
+                gq_str = f'GQ_{gq}'
                 for ab in ab_vals:
-                    ab_str = 'AB_' + str(ab)
+                    ab_str = f'AB_{ab}'
                     for call_rate in missing_vals:
                         missing_str = f'missing_{call_rate}'
                         print(dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
-                        filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
+                        filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_indel_hard = apply_hard_filters(mt_indel_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
                         mt_indel_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel-hard.mt')
                         mt_indel_hard = mt_indel_hard.checkpoint(mt_indel_hard_path, overwrite=True)
 
-                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_indel_hard, mtdir=mtdir)
+                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_indel_hard, mtdir=mtdir, giab_sample=giab_sample)
 
                         indel_counts = count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp, ht_giab, pedigree, 'indel', mtdir)
                         results['indel'][filter_name] = indel_counts
 
-                        with open('/lustre/scratch123/qc/BiB/evaluation.indel.json', 'w') as f:
+                        with open(config['evaluation']['indel_json'], 'w') as f:
                             json.dump(results, f)
 
     return results
@@ -291,41 +293,39 @@ def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, 
     :param str mtdir: matrixtable directory
     :return: tuple
     '''
+    tmpht1 = os.path.join(mtdir, "tmppr1x.ht")
+    tmpht2 = os.path.join(mtdir, "tmppr2x.ht")
+    tmpht3 = os.path.join(mtdir, "tmppr3x.ht")
+    tmpht4 = os.path.join(mtdir, "tmppr4x.ht")
+    tmpht5 = os.path.join(mtdir, "tmppr5x.ht")
+    tmpht6 = os.path.join(mtdir, "tmppr6x.ht")
 
     if var_type == 'snv':
         giab_snvs = ht_giab.filter(hl.is_snp(ht_giab.alleles[0], ht_giab.alleles[1]))
         alspac_snvs = ht_prec_recall.filter(hl.is_snp(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        tmpht1 = mtdir + "tmppr1x.ht"
-        giab_snvs = giab_snvs.checkpoint(tmpht1, overwrite = True)
-        tmpht2 = mtdir + "tmppr2x.ht"
-        alspac_snvs = alspac_snvs.checkpoint(tmpht2, overwrite = True)
+        giab_snvs = giab_snvs.checkpoint(tmpht1, overwrite=True)
+        alspac_snvs = alspac_snvs.checkpoint(tmpht2, overwrite=True)
         p, r = calculate_precision_recall(giab_snvs, alspac_snvs)
         return p, r
 
     elif var_type == 'indel':
         giab_indels = ht_giab.filter(hl.is_indel(ht_giab.alleles[0], ht_giab.alleles[1]))
         alspac_indels = ht_prec_recall.filter(hl.is_indel(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        tmpht1 = os.path.join(mtdir, "tmppr1x.ht")
-        giab_indels = giab_indels.checkpoint(tmpht1, overwrite = True)
-        tmpht2 = os.path.join(mtdir, "tmppr2x.ht")
-        alspac_indels = alspac_indels.checkpoint(tmpht2, overwrite = True)
+        giab_indels = giab_indels.checkpoint(tmpht1, overwrite=True)
+        alspac_indels = alspac_indels.checkpoint(tmpht2, overwrite=True)
         p, r = calculate_precision_recall(giab_indels, alspac_indels)
 
         giab_frameshift = giab_indels.filter(giab_indels.consequence == 'frameshift_variant')
         alspac_frameshift = alspac_indels.filter(alspac_indels.consequence == 'frameshift_variant')
-        tmpht3 = os.path.join(mtdir, "tmppr3x.ht")
         giab_frameshift = giab_frameshift.checkpoint(tmpht3, overwrite = True)
-        tmpht4 = os.path.join(mtdir, "tmppr4x.ht")
         alspac_frameshift = alspac_frameshift.checkpoint(tmpht4, overwrite = True)
         p_f, r_f = calculate_precision_recall(giab_frameshift, alspac_frameshift)
 
         inframe_cqs = ['inframe_deletion', 'inframe_insertion']
         giab_in_frame = giab_indels.filter(hl.literal(inframe_cqs).contains(giab_indels.consequence))
         alspac_in_frame = alspac_indels.filter(hl.literal(inframe_cqs).contains(alspac_indels.consequence))
-        tmpht5 = os.path.join(mtdir, "tmppr5x.ht")
-        giab_in_frame = giab_in_frame.checkpoint(tmpht5, overwrite = True)
-        tmpht6 = os.path.join(mtdir, "tmppr6x.ht")
-        alspac_in_frame = alspac_in_frame.checkpoint(tmpht6, overwrite = True)
+        giab_in_frame = giab_in_frame.checkpoint(tmpht5, overwrite=True)
+        alspac_in_frame = alspac_in_frame.checkpoint(tmpht6, overwrite=True)
         p_if, r_if = calculate_precision_recall(giab_in_frame, alspac_in_frame)
 
         return p, r, p_f, r_f, p_if, r_if
@@ -375,12 +375,12 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> 
     mt_founders = hl.variant_qc(mt_founders, name='varqc_founders')
 
     mt2 = mt2.annotate_rows(varqc_trios=hl.Struct(AC=mt_founders.index_rows(mt2.row_key).varqc_founders.AC))
-    tmpmt3 = os.path.join(mtdir, "tmp3x.mt")
+    tmpmt3 = os.path.join(mtdir, "tmp1x.mt")
     mt2 = mt2.checkpoint(tmpmt3, overwrite=True)
 
     # split to potentially transmitted/untransmitted
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt5 = os.path.join(mtdir, "tmp5x.mt")
+    tmpmt5 = os.path.join(mtdir, "tmp2x.mt")
     trans_mt = trans_mt.checkpoint(tmpmt5, overwrite=True)
 
     # run tdt function for potential trans and untrans
@@ -409,17 +409,17 @@ def count_tp_fp(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable) -> tuple:
     return tp_count, fp_count
 
 
-def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
+def filter_mts(mt: hl.MatrixTable, mtdir: str, giab_sample: Optional[str] = None) -> tuple:
     '''
     Split matrixtable and return tables with just TP, just FP, just synonymous
     :param hl.MatrixTable mt: Input mtfile
     :param st mtdir: matrixtable directory
+    :param giab_sample: sample name of GiaB sample in cohort data
     :return: tuple of 4 hl.MatrixTable objects
     '''
     mt_true = mt.filter_rows(mt.TP == True)  # TP variants
     mt_false = mt.filter_rows(mt.FP == True)  # FP variants
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')  # synonymous for transmitted/unstransmitted
-    sample = 'EGAN00004265526'  # GIAB12878/HG001
 
     tmpmtt = os.path.join(mtdir, "tp.mt")
     tmpmtf = os.path.join(mtdir, "fp.mt")
@@ -430,11 +430,13 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
     mt_false = mt_false.repartition(mt.n_partitions() // 10).checkpoint(tmpmtf, overwrite=True)
     mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
 
-    mt_prec_recall = mt.filter_cols(mt.s == sample)  # GIAB sample for precision/recall
-    mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
-    mt_prec_recall = hl.variant_qc(mt_prec_recall)
-    mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
-    mt_prec_recall = mt_prec_recall.repartition(mt.n_partitions() // 10).checkpoint(tmpmtpr, overwrite=True)
+    mt_prec_recall = None
+    if giab_sample is not None:
+        mt_prec_recall = mt.filter_cols(mt.s == giab_sample)  # GIAB sample for precision/recall
+        mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
+        mt_prec_recall = hl.variant_qc(mt_prec_recall)
+        mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
+        mt_prec_recall = mt_prec_recall.repartition(mt.n_partitions() // 10).checkpoint(tmpmtpr, overwrite=True)
 
     return mt_true, mt_false, mt_syn, mt_prec_recall
 
@@ -485,45 +487,45 @@ def print_results(results: dict, outfile: str, vartype: str):
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    rf_dir = inputs['var_qc_rf_dir']
-    resourcedir = inputs['resource_dir']
-    plot_dir = inputs['plots_dir_local']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    rf_dir = config['general']['var_qc_rf_dir']
+    plot_dir = config['general']['plots_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    giab_vcf = resourcedir + "HG001_GRCh38_benchmark.interval.illumina.vcf.gz"
-    giab_cqfile = resourcedir + "all.interval.illumina.vep.info.txt"
+    giab_vcf = path_spark(config['evaluation']['giab_vcf'])
+    giab_cqfile = path_spark(config['evaluation']['giab_cqfile'])
     giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
 
-    rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    cqfile = resourcedir + "all_consequences.txt"
-    pedfile = "file:///lustre/scratch123/qc/BiB/trios.EGAN.complete.ped"
-    wd = os.path.join(mtdir, args.runhash)
+    rf_htfile = path_spark(os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht"))
+    mtfile = path_spark(config['step3']['split_multi_and_var_qc']['varqc_mtoutfile_split'])
+    cqfile = path_spark(config['step3']['annotate_mt_with_cq_rf_score_and_bin']['cqfile'])
+    pedfile = path_spark(config['step3']['pedfile'])
+    wd = path_spark(os.path.join(mtdir, args.runhash))
 
     mt = hl.read_matrix_table(mtfile)
     mt = clean_mt(mt)
     mt_annot = annotate_with_rf(mt, rf_htfile)
     mt_annot = annotate_cq(mt_annot, cqfile)
 
-    mt_annot_path = os.path.join(wd, 'tmp.hard_filters_combs.mt')
-    # mt_annot.write(mt_annot_path, overwrite=True)
+    mt_annot_path = path_spark(os.path.join(wd, 'tmp.hard_filters_combs.mt'))
+    mt_annot.write(mt_annot_path, overwrite=True)
 
     results = filter_and_count(
         mt_path=mt_annot_path,
         ht_giab=giab_ht,
         pedfile=pedfile,
-        mtdir=wd
+        mtdir=wd,
+        config=config
     )
 
-    outfile_snv = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_snv_5.txt"
-    outfile_indel = plot_dir + "/" + args.runhash + "_genotype_hard_filter_comparison_indel_5.txt"
+    outfile_snv = os.path.join(plot_dir, args.runhash + config['evaluation']['snp_tsv_filesuffix'])
+    outfile_indel = os.path.join(plot_dir, args.runhash + config['evaluation']['indel_tsv_filesuffix'])
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 

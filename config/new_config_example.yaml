@@ -295,6 +295,21 @@ step3:
     cqfile: '{resdir}/all_consequences.txt'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
+  evaluation:
+    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
+    giab_sample: ''
+    snp_bins: []
+    indel_bins: []
+    gq_vals: [10, 15, 20]
+    dp_vals: [5, 10]
+    ab_vals: [0.2, 0.3]
+    missing_vals: [0, 0.5, 0.9, 0.95]
+    snp_json: '{anndir}/evaluation.snp.json'
+    snp_tsv_filesuffix: '_genotype_hard_filter_comparison_snv.txt'
+    indel_json: '{anndir}/evaluation.indel.json'
+    indel_tsv_filesuffix: '_genotype_hard_filter_comparison_indel.txt'
+
 step4:
   # --- Step 4.1 --- #
   filter_mt:
