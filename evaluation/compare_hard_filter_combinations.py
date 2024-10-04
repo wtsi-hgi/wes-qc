@@ -2,9 +2,9 @@
 import os.path
 import hail as hl
 import pyspark
-import datetime
 import argparse
 import json
+import logging
 from typing import Optional
 from utils.utils import parse_config, path_spark
 from utils.utils import select_founders, collect_pedigree_samples
@@ -77,6 +77,7 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
     :param str mtdir: MatrixTable directory
     :return: hl.Table
     '''
+    logging.info("Preparing GiaB HailTable")
     mt = hl.import_vcf(giab_vcf, force_bgz=True, reference_genome='GRCh38')
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
@@ -122,14 +123,12 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
 
 def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, config: dict) -> dict:
     '''
-    Filter MT by various bins followed by genotype GQ and cauclate % of FP and TP remaining for each bifn
-    :param hl.MatrixTable mt_tp: Input TP MatrixTable
-    :param hl.MatrixTable mt_fp: Input FP MatrixTable
-    :param hl.MatrixTable mt_syn: Input synonymous MatrixTable
-    :param hl.MatrixTable mt_prec_recall: mt from GIAB sample for precision/recall analysys
+    Filter MT by various bins followed by genotype GQ and calculate % of FP and TP remaining for each bin
     :param hl.Table ht_giab: GIAB variants
-    :param str plot_dir: directory for output files 
     :param str mtdir: matrixtable directory
+    :param mt_path: path to matrixtable
+    :param pedfile: path to trio file
+    :param config: config object
     :return: dict
     '''
     results = {'snv': {}, 'indel': {}}
@@ -157,7 +156,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
 
     for bin in snp_bins:
         bin_str = f"bin_{bin}"
-        print(f"bin {bin}")
+        logging.info(f"bin {bin}")
         mt_snp_bin = mt_snp.filter_rows(mt_snp.info.rf_bin <= bin)
 
         for dp in dp_vals:
@@ -168,23 +167,24 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
                     ab_str = f'AB_{ab}'
                     for call_rate in missing_vals:
                         missing_str = f'missing_{call_rate}'
-                        print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
+                        logging.info(f'{dp_str} {gq_str} {ab_str} {missing_str}')
                         filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_snp_hard = apply_hard_filters(mt_snp_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
                         mt_snp_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp-hard.mt')
                         mt_snp_hard = mt_snp_hard.checkpoint(mt_snp_hard_path, overwrite=True)
 
-                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_snp_hard, mtdir=mtdir, giab_sample=giab_sample)
+                        mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_snp_hard, mtdir=mtdir, giab_sample=giab_sample)
 
-                        snp_counts = count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp, ht_giab, pedigree, 'snv', mtdir)
+                        snp_counts = count_tp_fp_t_u(mt_tp, mt_fp, mt_syn, mt_prec_recall, ht_giab, pedigree, 'snv', mtdir)
                         results['snv'][filter_name] = snp_counts
 
                         with open(config['evaluation']['snp_json'], 'w') as f:
                             json.dump(results, f)
 
     mt_indel_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel.mt')
-    mt_indel = mt_indel.repartition(mt.n_partitions() // 4).checkpoint(mt_indel_path, overwrite=True)
+    n_partitions = max(1, mt.n_partitions() // 4)
+    mt_indel = mt_indel.repartition(n_partitions).checkpoint(mt_indel_path, overwrite=True)
 
     indel_mt_tp, indel_mt_fp, _, _ = filter_mts(mt_indel, mtdir=mtdir, giab_sample=None)
     results['indel_total_tp'] = indel_mt_tp.count_rows()
@@ -210,9 +210,9 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
                         mt_indel_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel-hard.mt')
                         mt_indel_hard = mt_indel_hard.checkpoint(mt_indel_hard_path, overwrite=True)
 
-                        mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp = filter_mts(mt_indel_hard, mtdir=mtdir, giab_sample=giab_sample)
+                        mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_indel_hard, mtdir=mtdir, giab_sample=giab_sample)
 
-                        indel_counts = count_tp_fp_t_u(mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_prec_recall_tmp, ht_giab, pedigree, 'indel', mtdir)
+                        indel_counts = count_tp_fp_t_u(mt_tp, mt_fp, mt_syn, mt_prec_recall, ht_giab, pedigree, 'indel', mtdir)
                         results['indel'][filter_name] = indel_counts
 
                         with open(config['evaluation']['indel_json'], 'w') as f:
@@ -242,7 +242,7 @@ def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rat
     return mt_tmp
 
 
-def count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, mt_prec_recall: hl.Table, ht_giab: hl.Table, pedigree: hl.Pedigree, var_type: str, mtdir: str):
+def count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.MatrixTable, mt_prec_recall: Optional[hl.Table], ht_giab: hl.Table, pedigree: hl.Pedigree, var_type: str, mtdir: str):
     '''
     Filter mt by each rf bin in a list, then genotype hard filters and count remaining TP and P variants
     :param hl.MatrixTable mt_tp: Input TP MatrixTable
@@ -257,10 +257,7 @@ def count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Mat
     '''
     results = {}
 
-    now = datetime.datetime.now()
-    print(now.time())
-
-    ht_prec_recall = mt_prec_recall.rows()
+    logging.debug(f'Executing count_tp_fp_t_u')
 
     counts = count_tp_fp(mt_tp, mt_fp)
     results['TP'] = counts[0]
@@ -268,18 +265,23 @@ def count_tp_fp_t_u(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Mat
 
     if var_type == 'snv':
         ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
-        prec, recall = get_prec_recall(ht_prec_recall, ht_giab, 'snv', mtdir)
         results['t_u_ratio'] = ratio
-        results['prec'] = prec
-        results['recall'] = recall
-    else:
-        prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = get_prec_recall(ht_prec_recall, ht_giab, 'indel', mtdir)
-        results['prec'] = prec
-        results['recall'] = recall
-        results['prec_inframe'] = prec_inframe
-        results['recall_inframe'] = recall_inframe
-        results['prec_frameshift'] = prec_frameshift
-        results['recall_frameshift'] = recall_frameshift
+
+    if mt_prec_recall is not None:
+        ht_prec_recall = mt_prec_recall.rows()
+
+        if var_type == 'snv':
+            prec, recall = get_prec_recall(ht_prec_recall, ht_giab, 'snv', mtdir)
+            results['prec'] = prec
+            results['recall'] = recall
+        else:
+            prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = get_prec_recall(ht_prec_recall, ht_giab, 'indel', mtdir)
+            results['prec'] = prec
+            results['recall'] = recall
+            results['prec_inframe'] = prec_inframe
+            results['recall_inframe'] = recall_inframe
+            results['prec_frameshift'] = prec_frameshift
+            results['recall_frameshift'] = recall_frameshift
 
     return results
 
@@ -469,16 +471,16 @@ def print_results(results: dict, outfile: str, vartype: str):
             outline = [var_f, tp, fp]
             if vartype == 'snv':
                 tu = str(results[vartype][var_f]['t_u_ratio'])
-                p = str(results[vartype][var_f]['prec'])
-                r = str(results[vartype][var_f]['recall'])
+                p = str(results[vartype][var_f].get('prec', ''))
+                r = str(results[vartype][var_f].get('recall', ''))
                 outline = outline + [tu, p, r]
             elif vartype == 'indel':
-                p = str(results[vartype][var_f]['prec'])
-                r = str(results[vartype][var_f]['recall']) 
-                p_f = str(results[vartype][var_f]['prec_frameshift'])
-                r_f = str(results[vartype][var_f]['recall_frameshift']) 
-                p_if = str(results[vartype][var_f]['prec_inframe'])
-                r_if = str(results[vartype][var_f]['recall_inframe']) 
+                p = str(results[vartype][var_f].get('prec', ''))
+                r = str(results[vartype][var_f].get('recall', ''))
+                p_f = str(results[vartype][var_f].get('prec_frameshift', ''))
+                r_f = str(results[vartype][var_f].get('recall_frameshift', ''))
+                p_if = str(results[vartype][var_f].get('prec_inframe', ''))
+                r_if = str(results[vartype][var_f].get('recall_inframe', ''))
                 outline = outline + [p, r, p_f, r_f, p_if, r_if]
 
             o.write(("\t").join(outline))
@@ -532,4 +534,5 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     main()

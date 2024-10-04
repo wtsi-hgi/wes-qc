@@ -298,7 +298,7 @@ step3:
 evaluation:
   giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
   giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
-  giab_sample: ''
+  giab_sample: null
   snp_bins: []
   indel_bins: []
   gq_vals: [10, 15, 20]
