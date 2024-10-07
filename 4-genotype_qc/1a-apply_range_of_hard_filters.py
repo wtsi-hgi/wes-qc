@@ -3,6 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
+import os.path
 from utils.utils import parse_config, path_spark, path_local
 
 
@@ -263,7 +264,7 @@ def main():
 
     # exclude_file = annotdir + "to_be_excluded_exome.txt" # not used
 
-    rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht" # move runhash to config
+    rf_htfile = os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht")  # move runhash to config
     mtfile = config['step4']['annotate_cq_rf']['mtfile']
     cqfile = config['step4']['annotate_cq_rf']['cqfile'] 
     mtfile_annot = config['step4']['mtoutfile_annot']
