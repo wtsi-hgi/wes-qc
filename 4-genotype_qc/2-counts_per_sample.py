@@ -6,7 +6,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import os
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable:
@@ -286,17 +286,17 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mtfile = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
-    gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+    mtfile = os.path.join(mtdir, "mt_after_var_qc_hard_filter_gt.mt")
+    gnomad_htfile = os.path.join(resourcedir, "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht")
     mt = hl.read_matrix_table(mtfile)
 
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    pedfile = resourcedir + "trios.ped"
+    pedfile = os.path.join(resourcedir, "trios.fam")
     get_trans_untrans_synon_singleton_counts(mt, pedfile)
 
-    cqfile = plot_dir + "/variant_counts_per_cq_post_qc.txt"
-    cafile = plot_dir + "/frac_ca_per_sample_post_qc_snv.txt"
+    cqfile = os.path.join(plot_dir, "variant_counts_per_cq_post_qc.txt")
+    cafile = os.path.join(plot_dir, "frac_ca_per_sample_post_qc_snv.txt")
 
     get_counts_per_cq(mt, cqfile)
     get_ca_fractions(mt, cafile)

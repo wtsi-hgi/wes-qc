@@ -1,8 +1,9 @@
 #export to VCF after filtering 
 #TODO fix header. decide what fields are needed in the VCF
+import os.path
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def export_vcfs(mtfile: str, vcf_dir: str):
@@ -12,16 +13,23 @@ def export_vcfs(mtfile: str, vcf_dir: str):
     :param str vcf_dir: Directory for output VCFs
     '''
     metadata = {
-        'info': {'consequence': {'Description': 'Most severe consequence from VEP104',
-                   'Number': 'A',
-                   'Type': 'String'},
-                   'rf_score': {'Description': 'Score from variant QC randon forest',
-                   'Number': 'A',
-                   'Type': 'Float'},
-                   'rf_bin': {'Description': 'Bin from variant QC random forest',
-                   'Number': 'A',
-                   'Type': 'Integer'}
-                }
+        'info': {
+            'consequence': {
+                'Description': 'Most severe consequence from VEP110',
+                'Number': 'A',
+                'Type': 'String'
+            },
+            'rf_score': {
+                'Description': 'Score from variant QC randon forest',
+                'Number': 'A',
+                'Type': 'Float'
+            },
+            'rf_bin': {
+                'Description': 'Bin from variant QC random forest',
+                'Number': 'A',
+                'Type': 'Integer'
+            }
+        }
     }
 
     mt = hl.read_matrix_table(mtfile)
@@ -32,9 +40,9 @@ def export_vcfs(mtfile: str, vcf_dir: str):
     chromosomes=["chr"+ str(chr) for chr in chroms]
     for chromosome in chromosomes:
         print("Exporting " + chromosome)
-        mt_chrom=mt.filter_rows(mt.locus.contig==chromosome)
-        outfile = vcf_dir + chromosome + "_filtered.vcf.bgz"
-        hl.export_vcf(mt_chrom, outfile, metadata = metadata)
+        mt_chrom=mt.filter_rows(mt.locus.contig == chromosome)
+        outfile = os.path.join(vcf_dir, chromosome + "_filtered.vcf.bgz")
+        hl.export_vcf(mt_chrom, outfile, metadata=metadata)
 
 
 def main():
@@ -49,7 +57,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
+    mtfile_filtered = os.path.join(mtdir, "mt_after_var_qc_hard_filter_gt.mt")
     export_vcfs(mtfile_filtered, filtered_vcf_dir)
 
 

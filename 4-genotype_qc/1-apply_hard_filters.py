@@ -1,4 +1,5 @@
 #apply hard filters to genotypes
+import os.path
 import hail as hl
 import pyspark
 import argparse
@@ -72,8 +73,8 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    mtfile = mtdir + "mt_after_var_qc.mt"
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
+    mtfile = os.path.join(mtdir, "mt_after_var_qc.mt")
+    mtfile_filtered = os.path.join(mtdir, "mt_after_var_qc_hard_filter_gt.mt")
     filter_mt(mtfile, args.dp, args.gq, args.ab, mtfile_filtered)
 
 
