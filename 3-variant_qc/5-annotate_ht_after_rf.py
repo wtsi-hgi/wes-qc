@@ -2,6 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
+import os.path
 from utils.utils import parse_config, rm_mt, path_spark, path_local
 
 
@@ -141,7 +142,7 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     # mt_filtered = mt_trios.filter_entries((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_rows((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_entries((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    mt_filtered = mt_filtered.checkpoint(trio_filtered_mtfile, overwrite=True)
+    mt_filtered = mt_filtered.checkpoint(path_spark(trio_filtered_mtfile), overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
     ht.write(path_spark(trans_sing_htfile), overwrite=True)
@@ -195,25 +196,25 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    # shouldn't be in the config as the run hash is provided trough the command line
-    htfile = rf_dir + args.runhash + "/rf_result.ht" 
+    # shouldn't be in the config as the run hash is provided through the command line
+    htfile = os.path.join(rf_dir, args.runhash, "rf_result.ht")
 
     # annotate with synonymous CQs
     synonymous_file = config['step3']['add_cq_annotation']['synonymous_file']
-    ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht" # outfile
+    ht_cq_file = os.path.join(rf_dir, args.runhash, "rf_result_with_synonymous.ht")  # outfile
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
 
     # annotate with family stats and DNMs
     dnm_htfile = config['step3']['dnm_and_family_annotation']['dnm_htfile']
     fam_stats_htfile = config['step3']['dnm_and_family_annotation']['fam_stats_htfile']
     trio_stats_htfile = config['step3']['dnm_and_family_annotation']['trio_stats_htfile']
-    family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht" # outfile
+    family_annot_htfile = os.path.join(rf_dir, args.runhash, "rf_result_denovo_family_stats.ht")  # outfile
     dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
 
     #annotate with transmitted singletons
     trio_mtfile = config['step3']['transmitted_singleton_annotation']['trio_mtfile']
     trio_filtered_mtfile = config['step3']['transmitted_singleton_annotation']['trio_filtered_mtfile']
-    trans_sing_htfile = rf_dir + args.runhash + "/rf_result_trans_sing.ht" # outfile
+    trans_sing_htfile = os.path.join(rf_dir, args.runhash, "rf_result_trans_sing.ht")  # outfile
     transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_filtered_mtfile, trans_sing_htfile)
 
     #annotate with number transmitted, number untransmitted (from transmission disequilibrium test)
@@ -223,7 +224,7 @@ def main():
     # run_tdt(mtfile, trans_sing_htfile, pedfile, tdt_htfile)
 
     #annotate with gnomad AF
-    final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht" # outfile
+    final_htfile = os.path.join(rf_dir, args.runhash, "rf_result_final_for_ranking.ht")  # outfile
     gnomad_htfile = config['step3']['annotate_gnomad']['gnomad_htfile']
     annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
 

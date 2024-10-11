@@ -82,9 +82,9 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     )
 
     ht = ht.repartition(n_partitions, shuffle=False)
-    ht = ht.checkpoint(htfile_rf_all_cols, overwrite=True)
+    ht = ht.checkpoint(path_spark(htfile_rf_all_cols), overwrite=True)
     ht = median_impute_features(ht, strata={"variant_type": ht.variant_type})
-    ht.write(htfile_rf_var_type_all_cols, overwrite=True)
+    ht.write(path_spark(htfile_rf_var_type_all_cols), overwrite=True)
 
 
 def main():
