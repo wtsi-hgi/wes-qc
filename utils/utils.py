@@ -105,7 +105,28 @@ import subprocess
 # === Utils for downloading test data from the s3 storage === #
 
 TEST_DATA_FILENAME = 'all_test_data.zip'
-TEST_DATA_DOWNLOAD_URL = f'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}'
+TEST_DATA_ARCHIVE_URL = f'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}'
+TEST_DATA_PARENT_DIR_URL = f'https://wes-qc-data.cog.sanger.ac.uk'
+
+# TODO: download using a .txt file with the list of all files instead of archiving
+# TODO: test this draft
+def download_test_data_using_files_list(files_list: str, outdir: str) -> None:
+    """ `files_list` must be generated with the following command ran from the directory with the test data:
+    ```
+    find . -print > ../files_list.txt
+    ```
+    Then it can be used as an input to this function.
+    """
+    with open(files_list, 'r') as f:
+        all_files = f.readlines()[1:] # skip the current dir row
+
+    for file_path in all_files:
+        file_url = file_path.replace('.', TEST_DATA_PARENT_DIR_URL, 1) # create download urls for each file
+        file_path_relative_to_current_dir = file_path.replace('.', '', 1)
+
+        file_destination = os.path.normpath(os.path.join(outdir, file_path_relative_to_current_dir)) # remove possible double slashes
+        subprocess.run(['wget', '-nc', file_url, '-P', file_destination]) # downlaod the file into destination
+
 
 # TODO: make versatile, don't download if already exists
 def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir: bool = False) -> None:
@@ -129,7 +150,7 @@ def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir:
     """
     print(f'Downloading data from the s3 bucket') # TODO: improve logging
     # Download zipped archive with all the data
-    subprocess.run(['wget', '-nc', TEST_DATA_DOWNLOAD_URL, '-P', outdir]) # skip existing
+    subprocess.run(['wget', '-nc', TEST_DATA_ARCHIVE_URL, '-P', outdir]) # skip existing
 
     # Unzip the data
     print(f'Unzipping the data')
