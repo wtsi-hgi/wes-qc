@@ -2,7 +2,8 @@
 import hail as hl
 import pyspark
 import argparse
-from utils.utils import parse_config, rm_mt
+import os.path
+from utils.utils import parse_config, rm_mt, path_spark, path_local
 
 
 def get_options():
@@ -26,7 +27,10 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     ;param str synonymous_file: text file containing synonymous variants
     ;param str ht_cq_fle: Output hail table file annotated with synonymous variants
     '''
-    synonymous_ht=hl.import_table(synonymous_file,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'}, no_header=True)
+    # DEBUG: test if file:// prefix is needed for this function
+    synonymous_ht=hl.import_table(path_spark(synonymous_file), 
+                                  types={'f0': 'str', 'f1': 'int32', 'f2': 'str', 'f3': 'str', 'f4': 'str', 'f5': 'str'}, 
+                                  no_header=True)
     synonymous_ht=synonymous_ht.annotate(chr=synonymous_ht.f0)
     synonymous_ht=synonymous_ht.annotate(pos=synonymous_ht.f1)
     synonymous_ht=synonymous_ht.annotate(rs=synonymous_ht.f2)
@@ -39,9 +43,9 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     synonymous_ht=synonymous_ht.drop(synonymous_ht.f0,synonymous_ht.f1,synonymous_ht.f2,synonymous_ht.f3,synonymous_ht.f4,synonymous_ht.chr,synonymous_ht.pos,synonymous_ht.ref,synonymous_ht.alt)
     synonymous_ht = synonymous_ht.key_by(synonymous_ht.locus, synonymous_ht.alleles)
 
-    ht = hl.read_table(htfile)
+    ht = hl.read_table(path_spark(htfile))
     ht=ht.annotate(consequence=synonymous_ht[ht.key].consequence)
-    ht.write(ht_cq_file, overwrite=True)
+    ht.write(path_spark(ht_cq_file), overwrite=True)
 
 
 def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, family_annot_htfile: str):
@@ -53,14 +57,14 @@ def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile:
     :param str trio_stats_htfile: Trio stats hail table file
     :param str family_annot_htfile: Output hail table annotated with DNMs and family stats file
     '''
-    ht = hl.read_table(ht_cq_fle)
-    dnm_ht = hl.read_table(dnm_htfile)
-    fam_stats_ht = hl.read_table(fam_stats_htfile)
-    trio_stats_ht = hl.read_table(trio_stats_htfile)
+    ht = hl.read_table(path_spark(ht_cq_fle))
+    dnm_ht = hl.read_table(path_spark(dnm_htfile))
+    fam_stats_ht = hl.read_table(path_spark(fam_stats_htfile))
+    trio_stats_ht = hl.read_table(path_spark(trio_stats_htfile))
     ht=ht.annotate(de_novo_data=dnm_ht[ht.key].de_novo_data)
     ht=ht.annotate(family_stats=fam_stats_ht[ht.key].family_stats)
     ht=ht.annotate(fam=trio_stats_ht[ht.key])
-    ht.write(family_annot_htfile, overwrite=True)
+    ht.write(path_spark(family_annot_htfile), overwrite=True)
 
 
 def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Table) -> hl.Table:
@@ -88,7 +92,7 @@ def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Tab
     
 
     
-    Total_transmitted_singletons=mt_trans_count.aggregate_entries(hl.agg.count_where(mt_trans_count.transmitted_singletons_count >0))
+    Total_transmitted_singletons=mt_trans_count.aggregate_entries(hl.agg.count_where(mt_trans_count.transmitted_singletons_count > 0))
     print(Total_transmitted_singletons)
     
     mt_untrans_count = (mt_untrans.group_cols_by(mt_untrans.id).aggregate(
@@ -101,7 +105,7 @@ def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Tab
                     (mt_untrans.mother_entry.GT.is_non_ref())
                     )
                      )))
-    Total_untransmitted_singletons=mt_untrans_count.aggregate_entries(hl.agg.count_where(mt_untrans_count.untransmitted_singletons_count >0))
+    Total_untransmitted_singletons=mt_untrans_count.aggregate_entries(hl.agg.count_where(mt_untrans_count.untransmitted_singletons_count > 0))
     print(Total_untransmitted_singletons)
     
     print(f"\nTransmitted singletons:{Total_transmitted_singletons}\n")
@@ -118,7 +122,7 @@ def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Tab
 
     ht=ht.annotate(variant_transmitted_singletons=mt2.rows()[ht.key].variant_transmitted_singletons)
     ht=ht.annotate(variant_untransmitted_singletons=mt3.rows()[ht.key].variant_untransmitted_singletons)
-    return(ht)    
+    return ht   
 
 
 def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str, trio_filtered_mtfile: str, trans_sing_htfile: str):
@@ -130,18 +134,18 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     :param str trans_sing_htfile: Variant QC hail table file with transmitted singleton annotation
     '''
     print("Annotating with transmitted singletons")
-    ht = hl.read_table(family_annot_htfile)
-    mt_trios = hl.read_matrix_table(trio_mtfile)
+    ht = hl.read_table(path_spark(family_annot_htfile))
+    mt_trios = hl.read_matrix_table(path_spark(trio_mtfile))
     mt_trios = mt_trios.annotate_rows(consequence=ht[mt_trios.row_key].consequence)
     #there is a save step here in Pavlos file, is it needed? 
     # mt_filtered = mt_trios.filter_rows((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     # mt_filtered = mt_trios.filter_entries((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_rows((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
     mt_filtered = mt_trios.filter_entries((mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    mt_filtered = mt_filtered.checkpoint(trio_filtered_mtfile, overwrite=True)
+    mt_filtered = mt_filtered.checkpoint(path_spark(trio_filtered_mtfile), overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
-    ht.write(trans_sing_htfile, overwrite=True)
+    ht.write(path_spark(trans_sing_htfile), overwrite=True)
     rm_mt(trio_filtered_mtfile)
 
 
@@ -172,8 +176,8 @@ def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
     :param str final_htfile: Final RF htfile for ranking and binning
     '''
     print("Annotating with gnomad AF")
-    ht = hl.read_table(tdt_htfile)
-    gnomad_ht = hl.read_table(gnomad_htfile)
+    ht = hl.read_table(path_spark(tdt_htfile))
+    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
     ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].freq[0].AF)
     ht.write(final_htfile, overwrite = True)
 
@@ -181,33 +185,36 @@ def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
+    config = parse_config()
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
+    mtdir = config['general']['matrixtables_dir']
+    resourcedir = config['general']['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    htfile = rf_dir + args.runhash + "/rf_result.ht"
-    #annotate with synonymous CQs
-    synonymous_file = resourcedir + "synonymous_variants.txt"
-    ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht"
+    # shouldn't be in the config as the run hash is provided through the command line
+    htfile = os.path.join(rf_dir, args.runhash, "rf_result.ht")
+
+    # annotate with synonymous CQs
+    synonymous_file = config['step3']['add_cq_annotation']['synonymous_file']
+    ht_cq_file = os.path.join(rf_dir, args.runhash, "rf_result_with_synonymous.ht")  # outfile
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
-    #annotate with family stats and DNMs
-    dnm_htfile = mtdir + "denovo_table.ht"
-    fam_stats_htfile = mtdir + "family_stats.ht"
-    trio_stats_htfile = mtdir + "trio_stats.ht"
-    family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht"
+
+    # annotate with family stats and DNMs
+    dnm_htfile = config['step3']['dnm_and_family_annotation']['dnm_htfile']
+    fam_stats_htfile = config['step3']['dnm_and_family_annotation']['fam_stats_htfile']
+    trio_stats_htfile = config['step3']['dnm_and_family_annotation']['trio_stats_htfile']
+    family_annot_htfile = os.path.join(rf_dir, args.runhash, "rf_result_denovo_family_stats.ht")  # outfile
     dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
 
     #annotate with transmitted singletons
-    trio_mtfile = mtdir + "trios.mt"
-    trio_filtered_mtfile = mtdir + "trios_filtered_.mt"
-    trans_sing_htfile = rf_dir + args.runhash + "/rf_result_trans_sing.ht"
+    trio_mtfile = config['step3']['transmitted_singleton_annotation']['trio_mtfile']
+    trio_filtered_mtfile = config['step3']['transmitted_singleton_annotation']['trio_filtered_mtfile']
+    trans_sing_htfile = os.path.join(rf_dir, args.runhash, "rf_result_trans_sing.ht")  # outfile
     transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_filtered_mtfile, trans_sing_htfile)
 
     #annotate with number transmitted, number untransmitted (from transmission disequilibrium test)
@@ -217,8 +224,8 @@ def main():
     # run_tdt(mtfile, trans_sing_htfile, pedfile, tdt_htfile)
 
     #annotate with gnomad AF
-    final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+    final_htfile = os.path.join(rf_dir, args.runhash, "rf_result_final_for_ranking.ht")  # outfile
+    gnomad_htfile = config['step3']['annotate_gnomad']['gnomad_htfile']
     annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
 
 

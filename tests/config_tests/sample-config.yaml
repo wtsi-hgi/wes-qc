@@ -1,0 +1,50 @@
+# Sample config to test config parser
+# - cvar_custom should point to group_0.not_cvar
+
+cvars:
+  cvar_3: group_0.not_cvar
+
+cvar_1: /dev/null/
+
+group_0:
+  # CVAR cvar_3
+  not_cvar: /lorem/ipsum/
+
+group_1:
+  cvar_2: /foo/bar/
+
+group_2:
+  # should become /dev/null/baz.baz
+  f1_file: '{cvar_1}/baz.baz'
+  # should become /foo/bar/baz.baz
+  f2_file: '{group_1.cvar_2}/baz.baz'
+  # should become /lorem/ipsum/baz.baz
+  f3_file: '{cvar_3}/baz.baz'
+  # should become /lorem/ipsum/baz.baz
+  f4_file: '{cvar_custom}/baz.baz'
+
+  subgroup:
+    # should become /dev/null/baz.baz
+    f1_file: '{cvar_1}/baz.baz'
+    # should become /foo/bar/baz.baz
+    f2_file: '{group_1.cvar_2}/baz.baz'
+    # should become /lorem/ipsum/baz.baz
+    f3_file: '{cvar_3}/baz.baz'
+    # should become /lorem/ipsum/baz.baz
+    f4_file: '{cvar_custom}/baz.baz'
+
+  a1: 100.0
+
+# should remain empty
+empty_file: ''
+
+# recurrent substitution test
+# misc substitution tests
+group_3:
+  subgroup:
+    f1: '12345'
+    f2: '{group_3.subgroup.f1}_1' # -> 12345_1
+    f3: '{group_3.subgroup.f2}2' # -> 12345_12
+  f4: '{group_3.subgroup.f3}3' # -> 12345_123
+  f5: '{group_3.f4}4' # -> 12345_1234
+  f1_1: '{group_3.subgroup.f2}x{group_3.f4}' # -> 12345_1x12345_123

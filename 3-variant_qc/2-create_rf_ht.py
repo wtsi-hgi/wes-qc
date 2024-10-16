@@ -1,12 +1,14 @@
-#create hail table for random forest
+# create hail table for random forest
 import hail as hl
 import pyspark
 import utils.constants as constants
-from utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 from gnomad.variant_qc.random_forest import median_impute_features
 
 
-def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_data_file: str, allele_counts_file: str, inbreeding_file: str, htfile_rf_all_cols: str, htfile_rf_var_type_all_cols: str):
+def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_data_file: str, 
+                 allele_counts_file: str, inbreeding_file: str, 
+                 htfile_rf_all_cols: str, htfile_rf_var_type_all_cols: str, config: dict) -> None:
     '''
     Load input mt and training data to create an input for random forest
     param str mtfile: Input matrixtable file
@@ -18,13 +20,15 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     param str htfile_rf_all_cols: Output file for RF hail table 
     param str htfile_rf_var_type_all_cols: Output file for RF hail table by variant type
     '''
+    conf = config['step3']['create_rf_ht']
+
     n_partitions = 200
-    mt = hl.read_matrix_table(mtfile)
-    truth_data_ht = hl.read_table(truthset_file)
-    trio_stats_table = hl.read_table(trio_stats_file)
-    allele_data_ht = hl.read_table(allele_data_file)
-    allele_counts_ht = hl.read_table(allele_counts_file)
-    inbreeding_ht = hl.read_table(inbreeding_file)
+    mt = hl.read_matrix_table(path_spark(mtfile))
+    truth_data_ht = hl.read_table(path_spark(truthset_file))
+    trio_stats_table = hl.read_table(path_spark(trio_stats_file))
+    allele_data_ht = hl.read_table(path_spark(allele_data_file))
+    allele_counts_ht = hl.read_table(path_spark(allele_counts_file))
+    inbreeding_ht = hl.read_table(path_spark(inbreeding_file))
 
     allele_counts_ht = allele_counts_ht.select(*['ac_qc_samples_raw', 'ac_qc_samples_adj'])
     group = "raw"
@@ -56,12 +60,13 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
     # ht = ht.annotate(is_CG=((ht.alleles[0] == "C") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "C")))
     # ht = ht.annotate(is_CT=((ht.alleles[0] == "C") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "A")))
 
-    ht = ht.annotate(fail_hard_filters=(ht.QD < 2)
-                     | (ht.FS > 60) | (ht.MQ < 30))
+    ht = ht.annotate(fail_hard_filters=(ht.QD < conf['fail_hard_filters_QD_less_than'])
+                     | (ht.FS > conf['fail_hard_filters_FS_greater_than']) | (ht.MQ < conf['fail_hard_filters_MQ_less_than']))
     ht = ht.annotate(ac_raw=ht.ac_qc_samples_raw)
     ht = ht.annotate(transmitted_singleton=(
         ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
 
+    # TODO: are these thresholds separate from the ones above?
     ht = ht.select(
         "a_index",
         # "was_split",
@@ -70,41 +75,45 @@ def create_rf_ht(mtfile: str, truthset_file: str, trio_stats_file: str, allele_d
         **{
             "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1)
             & (ht[f"ac_qc_samples_{group}"] == 2),
-            "fail_hard_filters": (ht.QD < 2) | (ht.FS > 60) | (ht.MQ < 30),
+            "fail_hard_filters": (ht.QD < conf['fail_hard_filters_QD_less_than']) 
+            | (ht.FS > conf['fail_hard_filters_FS_greater_than']) | (ht.MQ < conf['fail_hard_filters_MQ_less_than']),
         },
         ac_raw=ht.ac_qc_samples_raw
     )
 
     ht = ht.repartition(n_partitions, shuffle=False)
-    ht = ht.checkpoint(htfile_rf_all_cols, overwrite=True)
+    ht = ht.checkpoint(path_spark(htfile_rf_all_cols), overwrite=True)
     ht = median_impute_features(ht, strata={"variant_type": ht.variant_type})
-    ht.write(htfile_rf_var_type_all_cols, overwrite=True)
+    ht.write(path_spark(htfile_rf_var_type_all_cols), overwrite=True)
 
 
 def main():
-    #set up
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
+    # set up
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    resourcedir = config['general']['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    truthset_file = resourcedir + "truthset_table.ht"
-    trio_stats_file = mtdir + "trio_stats.ht"
-    allele_data_file = mtdir + "allele_data.ht"
-    allele_counts_file = mtdir + "qc_ac.ht"
-    inbreeding_file = mtdir + "inbreeding.ht"
+    truthset_file = config['step3']['create_rf_ht']['truthset_file']
+    trio_stats_file = config['step3']['create_rf_ht']['trio_stats_file']
+    allele_data_file = config['step3']['create_rf_ht']['allele_data_file']
+    allele_counts_file = config['step3']['create_rf_ht']['allele_counts_file']
+    inbreeding_file = config['step3']['create_rf_ht']['inbreeding_file']
 
-   #mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    htfile_rf_all_cols = mtdir + "ht_for_RF_all_cols.ht"
-    htfile_rf_var_type_all_cols = mtdir + "ht_for_RF_by_variant_type_all_cols.ht"
+    # mtfile = mtdir + "mt_pops_QC_filters_sequencing_location_and_superpop_sanger_only_after_sample_qc.mt"
+    mtfile = config['step3']['create_rf_ht']['mtfile']
+    htoutfile_rf_all_cols = config['step3']['create_rf_ht']['htoutfile_rf_all_cols']
+    htoutfile_rf_var_type_all_cols = config['step3']['create_rf_ht']['htoutfile_rf_var_type_all_cols']
 
-    create_rf_ht(mtfile, truthset_file, trio_stats_file, allele_data_file, allele_counts_file, inbreeding_file, htfile_rf_all_cols, htfile_rf_var_type_all_cols)
+    create_rf_ht(mtfile, truthset_file, trio_stats_file, 
+                 allele_data_file, allele_counts_file, 
+                 inbreeding_file, htoutfile_rf_all_cols, 
+                 htoutfile_rf_var_type_all_cols, config)
 
 
 if __name__ == '__main__':
