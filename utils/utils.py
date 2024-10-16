@@ -93,3 +93,27 @@ def select_founders(ped: hl.Pedigree) -> Set[str]:
     for trio in ped.trios:
         samples.discard(trio.s)
     return samples
+
+
+def path_spark(path: str):
+    """
+    Ensure `path` is a valid spark path.
+    That is, add 'file://' prefix if needed
+    """
+    if path.startswith('file://'):
+        return path
+    if path.startswith('hdfs://'):
+        raise NotImplementedError('Cannot convert hdfs to a spark path')
+    return 'file://' + path
+
+
+def path_local(path: str):
+    """
+    Ensure `path` is a valid linux path.
+    That is, remove 'file://' prefix if needed
+    """
+    if path.startswith('file://'):
+        return path[7:]
+    if path.startswith('hdfs://'):
+        raise NotImplementedError('Cannot convert hdfs to a local path')
+    return path
