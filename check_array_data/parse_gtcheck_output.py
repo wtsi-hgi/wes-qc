@@ -1,15 +1,24 @@
+#!/usr/bin/env python3
 # parse output of bcftools gtcheck
 import gzip
+import argparse
+from typing import Any
+
+MatchDict = dict[str, dict[str, Any]]
 
 
-def parse_gtcheck_file(gtcheck_file):
-    '''
+def parse_gtcheck_file(gtcheck_file: str) -> MatchDict:
+    """
     parse gtcheck file and identify best hit
-    '''
-    best_hits = {}
-    with gzip.open(gtcheck_file, 'rt') as f:
+    """
+    best_hits: MatchDict = {}
+    if gtcheck_file.endswith(".gz"):
+        file_context = gzip.open(gtcheck_file, "rt")
+    else:
+        file_context = open(gtcheck_file)
+    with file_context as f:
         for line in f:
-            if not line.startswith('DC'):
+            if not line.startswith("DC"):
                 continue
             linedata = line.split()
             sample = linedata[1]
@@ -17,42 +26,51 @@ def parse_gtcheck_file(gtcheck_file):
             discordance = float(linedata[3])
             nsites = int(linedata[5])
             if nsites > 0:
-                score = discordance/nsites
+                score = discordance / nsites
             else:
                 score = 1
 
             if sample in best_hits.keys():
-                if score < best_hits[sample]['score']:
-                    best_hits[sample] = {'fam': famid, 'discordance': discordance, 'nsites': nsites, 'score': score}
+                if score < best_hits[sample]["score"]:
+                    best_hits[sample] = {"fam": famid, "discordance": discordance, "nsites": nsites, "score": score}
             else:
-                best_hits[sample] = {'fam': famid, 'discordance': discordance, 'nsites': nsites, 'score': score}
+                best_hits[sample] = {"fam": famid, "discordance": discordance, "nsites": nsites, "score": score}
 
     return best_hits
 
 
-def write_output(outfile, best_hits):
-    '''
+def write_output(outfile: str, best_hits: MatchDict) -> None:
+    """
     write output file
-    '''
+    """
     print("Writing output")
-    with open(outfile, 'w') as o:
-        header = ("\t").join(['#EGA', 'broad_id_top_hit', 'sum_discordance', 'nsites', "discordance/nsites"])
+    with open(outfile, "w") as o:
+        header = ("\t").join(["#EGA", "broad_id_top_hit", "sum_discordance", "nsites", "discordance/nsites"])
         o.write(header + "\n")
         for sample in best_hits.keys():
-            outline = ("\t").join([sample, best_hits[sample]['fam'], str(best_hits[sample]['discordance']), str(
-                best_hits[sample]['nsites']), str(best_hits[sample]['score'])])
+            outline = ("\t").join(
+                [
+                    sample,
+                    best_hits[sample]["fam"],
+                    str(best_hits[sample]["discordance"]),
+                    str(best_hits[sample]["nsites"]),
+                    str(best_hits[sample]["score"]),
+                ]
+            )
             o.write(outline + "\n")
 
 
-def main():
-    # gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_top_50_matches.txt.gz'
-    # outfile = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/whole_exome_output/gtcheck_best_hits.txt'
-    gtcheck_output_file = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/check_wes_vs_wes/gtcheck_top_5_matches.txt.gz'
-    outfile = '/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/check_array_genotypes/check_wes_vs_wes/gtcheck_best_hits.txt'
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("gtcheck_file", help="gtcheck output file")
+    parser.add_argument("output_file", nargs="?", help="output file")
+    args = parser.parse_args()
+    if not args.output_file:
+        args.output_file = args.gtcheck_file + ".parsed.txt"
 
-    best_hits = parse_gtcheck_file(gtcheck_output_file)
-    write_output(outfile, best_hits)
+    best_hits = parse_gtcheck_file(args.gtcheck_file)
+    write_output(args.output_file, best_hits)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
