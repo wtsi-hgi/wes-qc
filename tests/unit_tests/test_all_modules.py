@@ -912,15 +912,81 @@ class TestQCSteps(HailTestCase):
 
         self.assertTrue(mtfile_filetered_identical)
 
+    # TODO: implement tests for the remaining functions listed below
+
+    # test data has no trios, so only non-trios scripts are tested
+    def test_3_non_trios_1_1_get_truth_ht(self):
+        pass
+
+    def test_3_non_trios_1_2_split_multi_and_var_qc(self):
+        pass
+
+    def test_3_non_trios_1_3_create_inbreeding_ht_with_ac_and_allele_data(self):
+        pass
+
+    def test_3_non_trios_2_1_create_rf_ht(self):
+        pass
+
+    def test_3_non_trios_5_1_add_cq_annotation(self):
+        pass
+
+    def test_3_non_trios_5_2_annotate_gnomad(self):
+        pass
+
+    def test_3_non_trios_6_1_add_rank(self):
+        # NOTE: the output of this function in modified in main, 
+        # so a proper reference must be generated manually
+        pass
+
+    def test_3_non_trios_6_2_create_binned_data_initial(self):
+        pass
+
+    def test_3_3_1_get_rf_runs(self):
+        # NOTE: maybe not needed as it doesn't use hail
+        pass
+
+    def test_3_3_2_train_rf(self):
+        pass
+
+    def test_3_3_3_get_run_data(self):
+        # NOTE: maybe not needed as it doesn't use hail
+        pass
+
+    def test_3_9_1_annotate_mt_with_cq_rf_score_and_bin(self):
+        pass
+
     def test_4_1a_1_remove_samples(self):
         # not used during qc (commented out)
         # TODO: implement when clarified the purpose of the function
         pass
 
     def test_4_1a_2_annotate_cq_rf(self):
-        qc_step_4_1a.annotate_cq_rf(self.ref_mt_varqc_splitmulti, self.ref_all_consequences_with_gene_and_csq)
+        # qc_step_4_1a.annotate_cq_rf(self.ref_mt_varqc_splitmulti, self.ref_all_consequences_with_gene_and_csq)
+        # TODO: save the resulting mt in the main() function of the script to generate reference output
+        pass
 
+    def test_4_1a_3_apply_hard_filters(self):
+        # qc_step_4_1a.apply_hard_filters(...)
+        pass
 
+    def test_4_2_1_annotate_gnomad(self):
+        # TODO: generate reference outputs for this function
+        pass
+
+    def test_4_2_2_get_counts_per_cq(self):
+        pass
+
+    def test_4_2_3_get_ca_fractions(self):
+        pass
+
+    def test_4_3_1_export_vcfs(self):
+        pass
+
+    def test_4_3a_1_export_vcfs(self):
+        pass
+
+    def test_4_3b_1_export_vcfs(self):
+        pass
 
     @classmethod
     def tearDownClass(cls):
