@@ -7,8 +7,9 @@ import hail as hl
 import hailtop.fs as hfs
 import shutil as sh
 from pyspark import SparkContext
-from utils.config import parse_config, path_local, path_spark, getp, _expand_cvars_recursively
+from utils.config import parse_config, path_local, path_spark, getp, _process_cvars_in_config
 from utils.utils import download_test_data_from_s3
+from typing import Union
 import subprocess
 
 
@@ -95,7 +96,7 @@ def compare_plinks(bed1_path: str, bim1_path: str, fam1_path: str,
         print(f'MatrixTables are not equal: {num_differences} differing entries found')
         return False
 
-def compare_matrixtables(mt1_path: str, mt2_path: str) -> bool:
+def compare_matrixtables(mt1_path: Union[str, hl.MatrixTable], mt2_path: Union[str, hl.MatrixTable]) -> bool:
     """
     Compare the contents of two Hail MatrixTables.
 
@@ -107,8 +108,19 @@ def compare_matrixtables(mt1_path: str, mt2_path: str) -> bool:
     bool: True if the MatrixTables are equal, False otherwise.
     """
     # Load the MatrixTables
-    mt1 = hl.read_matrix_table(mt1_path)
-    mt2 = hl.read_matrix_table(mt2_path)
+    if isinstance(mt1_path, str):
+        mt1 = hl.read_matrix_table(mt1_path)
+    elif isinstance(mt1_path, hl.MatrixTable):
+        mt1 = mt1_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(mt1_path)}")
+    
+    if isinstance(mt2_path, str):
+        mt2 = hl.read_matrix_table(mt2_path)
+    elif isinstance(mt2_path, hl.MatrixTable):
+        mt2 = mt2_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(mt2_path)}")
 
     # Ensure the schemas are the same
     if mt1.row.dtype != mt2.row.dtype or mt1.col.dtype != mt2.col.dtype or mt1.entry.dtype != mt2.entry.dtype:
@@ -140,7 +152,7 @@ def compare_entries_to_other_ht(this_row_value, row_key, other_ht):
     other_row_value = other_ht[row_key]
     return ~compare_structs(this_row_value, other_row_value)
 
-def compare_tables(ht1_path: str, ht2_path: str) -> bool:
+def compare_tables(ht1_path: Union[str, hl.Table], ht2_path: Union[str, hl.Table]) -> bool:
     """
     Compare the contents of two Hail Tables.
 
@@ -152,8 +164,19 @@ def compare_tables(ht1_path: str, ht2_path: str) -> bool:
     bool: True if the Tables are equal, False otherwise.
     """
     # Load the Tables
-    ht1 = hl.read_table(ht1_path)
-    ht2 = hl.read_table(ht2_path)
+    if isinstance(ht1_path, str):
+        ht1 = hl.read_table(ht1_path)
+    elif isinstance(ht1_path, hl.Table):
+        ht1 = ht1_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(ht1_path)}")
+    
+    if isinstance(ht2_path, str):
+        ht2 = hl.read_table(ht2_path)
+    elif isinstance(ht2_path, hl.Table):
+        ht2 = ht2_path
+    else:
+        raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(ht2_path)}")
 
     # Ensure the schemas are the same
     if ht1.row.dtype != ht2.row.dtype:
@@ -228,19 +251,33 @@ def compare_bgzed_txts(path_1: str, path_2: str, replace_strings: list[list[str,
 
     return contents_1 == contents_2
 
-# ensure sequential test execution order
-# unittest.TestLoader.sortTestMethodsUsing = None
-
 # DEBUG: might be useful https://spark.apache.org/docs/latest/api/python/getting_started/testing_pyspark.html
 # TODO: clean up hail logs
 
-# /path/to/wes_qc must be in PYTHONPATH
+# /path/to/wes-qc must be in PYTHONPATH
 qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
+qc_step_3_1 = importlib.import_module("3-variant_qc.variant_qc_non_trios.1-generate_truth_sets_non_trios")
+qc_step_3_2 = importlib.import_module("3-variant_qc.variant_qc_non_trios.2-create_rf_ht_non_trios")
+qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
+qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
+qc_step_3_5 = importlib.import_module("3-variant_qc.variant_qc_non_trios.5-annotate_ht_after_rf_no_trios")
+qc_step_3_6 = importlib.import_module("3-variant_qc.variant_qc_non_trios.6-rank_and_bin_no_trios")
+qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_rf_output_no_trios")
+qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
+qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
+
+
+qc_step_4_1 = importlib.import_module("4-genotype_qc.1-apply_hard_filters")
+qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
+qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
+qc_step_4_3 = importlib.import_module("4-genotype_qc.3-export_vcfs")
+qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
+qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
 
 
 class HailTestCase(unittest.TestCase):
@@ -280,7 +317,9 @@ class TestQCSteps(HailTestCase):
         # TODO: add ref_annotdir
         # TODO: upd all paths that use reference matrixtables dir to use this variable
         cls.ref_mtdir = os.path.join(cls.ref_dataset_path, 'matrixtables')
-        
+        cls.ref_resdir = os.path.join(cls.test_suite_path, 'resources')
+        cls.ref_traindir = os.path.join(cls.test_suite_path, 'training_sets')
+        cls.ref_1kg_resdir = os.path.join(cls.ref_resdir, 'mini_1000G')
         # Download reference data from the s3 bucket, use local paths for that
         ref_dataset_path_local = path_local(cls.ref_dataset_path)
         # ref_mtdir_local = os.path.join(ref_dataset_path_local, 'matrixtables')
@@ -293,25 +332,26 @@ class TestQCSteps(HailTestCase):
 
         test_data_path = os.path.join(cls.test_suite_path, 'control_set_small')
         resources_path = os.path.join(cls.test_suite_path, 'resources')
+        training_sets_path = os.path.join(cls.test_suite_path, 'training_sets')
         ref_dataset_parent_path = os.path.join(cls.test_suite_path, 'unit_tests')
 
+        # TODO: add training sets dir when creating unit tests for steps 3-4
         test_data_dirs_to_move = {
             unzipped_control_set_path: cls.test_suite_path,
             unzipped_resources_path: cls.test_suite_path,
             unzipped_ref_data_path: ref_dataset_parent_path
         }
 
-        download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
+        #download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
 
 
         # Download resources from s3 bucket
         cls.test_resourcedir = f"file://{resources_path}"
-        resdir = path_local(cls.test_resourcedir)
-        os.makedirs(resdir, exist_ok=True)
+        # resdir = path_local(cls.test_resourcedir)
+        # os.makedirs(resdir, exist_ok=True)
 
-        print(f'Downloading resources from the s3 bucket')
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/resources/', resdir]) #BEEP
         cls.onekg_resdir = os.path.join(cls.test_resourcedir, 'mini_1000G')
+        cls.training_sets = path_spark(training_sets_path) # DEBUG: the adapters on paths are actually not mandatory
         
 
         # TODO: switch to config rendering as in integration tests?
@@ -321,9 +361,14 @@ class TestQCSteps(HailTestCase):
         cls.mtdir = f"file://{os.path.join(cls.test_outdir_path, 'matrixtables_test')}"
         cls.annotdir = f"file://{os.path.join(cls.test_outdir_path, 'annotations_test')}"
         cls.plots_dir = f"file://{os.path.join(cls.test_outdir_path, 'plots_test')}"
-
+        cls.resdir = f"file://{os.path.join(cls.test_outdir_path, 'resources_test')}"
+        #cls.onekg_resdir = os.path.join(cls.resdir, 'mini_1000G') # pop: remove?
+        
         # TODO: create parent dirs inside the corresponding func
         os.makedirs(path_local(cls.plots_dir), exist_ok=True)
+        os.makedirs(path_local(cls.annotdir), exist_ok=True)
+        os.makedirs(path_local(cls.mtdir), exist_ok=True)
+        os.makedirs(path_local(cls.resdir), exist_ok=True)
 
         # mk43
         # TODO: use a template engine to create a yaml
@@ -331,15 +376,39 @@ class TestQCSteps(HailTestCase):
         # TODO: separate this functions into steps
         
         # ===== QC General Params ===== #
+        var_qc_rf_dir_path = os.path.join(cls.test_suite_path, 'var_qc_rf_dir') # output dir
+        cls.var_qc_rf_dir = path_spark(var_qc_rf_dir_path)
+
         # add general params into the config object
         config = dict()
+        config['cvars'] = {
+            'tmpdir': 'general.tmp_dir',
+            'anndir': 'general.annotation_dir',
+            'mtdir': 'general.matrixtables_dir',
+            'resdir': 'general.resource_dir',
+            '1kg_resdir': 'general.onekg_resource_dir',
+            'pltdir': 'general.plots_dir',
+            'traindir': 'general.training_sets_dir',
+            'rfdir': 'general.var_qc_rf_dir',
+            'ref_mtdir' : 'general.ref_mtdir',
+            'ref_resdir' : 'general.ref_resdir',
+            'ref_traindir' : 'general.ref_traindir',
+            'ref_1kg_resdir' : 'general.ref_1kg_resdir'
+        }
+
         config['general'] = dict(
             tmp_dir = cls.tmp_dir,
             annotation_dir = cls.annotdir,
             matrixtables_dir = cls.mtdir,
-            resource_dir = cls.test_resourcedir,
+            resource_dir = cls.resdir,
             plots_dir = cls.plots_dir,
-            onekg_resource_dir = cls.onekg_resdir
+            onekg_resource_dir = cls.onekg_resdir, 
+            training_sets_dir = cls.training_sets, 
+            var_qc_rf_dir = cls.var_qc_rf_dir,
+            ref_resdir = cls.ref_resdir,
+            ref_traindir = cls.ref_traindir,
+            ref_mtdir = cls.ref_mtdir,
+            ref_1kg_resdir = cls.ref_1kg_resdir
         )
 
         # ===== QC Step 1.1 ===== #
@@ -348,9 +417,9 @@ class TestQCSteps(HailTestCase):
         vcfdir = path_local(cls.import_vcf_dir)
         os.makedirs(vcfdir, exist_ok=True)
 
-        print(f'Downloading control set from the s3 bucket')
+        # print(f'Downloading control set from the s3 bucket')
         # TODO: switch to http-based download (e.g. using wget)
-        subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir]) #BEEP
+        # subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir]) #BEEP
         
         cls.vcf_header = '' # not available for test dataset. TODO: create one to ensure test completeness
         # outputs
@@ -410,7 +479,7 @@ class TestQCSteps(HailTestCase):
             'aaf_threshold': 0.05
         }
         config['step2']['sex_inconsistencies'] = {
-            'sex_metadata_file': '{resdir}/mlwh_sample_and_sex.txt',
+            'sex_metadata_file': '{ref_resdir}/mlwh_sample_and_sex.txt',
             'conflicting_sex_report_file': '{anndir}/conflicting_sex.txt.bgz',
             'fstat_outliers_report_file': '{anndir}/sex_annotation_f_stat_outliers.txt.bgz',
             'fstat_low': 0.2,
@@ -525,8 +594,8 @@ class TestQCSteps(HailTestCase):
         cls.ref_pop_ht_tsv = os.path.join(cls.ref_mtdir, 'pop_assignments.tsv')
 
         config['step2']['create_1kg_mt'] = {
-            'indir': '{1kg_resdir}',
-            'vcfheader': '{1kg_resdir}/header_20201028.txt',
+            'indir': '{ref_1kg_resdir}',
+            'vcfheader': '{ref_1kg_resdir}/header_20201028.txt', # isn't used
             'mt_out_file' : '{mtdir}/kg_wes_regions.mt'
         }
 
@@ -536,11 +605,11 @@ class TestQCSteps(HailTestCase):
         }
 
         config['step2']['annotate_and_filter'] = {
-            'pops_file' : '{resdir}/igsr_samples.tsv',
+            'pops_file' : '{ref_resdir}/igsr_samples.tsv',
             'call_rate' : 0.99,
             'AF' : 0.05,
             'p_value_hwe' : 0.00005,
-            'long_range_ld_file' : '{resdir}/long_ld_regions.hg38.bed',
+            'long_range_ld_file' : '{ref_resdir}/long_ld_regions.hg38.bed',
             'filtered_mt_outfile' : '{mtdir}/merged_with_1kg_filtered.mt'
         }
 
@@ -551,7 +620,7 @@ class TestQCSteps(HailTestCase):
         }
         
         config['step2']['predict_pops'] = {
-            'pca_scores_file' : '{mtdir}/pca_scores_after_pruning.ht',
+            'pca_scores_file' : cls.ref_pca_scores_path,
             'gnomad_pc_n_estimators' : 100,
             'gnomad_prop_train' : 0.8,
             'gnomad_min_prob' : 0.5,
@@ -613,7 +682,193 @@ class TestQCSteps(HailTestCase):
             'sample_qc_filtered_mt_file' : '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
         }
 
-        cls.config = _expand_cvars_recursively(config, config)
+        # ===== QC Step 3.1 ===== #
+        # get_truth_ht()
+        # reference inputs: `cls.ref_omni`, cls.ref_mills`, `cls.ref_thousand_genomes`, `cls.hapmap`
+        cls.ref_omni = os.path.join(cls.ref_traindir, '1000G_omni2.5.hg38.ht')
+        cls.ref_mills = os.path.join(cls.ref_traindir, 'Mills_and_1000G_gold_standard.indels.hg38.ht')
+        cls.ref_thousand_genomes = os.path.join(cls.ref_traindir, '1000G_phase1.snps.high_confidence.hg38.ht')
+        cls.ref_hapmap = os.path.join(cls.ref_traindir, 'hapmap_3.3.hg38.ht')
+        # outputs
+        cls.truth_ht_file = os.path.join(cls.resdir, 'truthset_table.ht')
+        # reference outputs
+        cls.ref_truth_ht_file = os.path.join(cls.ref_resdir, 'truthset_table.ht')
+
+        # split_multi_and_var_qc()
+        # reference inputs: `cls.ref_gatk_broad_crams_sanger_calls.mt`, `cls.ref_varqc_mtfile`
+        cls.ref_nonpops_QC_filters_after_sample_qc = os.path.join(cls.ref_mtdir, 'gatk_broad_crams_sanger_calls.mt')
+        cls.ref_varqc_mtoutfile = os.path.join(cls.ref_mtdir, 'mt_varqc.mt')
+        # outputs
+        cls.varqc_mtoutfile_split = os.path.join(cls.mtdir, 'mt_varqc_splitmulti.mt')
+        # reference outputs
+        cls.ref_varqc_mtoutfile_split = os.path.join(cls.ref_mtdir, 'mt_varqc_splitmulti.mt')
+
+        # create_inbreeding_ht_with_ac_and_allele_data()
+        # reference inputs: `cls.ref_varqc_mtoutfile`, `cls.pedfile`, 'cls.inbreeding_htoutfile', `cls.ref_qc_ac_htoutfile`
+        cls.ref_pedfile = os.path.join(cls.ref_resdir, 'trios.EGAN.complete.ped')
+        cls.ref_inbreeding_htoutfile = os.path.join(cls.ref_mtdir, 'inbreeding.ht')
+        cls.ref_qc_ac_htoutfile = os.path.join(cls.ref_mtdir, 'qc_ac.ht')
+        # outputs
+        cls.allele_data_htfile = os.path.join(cls.mtdir, 'allele_data.ht')
+        # reference outputs
+        cls.ref_allele_data_htfile = os.path.join(cls.ref_mtdir, 'allele_data.ht')
+        
+        config['step3'] = dict()
+
+        config['step3']['get_truth_ht'] = {
+            'truth_ht_outfile': '{resdir}/truthset_table.ht',
+            'omni': '{traindir}/1000G_omni2.5.hg38.ht',
+            'mills': '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht',
+            'thousand_genomes' : '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht' ,
+            'hapmap' : '{traindir}/hapmap_3.3.hg38.ht'
+        }
+
+        config['step3']['split_multi_and_var_qc'] = {
+            'mtfile': '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt',
+            'varqc_mtoutfile': '{mtdir}/mt_varqc.mt',
+            'varqc_mtoutfile_split': '{mtdir}/mt_varqc_splitmulti.mt'
+        }
+
+        config['step3']['create_inbreeding_ht_with_ac_and_allele_data'] = {
+            'inbreeding_htoutfile': '{mtdir}/inbreeding.ht',
+            'qc_ac_htoutfile': '{mtdir}/qc_ac.ht',
+            'allele_data_htoutfile': '{mtdir}/allele_data.ht'
+        }
+
+        # ===== QC Step 3.2 ===== #
+        # create_rf_ht()
+        # reference inputs: `cls.ref_varqc_mtoutfile_split`, `cls.ref_truth_ht_file`, `cls.ref_allele_data_htfile`, `cls.ref_qc_ac_htoutfile`, `cls.ref_inbreeding_htoutfile`
+        # outputs
+        cls.htoutfile_rf_all_cols = os.path.join(cls.mtdir, 'ht_for_RF_all_cols.ht')
+        cls.htfile_rf_var_type_all_cols = os.path.join(cls.mtdir, 'ht_for_RF_by_variant_type_all_cols.ht')
+        # reference outputs
+        cls.ref_htoutfile_rf_all_cols = os.path.join(cls.ref_mtdir, 'ht_for_RF_all_cols.ht')
+        cls.ref_htfile_rf_var_type_all_cols = os.path.join(cls.ref_mtdir, 'ht_for_RF_by_variant_type_all_cols.ht')
+
+
+        config['step3']['create_rf_ht'] = {
+            'fail_hard_filters_QD_less_than': 2,
+            'fail_hard_filters_FS_greater_than': 60,
+            'fail_hard_filters_MQ_less_than': 30,
+            'truthset_file': '{resdir}/truthset_table.ht',
+            'trio_stats_file': '{mtdir}/trio_stats.ht',
+            'allele_data_file': '{mtdir}/allele_data.ht',
+            'allele_counts_file': '{mtdir}/qc_ac.ht',
+            'inbreeding_file': '{mtdir}/inbreeding.ht',
+            'mtfile': '{mtdir}/mt_varqc_splitmulti.mt',
+            'htoutfile_rf_all_cols': '{mtdir}/ht_for_RF_all_cols.ht',
+            'htoutfile_rf_var_type_all_cols': '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+        }
+        
+        # ===== QC Step 3.3 ===== #
+        config['step3']['rf_test_interval'] = 'chr20' # used in multiple functions
+        config['step3']['runs_json'] = '{rfdir}/rf_runs.json'
+
+        config['step3']['train_rf'] = {
+            'input_ht_file': '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht',
+            'gnomad_train_rf_fp_to_tp': 1.0,
+            'gnomad_train_rf_num_trees': 500,
+            'gnomad_train_rf_max_depth': 5
+        }
+
+        # ===== QC Step 3.4 ===== #
+        # only var_qc_rf_dir is needed
+
+
+        # ===== QC Step 3.5 ===== #
+        config['step3']['add_cq_annotation'] = {
+            'synonymous_file': '{resdir}/synonymous_variants.txt'
+        }
+
+        config['step3']['dnm_and_family_annotation'] = {
+            'dnm_htfile': '{mtdir}/denovo_table.ht',
+            'fam_stats_htfile': '{mtdir}/family_stats.ht',
+            'trio_stats_htfile': '{mtdir}/trio_stats.ht'
+            }
+
+        config['step3']['transmitted_singleton_annotation'] = {
+            'trio_mtfile': '{mtdir}/trios.mt',
+            'trio_filtered_mtfile': '{mtdir}/trios_filtered_.mt'
+        }
+
+        config['step3']['annotate_gnomad'] = {
+            'gnomad_htfile': '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+        }
+        
+        # ===== QC Step 3.6 ===== #
+        config['step3']['add_rank'] = {
+            'subrank_expr_de_novo_high_quality_rank': 0.9,
+            'subrank_expr_de_novo_medium_quality_rank': 0.5
+        }
+
+        config['step3']['create_binned_data_initial'] = {
+            'truth_htfile': '{resdir}/truthset_table.ht',
+            'high_quality_p_de_novo': 0.99,
+            'medium_quality_p_de_novo': 0.5,
+            'n_trans_common_gnomad_af': 0.1,
+            'n_untrans_common_gnomad_af': 0.1
+        }
+
+        
+        # ===== QC Step 3.7 ===== #
+        config['step3']['create_plots'] = dict()
+
+        config['step3']['create_plots']['qc_plots_settings'] = {
+            'mean_point_size': 4.0,
+            'min_point_size': 1.0,
+            'max_point_size': 16.0,
+            'label_text_font_size': "14pt",
+            'title.text_font_size': "16pt",
+            'subtitle.text_font_size': "14pt",
+            'axis.axis_label_text_font_size': "16pt",
+            'axis.axis_label_text_font_style': "normal",
+            'axis.major_label_text_font_size': "14pt"
+        }
+
+        # ===== QC Step 3.8 ===== #
+        # no config parameters used
+
+        # ===== QC Step 3.9 ===== #
+        # annotate_mt_with_cq_rf_score_and_bin()
+        # reference inputs: `` # TODO: fill in
+        # outputs
+        # TODO: fill in
+        # reference outputs
+        cls.ref_mt_after_var_qc = os.path.join(cls.ref_mtdir, 'mt_after_var_qc.mt')
+
+        config['step3']['annotate_mt_with_cq_rf_score_and_bin'] = {
+            'mtfile': '{mtdir}/mt_varqc_splitmulti.mt',
+            'cqfile': '{resdir}/all_consequences.txt', 
+            'mtoutfile_after_varqc': '{mtdir}/mt_after_var_qc.mt'
+        }
+
+
+        # ===== QC Step 4.1 ===== #
+        # filter_mt()
+        # reference inputs: `cls.ref_mt_after_var_qc`
+        # outputs
+        cls.mtfile_filtered = os.path.join(cls.mtdir, 'mt_after_var_qc_hard_filter_gt.mt')
+        # reference outputs
+        cls.ref_mtfile_filtered = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_after_var_qc_hard_filter_gt.mt')
+
+        # ===== QC Step 4.1a ===== #
+        # remove_samples()
+        # reference inputs: `cls.ref_mt_varqc_splitmulti`
+
+        
+
+        # ===== QC Step 4.1b ===== #
+
+        # ===== QC Step 4.2 ===== #
+
+        # ===== QC Step 4.3 ===== #
+
+        # ===== QC Step 4.3a ===== #
+
+        # ===== QC Step 4.3b ===== #
+
+
+        cls.config = _process_cvars_in_config(config)
         
     # QC Step 1.1
     def test_1_1_load_vcfs_to_mt(self):
@@ -761,15 +1016,17 @@ class TestQCSteps(HailTestCase):
         self.assertTrue(filtered_mt_identical)
 
     def test_2_3_4_run_pca(self):
-        # use reference outputs of Step 2.3 annotate_and_filter()
+        # Use reference output of Step 2.3 annotate_and_filter() as input
         ref_filtered_mt = hl.read_matrix_table(self.ref_filtered_mt_path)
-        # run function to test
+        # Run function to test
         qc_step_2_3.run_pca(ref_filtered_mt, self.config)
 
+        # Compare output files to the reference
         pca_scores_identical = compare_tables(self.pca_scores_path, self.ref_pca_scores_path)
         pca_loadings_identical = compare_tables(self.pca_loadings_path, self.ref_pca_loadings_path)
         pca_evals_identical = compare_txts(self.pca_evals_path, self.ref_pca_evals_path)
 
+        # Test passes when all files match the references
         self.assertTrue(pca_scores_identical and pca_loadings_identical and pca_evals_identical)
 
     def test_2_3_5_predict_pops(self):
@@ -781,8 +1038,6 @@ class TestQCSteps(HailTestCase):
         pop_ht_tsv_identical = compare_txts(path_local(self.pop_ht_tsv), path_local(self.ref_pop_ht_tsv))
 
         self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
-
-    # vk11 : unprocessed after this line
 
     def test_2_4_1_annotate_mt(self):
         qc_step_2_4.annotate_mt(self.ref_mt_file, self.ref_pop_ht_file, self.annotated_mt_file)
@@ -801,7 +1056,7 @@ class TestQCSteps(HailTestCase):
         out_text_identical = compare_bgzed_txts(path_local(self.output_text_file), 
                 path_local(self.ref_output_text_file))
 
-        unique_hail_id_replace = [[r'__uid_\d+\n', '']]
+        unique_hail_id_replace = [[r'__uid_\d+\n', '']] # compare files up to a unique Hail file id
         out_globals_json_identical = compare_txts(path_local(self.output_globals_json), 
                 path_local(self.ref_output_globals_json), replace_strings=unique_hail_id_replace)
 
@@ -818,6 +1073,60 @@ class TestQCSteps(HailTestCase):
                 path_local(self.ref_samples_failing_qc_file))
 
         self.assertTrue(sample_qc_filtered_identical and samples_failing_qc_identical)
+
+    def test_3_1_1_get_truth_ht(self):
+        qc_step_3_1.get_truth_ht(self.ref_omni, self.ref_mills, self.ref_thousand_genomes,
+                                 self.ref_hapmap, self.truth_ht_file)
+
+        truth_ht_file_identical = compare_tables(self.truth_ht_file, self.ref_truth_ht_file)
+
+        self.assertTrue(truth_ht_file_identical)
+
+    def test_3_1_2_split_multi_and_var_qc(self):
+        qc_step_3_1.split_multi_and_var_qc(self.ref_nonpops_QC_filters_after_sample_qc,
+                                           self.ref_varqc_mtoutfile, self.varqc_mtoutfile_split)
+
+        varqc_mtoutfile_split_identical = compare_matrixtables(self.varqc_mtoutfile_split, self.ref_varqc_mtoutfile_split)
+
+        self.assertTrue(varqc_mtoutfile_split_identical)
+
+    def test_3_1_3_create_inbreeding_ht_with_ac_and_allele_data(self):
+        qc_step_3_1.create_inbreeding_ht_with_ac_and_allele_data(self.ref_varqc_mtoutfile, self.ref_inbreeding_htoutfile,
+                                                                 self.ref_qc_ac_htoutfile, self.allele_data_htfile)
+        
+        allele_data_htfile_identical = compare_matrixtables(self.allele_data_htfile, self.ref_allele_data_htfile)
+        
+        self.assertTrue(allele_data_htfile_identical)
+
+    def test_3_2_1_create_rf_ht(self):
+        qc_step_3_2.create_rf_ht(self.ref_varqc_mtoutfile_split, self.ref_truth_ht_file,
+                                 self.ref_allele_data_htfile, self.ref_qc_ac_htoutfile, 
+                                 self.ref_inbreeding_htoutfile, self.htoutfile_rf_all_cols,
+                                 self.htfile_rf_var_type_all_cols, self.config)
+        
+        htoutfile_rf_all_cols_identical = compare_matrixtables(self.htoutfile_rf_all_cols, self.ref_htoutfile_rf_all_cols)
+        htfile_rf_var_type_all_cols_identical = compare_matrixtables(self.htfile_rf_var_type_all_cols, self.ref_htfile_rf_var_type_all_cols)
+        
+        self.assertTrue(htoutfile_rf_all_cols_identical)
+        self.assertTrue(htfile_rf_var_type_all_cols_identical)
+
+    # tests for 4-genotype_qc
+    def test_4_1_1_filter_mt(self):
+        qc_step_4_1.filter_mt(self.ref_mt_after_var_qc, dp=5, gq=10, ab=0.2, 
+                              mtfile_filtered=self.mtfile_filtered)
+
+        mtfile_filetered_identical = compare_matrixtables(self.mtfile_filtered, self.ref_mtfile_filtered)
+
+        self.assertTrue(mtfile_filetered_identical)
+
+    def test_4_1a_1_remove_samples(self):
+        # not used during qc (commented out)
+        # TODO: implement when clarified the purpose of the function
+        pass
+
+    def test_4_1a_2_annotate_cq_rf(self):
+        qc_step_4_1a.annotate_cq_rf(self.ref_mt_varqc_splitmulti, self.ref_all_consequences_with_gene_and_csq)
+
 
 
     @classmethod

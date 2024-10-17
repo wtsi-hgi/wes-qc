@@ -2,7 +2,7 @@
 import hail as hl
 import pyspark
 import argparse
-from utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 def get_options():
     '''
@@ -29,7 +29,7 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
     :param float ab: Minimum allele balance for hets
     :param str mtfile_filtered: Output mtfile
     '''
-    mt = hl.read_matrix_table(mtfile)
+    mt = hl.read_matrix_table(path_spark(mtfile))
     prev_count = mt.entries().count()
     var_count = mt.count_rows()
 
@@ -55,7 +55,7 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
     new_count = mt.entries().count()
     new_var_count = mt.count_rows()
 
-    mt.write(mtfile_filtered, overwrite = True)
+    mt.write(path_spark(mtfile_filtered), overwrite = True)
     print(str(prev_count) + " entries prior to filtering, " + str(new_count) + " entries after filtering")
     print(str(var_count) + " variants prior to filtering, " + str(new_var_count) + " variants after filtering")
 
@@ -63,17 +63,17 @@ def filter_mt(mtfile: str, dp: int, gq: int, ab: float, mtfile_filtered: str):
 def main():
     #set up
     args = get_options()
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    mtfile = mtdir + "mt_after_var_qc.mt"
-    mtfile_filtered = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
+    mtfile = config['step4']['filter_mt']['mtfile']
+    mtfile_filtered = config['step4']['filter_mt']['mtoutfile_filtered']
     filter_mt(mtfile, args.dp, args.gq, args.ab, mtfile_filtered)
 
 
