@@ -3,6 +3,7 @@
 import hail as hl
 import pyspark
 import argparse
+import os.path
 from utils.utils import parse_config, path_spark, path_local
 
 
@@ -118,7 +119,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
+    htfile = os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht")
     analyse_thresholds(htfile, args.snv, args.indel)
 
 

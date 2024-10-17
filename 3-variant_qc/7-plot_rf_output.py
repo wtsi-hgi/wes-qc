@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from typing import Union, Dict, List, Set, Tuple, Callable
 import bokeh.models as bm
+from bokeh.models.layouts import TabPanel
 from bokeh.plotting import output_file, save, figure
 from gnomad.utils.plotting import *
 from hail.plot import show, output_notebook
@@ -30,10 +31,10 @@ def get_options():
 # TODO: move to utils?
 def set_plots_defaults(p: bm.Plot, qc_plots_settings: dict) -> None:
     p.legend.label_text_font_size = qc_plots_settings['label_text_font_size']
-    p.title.text_font_size = qc_plots_settings['title.text_font_size']
-    p.axis.axis_label_text_font_size = qc_plots_settings['axis.axis_label_text_font_size']
-    p.axis.axis_label_text_font_style = qc_plots_settings['axis.axis_label_text_font_style']
-    p.axis.major_label_text_font_size = qc_plots_settings['axis.major_label_text_font_size']
+    p.title.text_font_size = qc_plots_settings['title_text_font_size']
+    p.axis.axis_label_text_font_size = qc_plots_settings['axis_axis_label_text_font_size']
+    p.axis.axis_label_text_font_style = qc_plots_settings['axis_axis_label_text_font_style']
+    p.axis.major_label_text_font_size = qc_plots_settings['axis_major_label_text_font_size']
 
     
 def get_point_size_col(data: pd.Series, size_prop: str, qc_plots_settings: dict) -> pd.Series:
@@ -160,7 +161,7 @@ def plot_metric(df: pd.DataFrame,
 
             # Add subtitles if any
             for title in titles[1:]:
-                p.add_layout(bm.Title(text=title, text_font_size=qc_plots_settings['subtitle.text_font_size']), 'above')
+                p.add_layout(bm.Title(text=title, text_font_size=qc_plots_settings['subtitle_text_font_size']), 'above')
 
             return p
         # Compute non-cumulative values by applying `y_fun`
@@ -168,7 +169,7 @@ def plot_metric(df: pd.DataFrame,
 
         # Compute cumulative values for each of the data columns
         for col in cols:
-            df[f'{col}_cumul'] = df.groupby('model').aggregate(np.cumsum)[col]
+            df[f'{col}_cumul'] = df.groupby('model')[col].aggregate(np.cumsum)
         df['cumul'] = df[[f'{col}_cumul' for col in cols]].apply(y_fun, axis=1)
 
         # Create data ranges that are either shared or distinct depending on the y_cumul parameter
@@ -211,7 +212,7 @@ def plot_metric(df: pd.DataFrame,
                 print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(bm.Panel(child=bm.Column(children=children), title='All'))
+            tabs.append(TabPanel(child=bm.Column(children=children), title='All'))
 
    
     if plot_singletons:
@@ -226,7 +227,7 @@ def plot_metric(df: pd.DataFrame,
                     print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(bm.Panel(child=bm.Column(children=children), title='Singletons'))
+            tabs.append(TabPanel(child=bm.Column(children=children), title='Singletons'))
 
     return bm.Tabs(tabs=tabs)
 
@@ -261,83 +262,83 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
     model = run_hash
     colors = {model:'blue'}
     #plot transmitted singletons
-    plotfile = plot_dir + "transmitted_singletons.html"
+    plotfile = os.path.join(plot_dir, "transmitted_singletons.html")
     tabs = plot_metric(snvs, 'n_trans_singletons', ['n_trans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot untransmitted singletons
-    plotfile = plot_dir + "untransmitted_singletons.html"
+    plotfile = os.path.join(plot_dir, "untransmitted_singletons.html")
     tabs = plot_metric(snvs, 'n_untrans_singletons', ['n_untrans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot transmitted/untransmitted ratio
-    plotfile = plot_dir + "transmitted_untransmitted.html"
+    plotfile = os.path.join(plot_dir, "transmitted_untransmitted.html")
     tabs = plot_metric(snvs, 'trans_untrans_ratio', ['n_trans_singletons_synonymous_algorithm', 'n_untrans_singletons_synonymous_algorithm'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot number of insertions
-    plotfile = plot_dir + "n_insertions.html"
+    plotfile = os.path.join(plot_dir, "n_insertions.html")
     tabs = plot_metric(indels, 'n_ins', ['n_ins'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot number of deletions
-    plotfile = plot_dir + "n_deletions.html"
+    plotfile = os.path.join(plot_dir, "n_deletions.html")
     tabs = plot_metric(indels, 'n_del', ['n_del'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot Ti/Tv ratio
-    plotfile = plot_dir + "r_ti_tv.html"
+    plotfile = os.path.join(plot_dir, "r_ti_tv.html")
     tabs = plot_metric(snvs, 'Ti/Tv ratio', ['n_ti', 'n_tv'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot 1kg high confidence SNVs
-    plotfile = plot_dir + "kg_snv.html"
+    plotfile = os.path.join(plot_dir, "kg_snv.html")
     tabs = plot_metric(snvs, 'n_kgp_high_conf_snvs', ['n_kgp_high_conf_snvs'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot omni SNVs
-    plotfile = plot_dir + "omni_snv.html"
+    plotfile = os.path.join(plot_dir, "omni_snv.html")
     tabs = plot_metric(snvs, 'n_omni', ['n_omni'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot mills indels
-    plotfile = plot_dir + "mills_indels.html"
+    plotfile = os.path.join(plot_dir, "mills_indels.html")
     tabs = plot_metric(indels, 'n_mills', ['n_mills'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot hapmap snvs
-    plotfile = plot_dir + "hapmap_snvs.html"
+    plotfile = os.path.join(plot_dir, "hapmap_snvs.html")
     tabs = plot_metric(snvs, 'n_hapmap_snvs', ['n_hapmap'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot hapmap indels
-    plotfile = plot_dir + "hapmap_indels.html"
+    plotfile = os.path.join(plot_dir, "hapmap_indels.html")
     tabs = plot_metric(indels, 'n_hapmap_indels', ['n_hapmap'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot fail hard filters snvs
-    plotfile = plot_dir + "fail_hard_filters_snvs.html"
+    plotfile = os.path.join(plot_dir, "fail_hard_filters_snvs.html")
     tabs = plot_metric(snvs, 'fail_hard_filters_snvs', ['fail_hard_filters_snvs'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot fail hard filters indels
-    plotfile = plot_dir + "fail_hard_filters_indels.html"
+    plotfile = os.path.join(plot_dir, "fail_hard_filters_indels.html")
     tabs = plot_metric(indels, 'fail_hard_filters_indels', ['fail_hard_filters_indels'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot transmitted/untransmitted from Hail's tdt test
     #plot transmitted singletons
-    plotfile = plot_dir + "transmitted_singletons_tdt.html"
+    plotfile = os.path.join(plot_dir, "transmitted_singletons_tdt.html")
     tabs = plot_metric(snvs, 'n_trans_singletons_tdt', ['n_trans_singletons_synonymous_tdt'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #plot untransmitted singletons
-    plotfile = plot_dir + "untransmitted_singletons_tdt.html"
+    plotfile = os.path.join(plot_dir, "untransmitted_singletons_tdt.html")
     tabs = plot_metric(snvs, 'n_untrans_singletons_tdt', ['n_untrans_singletons_synonymous_tdt'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
     #ratio
-    plotfile = plot_dir + "transmitted_untransmitted_tdt.html"
+    plotfile = os.path.join(plot_dir, "transmitted_untransmitted_tdt.html")
     tabs = plot_metric(snvs, 'trans_untrans_ratio_tdt', ['n_trans_singletons_synonymous_tdt', 'n_untrans_singletons_synonymous_tdt'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
     output_file(filename=plotfile)
     save(tabs)
@@ -396,10 +397,10 @@ def main():
     #     'axis.major_label_text_font_size': "14pt"
     # }
 
-    plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/" # TODO: use path joining
-    os.makedirs(plot_dir, exist_ok=True) # create if doesn't exist
+    plot_dir = os.path.join(root_plot_dir, "variant_qc", args.runhash)
+    os.makedirs(plot_dir, exist_ok=True)  # create if doesn't exist
 
-    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
+    bin_htfile = os.path.join(rf_dir, args.runhash, "_rf_result_ranked_BINS.ht")
     create_plots(bin_htfile, plot_dir, args.runhash, qc_plots_settings)
 
 
