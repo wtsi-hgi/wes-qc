@@ -419,7 +419,7 @@ class TestQCSteps(HailTestCase):
 
         # print(f'Downloading control set from the s3 bucket')
         # TODO: switch to http-based download (e.g. using wget)
-        # subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir]) #BEEP
+        # subprocess.run(['s3cmd', 'get', '-r', '--skip-existing', 's3://wes-qc-data/control_set_small/', vcfdir])
         
         cls.vcf_header = '' # not available for test dataset. TODO: create one to ensure test completeness
         # outputs
@@ -760,7 +760,21 @@ class TestQCSteps(HailTestCase):
             'htoutfile_rf_var_type_all_cols': '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
         }
         
-        # ===== QC Step 3.3 ===== #
+        # ===== QC Step 3.3 ===== #   
+        # get_rf_runs()
+        # NOTE: maybe not needed as it doesn't use hail
+        # vk11: the function simply stores run hashes, no need to test
+
+        # train_rf()
+        # reference inputs: `cls.ref_htfile_rf_var_type_all_cols` 
+        # outputs: not saved explicitly, instead returned by function
+        # reference outputs
+        cls.ref_ht_post_RF_training = os.path.join(cls.ref_mtdir, 'ht_post_RF_training.ht')
+
+        # get_run_data()
+        # vk11: returns traing params and results organized as a dictionary, no need to test
+
+
         config['step3']['rf_test_interval'] = 'chr20' # used in multiple functions
         config['step3']['runs_json'] = '{rfdir}/rf_runs.json'
 
@@ -773,9 +787,27 @@ class TestQCSteps(HailTestCase):
 
         # ===== QC Step 3.4 ===== #
         # only var_qc_rf_dir is needed
+        # vk11: does not get tested
 
 
         # ===== QC Step 3.5 ===== #
+        # add_cq_annotation()
+        # reference inputs: `cls.ref_ht_post_RF_training`
+        cls.synonymous_file = os.path.join(cls.ref_resdir, 'synonymous_variants.txt')
+        # outputs
+        cls.ht_post_RF_training_cq_annotated = os.path.join(cls.mtdir, 'ht_post_RF_training_cq_annotated.ht')
+        # reference outputs
+        cls.ref_ht_post_RF_training_cq_annotated = os.path.join(cls.ref_mtdir, 'ht_post_RF_training_cq_annotated.ht')
+
+        # annotate_gnomad()
+        # reference inputs: `cls.ht_post_RF_training_cq_annotated`
+        # vk11: must use tdt_htfile from run_tdt() instead, but this function is commented out
+        cls.gnomad_file = os.path.join(cls.ref_resdir, 'gnomad.exomes.r2.1.1.sites.liftover_grch38.ht')
+        # outputs
+        cls.ht_final = os.path.join(cls.mtdir, 'ht_post_RF_training_final.ht')
+        # reference outputs
+        cls.ref_ht_final = os.path.join(cls.ref_mtdir, 'ht_post_RF_training_final.ht')
+ 
         config['step3']['add_cq_annotation'] = {
             'synonymous_file': '{resdir}/synonymous_variants.txt'
         }
@@ -796,6 +828,16 @@ class TestQCSteps(HailTestCase):
         }
         
         # ===== QC Step 3.6 ===== #
+        # add_rank()
+        # reference inputs:
+        # outputs
+        # reference outputs
+
+        # create_binned_data_initial()
+        # reference inputs:
+        # outputs
+        # reference outputs
+
         config['step3']['add_rank'] = {
             'subrank_expr_de_novo_high_quality_rank': 0.9,
             'subrank_expr_de_novo_medium_quality_rank': 0.5
@@ -1123,10 +1165,16 @@ class TestQCSteps(HailTestCase):
         self.assertTrue(htfile_rf_var_type_all_cols_identical)
 
     def test_3_non_trios_5_1_add_cq_annotation(self):
-        pass
+        qc_step_3_5.add_cq_annotation(self.ref_ht_post_RF_training, self.synonymous_file,
+                                      self.ht_post_RF_training_cq_annotated)
+        htfiles_identical = compare_tables(self.ht_post_RF_training_cq_annotated, self.ref_ht_post_RF_training_cq_annotated)
+        self.assertTrue(htfiles_identical)
 
     def test_3_non_trios_5_2_annotate_gnomad(self):
-        pass
+        qc_step_3_5.annotate_gnomad(self.ref_ht_post_RF_training_cq_annotated, self.gnomad_file,
+                                    self.ht_final)
+        htfiles_identical = compare_tables(self.ht_final, self.ref_ht_final)
+        self.assertTrue(htfiles_identical)
 
     def test_3_non_trios_6_1_add_rank(self):
         # NOTE: the output of this function in modified in main, 
@@ -1141,7 +1189,10 @@ class TestQCSteps(HailTestCase):
         pass
 
     def test_3_3_2_train_rf(self):
-        pass
+        ht = hl.read_table(self.ref_htfile_rf_var_type_all_cols)
+        ht_post_RF_training, rf_model = qc_step_3_3.train_rf(ht, self.config['step3']['rf_test_interval'], self.config)
+        htfiles_identical = compare_tables(ht_post_RF_training, self.ref_ht_post_RF_training)
+        self.assertTrue(htfiles_identical)
 
     def test_3_3_3_get_run_data(self):
         # NOTE: maybe not needed as it doesn't use hail
