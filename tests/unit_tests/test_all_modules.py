@@ -3,14 +3,15 @@ import re
 import gzip
 import unittest
 import importlib
+
 import hail as hl
-import hailtop.fs as hfs
 import shutil as sh
-from pyspark import SparkContext
-from utils.config import parse_config, path_local, path_spark, getp, _process_cvars_in_config
-from utils.utils import download_test_data_from_s3
+import hailtop.fs as hfs
+
 from typing import Union
-import subprocess
+from pyspark import SparkContext
+from utils.utils import download_test_data_using_files_list
+from utils.config import path_local, path_spark, _process_cvars_in_config
 
 
 def compare_structs(struct1, struct2):
@@ -73,8 +74,8 @@ def compare_plinks(bed1_path: str, bim1_path: str, fam1_path: str,
     bool: True if the plinks are equal, False otherwise.
     """
     # Load the plinks
-    mt1 = hl.import_plink(bed=bed1_path, bim=bim1_path, fam=fam1_path, reference_genome='GRCh38')
-    mt2 = hl.import_plink(bed=bed2_path, bim=bim2_path, fam=fam2_path, reference_genome='GRCh38')
+    mt1 = hl.import_plink(bed=path_spark(bed1_path), bim=path_spark(bim1_path), fam=path_spark(fam1_path), reference_genome='GRCh38')
+    mt2 = hl.import_plink(bed=path_spark(bed2_path), bim=path_spark(bim2_path), fam=path_spark(fam2_path), reference_genome='GRCh38')
 
     # Ensure the schemas are the same
     if mt1.row.dtype != mt2.row.dtype or mt1.col.dtype != mt2.col.dtype or mt1.entry.dtype != mt2.entry.dtype:
@@ -90,7 +91,7 @@ def compare_plinks(bed1_path: str, bim1_path: str, fam1_path: str,
     # Check if there are any differing entries
     num_differences = filtered_mt.entries().count()
     if num_differences == 0:
-        print('MatrixTables are equal') # DEBUG
+        print('MatrixTables are equal')
         return True
     else:
         print(f'MatrixTables are not equal: {num_differences} differing entries found')
@@ -109,14 +110,14 @@ def compare_matrixtables(mt1_path: Union[str, hl.MatrixTable], mt2_path: Union[s
     """
     # Load the MatrixTables
     if isinstance(mt1_path, str):
-        mt1 = hl.read_table(mt1_path)
+        mt1 = hl.read_matrix_table(path_spark(mt1_path))
     elif isinstance(mt1_path, hl.MatrixTable):
         mt1 = mt1_path
     else:
         raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(mt1_path)}")
     
     if isinstance(mt2_path, str):
-        mt2 = hl.read_table(mt2_path)
+        mt2 = hl.read_matrix_table(path_spark(mt2_path))
     elif isinstance(mt2_path, hl.MatrixTable):
         mt2 = mt2_path
     else:
@@ -136,7 +137,7 @@ def compare_matrixtables(mt1_path: Union[str, hl.MatrixTable], mt2_path: Union[s
     # Check if there are any differing entries
     num_differences = filtered_mt.entries().count()
     if num_differences == 0:
-        print('MatrixTables are equal') # DEBUG
+        print('MatrixTables are equal')
         return True
     else:
         print(f'MatrixTables are not equal: {num_differences} differing entries found')
@@ -165,14 +166,14 @@ def compare_tables(ht1_path: Union[str, hl.Table], ht2_path: Union[str, hl.Table
     """
     # Load the Tables
     if isinstance(ht1_path, str):
-        ht1 = hl.read_table(ht1_path)
+        ht1 = hl.read_table(path_spark(ht1_path))
     elif isinstance(ht1_path, hl.Table):
         ht1 = ht1_path
     else:
         raise TypeError(f"Expected 'str' or 'hl.Table', but got {type(ht1_path)}")
     
     if isinstance(ht2_path, str):
-        ht2 = hl.read_table(ht2_path)
+        ht2 = hl.read_table(path_spark(ht2_path))
     elif isinstance(ht2_path, hl.Table):
         ht2 = ht2_path
     else:
@@ -192,10 +193,10 @@ def compare_tables(ht1_path: Union[str, hl.Table], ht2_path: Union[str, hl.Table
     num_differences = rows_differ.count()
 
     if num_differences == 0:
-        print(f'Tables {ht1_path}\n{ht2_path}\nare equal') # DEBUG
+        print(f'Tables {ht1_path}\n{ht2_path}\nare equal')
         return True
     else:
-        print(f'Tables {ht1_path}\n{ht2_path}\nare not equal: {num_differences} differing rows found') # DEBUG
+        print(f'Tables {ht1_path}\n{ht2_path}\nare not equal: {num_differences} differing rows found')
         return False
 
 def compare_txts(path_1: str, path_2: str, replace_strings: list[list[str, str]] = None) -> bool:
@@ -217,7 +218,7 @@ def compare_txts(path_1: str, path_2: str, replace_strings: list[list[str, str]]
             contents_2 = re.sub(pattern, substitute, contents_2)
 
     if contents_1 == contents_2:
-        print(f'Files {path_1}\n{path_2}\n are equal') # DEBUG
+        print(f'Files {path_1}\n{path_2}\n are equal')
     else:
         print(f'Files {path_1}\n{path_2}\n are not equal')
 
@@ -245,7 +246,7 @@ def compare_bgzed_txts(path_1: str, path_2: str, replace_strings: list[list[str,
             contents_2 = re.sub(pattern, substitute, contents_2)
 
     if contents_1 == contents_2:
-        print(f'Files {path_1}\n{path_2}\n are equal') # DEBUG
+        print(f'Files {path_1}\n{path_2}\n are equal')
     else:
         print(f'Files {path_1}\n{path_2}\n are not equal')
 
@@ -256,11 +257,22 @@ def compare_bgzed_txts(path_1: str, path_2: str, replace_strings: list[list[str,
 
 # /path/to/wes-qc must be in PYTHONPATH
 qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
+
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
+
+qc_step_3_1 = importlib.import_module("3-variant_qc.variant_qc_non_trios.1-generate_truth_sets_non_trios")
+qc_step_3_2 = importlib.import_module("3-variant_qc.variant_qc_non_trios.2-create_rf_ht_non_trios")
+qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
+qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
+qc_step_3_5 = importlib.import_module("3-variant_qc.variant_qc_non_trios.5-annotate_ht_after_rf_no_trios")
+qc_step_3_6 = importlib.import_module("3-variant_qc.variant_qc_non_trios.6-rank_and_bin_no_trios")
+qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_rf_output_no_trios")
+qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
+qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
 qc_step_4_1 = importlib.import_module("4-genotype_qc.1-apply_hard_filters")
 qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
@@ -273,14 +285,13 @@ qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_fi
 class HailTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # parent outdir
+        # outdir for the outputs of the regression tests
         cls.test_outdir_path = os.path.dirname(os.path.realpath(__file__))
 
         # tmp dir for Hail
-        cls.tmp_dir = f"file://{os.path.join(cls.test_outdir_path, 'tmp_test')}"
+        cls.tmp_dir = path_spark(os.path.join(cls.test_outdir_path, 'tmp_test'))
 
         sc = SparkContext.getOrCreate()
-        # hadoop_config = sc._jsc.hadoopConfiguration() # DEBUG not used, why?
 
         # initialise Hail in local mode to run the test even without cluster
         hl.init(sc=sc, app_name="HailTest", master="local[*]",
@@ -293,75 +304,46 @@ class HailTestCase(unittest.TestCase):
         hl.stop()
 
 
+# list with the test files must be located in the test directory in the repo
+TEST_FILES_LIST = '../test_files_list_in_bucket.txt'
+
 class TestQCSteps(HailTestCase):
     @classmethod
     def setUpClass(cls):
         # set up Hail from the base class
         super(TestQCSteps, cls).setUpClass()
 
+        # `tests/` folder in the repo
+        cls.test_suite_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+        cls.test_data_download_path = os.path.join(cls.test_suite_path, 'test_data_individual_files')
+
+        cls.test_data_path = os.path.join(cls.test_data_download_path, 'control_set_small')
+        cls.test_resourcedir = os.path.join(cls.test_data_download_path, 'resources')
+        cls.onekg_resdir = os.path.join(cls.test_resourcedir, 'mini_1000G')
+        cls.training_sets = os.path.join(cls.test_data_download_path, 'training_sets')
+        variant_qc_random_forest_path = os.path.join(cls.test_data_download_path, 'variant_qc_random_forest')
+
+        # download test data from the bucket
+        print(f'Downloading control set from the s3 bucket')
+        download_test_data_using_files_list(TEST_FILES_LIST, cls.test_data_download_path)
+
+
         # define parameters needed for functions to be tested
 
-        # get test suite path in the repo
-        cls.test_suite_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-        cls.ref_dataset_path = f"file://{os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_output_data')}"
-        # TODO: add ref_annotdir
-        # TODO: upd all paths that use reference matrixtables dir to use this variable
+        # TODO: separate input resources and annotations from output
+        cls.ref_dataset_path = os.path.join(cls.test_data_download_path, 'unit_tests', 'reference_output_data')
         cls.ref_mtdir = os.path.join(cls.ref_dataset_path, 'matrixtables')
-        
-        # Download reference data from the s3 bucket, use local paths for that
-        ref_dataset_path_local = path_local(cls.ref_dataset_path)
-        # ref_mtdir_local = os.path.join(ref_dataset_path_local, 'matrixtables')
-        # ref_annotdir_local = os.path.join(ref_dataset_path_local, 'annotations')
-
-        unzipped_path = os.path.join(cls.test_suite_path, 'unzipped_data')
-        unzipped_control_set_path = os.path.join(unzipped_path, 'control_set_small')
-        unzipped_resources_path = os.path.join(unzipped_path, 'resources')
-        unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data') 
-
-        test_data_path = os.path.join(cls.test_suite_path, 'control_set_small')
-        resources_path = os.path.join(cls.test_suite_path, 'resources')
-        training_sets_path = os.path.join(cls.test_suite_path, 'training_sets')
-        ref_dataset_parent_path = os.path.join(cls.test_suite_path, 'unit_tests')
-
-        # TODO: add training sets dir when creating unit tests for steps 3-4
-        test_data_dirs_to_move = {
-            unzipped_control_set_path: cls.test_suite_path,
-            unzipped_resources_path: cls.test_suite_path,
-            unzipped_ref_data_path: ref_dataset_parent_path
-        }
-
-        print(f'Downloading control set from the s3 bucket')
-        download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
+        cls.ref_resourcedir = os.path.join(cls.ref_dataset_path, 'resources')
+        cls.ref_annotdir = os.path.join(cls.ref_dataset_path, 'annotations')       
 
 
-        # Download resources from s3 bucket
-        cls.test_resourcedir = f"file://{resources_path}"
-        resdir = path_local(cls.test_resourcedir)
-        os.makedirs(resdir, exist_ok=True)
-
-        cls.onekg_resdir = os.path.join(cls.test_resourcedir, 'mini_1000G')
-        cls.training_sets = path_spark(training_sets_path) # DEBUG: the adapters on paths are actually not mandatory
-        
-
-        # TODO: switch to config rendering as in integration tests?
-
-        # TODO: move below (near the config setup) after refactoring other steps
         # ===== QC General Params ===== #
-        cls.mtdir = f"file://{os.path.join(cls.test_outdir_path, 'matrixtables_test')}"
-        cls.annotdir = f"file://{os.path.join(cls.test_outdir_path, 'annotations_test')}"
-        cls.plots_dir = f"file://{os.path.join(cls.test_outdir_path, 'plots_test')}"
-
-        # TODO: create parent dirs inside the corresponding func
-        os.makedirs(path_local(cls.plots_dir), exist_ok=True)
-
-        # mk43
-        # TODO: use a template engine to create a yaml
-        # TODO: cleanup this function
-        # TODO: separate this functions into steps
-        
-        # ===== QC General Params ===== #
-        var_qc_rf_dir_path = os.path.join(cls.test_suite_path, 'var_qc_rf_dir') # output dir
-        cls.var_qc_rf_dir = path_spark(var_qc_rf_dir_path)
+        # output dirs for the regression tests outputs
+        cls.mtdir = os.path.join(cls.test_outdir_path, 'matrixtables_test')
+        cls.annotdir = os.path.join(cls.test_outdir_path, 'annotations_test')
+        cls.plots_dir = os.path.join(cls.test_outdir_path, 'plots_test')
+        cls.var_qc_rf_dir = os.path.join(cls.test_suite_path, 'var_qc_rf_dir_test')
 
         # add general params into the config object
         config = dict()
@@ -388,55 +370,48 @@ class TestQCSteps(HailTestCase):
         )
 
         # ===== QC Step 1.1 ===== #
-        # inputs
-        cls.import_vcf_dir = f"file://{test_data_path}"
-        vcfdir = path_local(cls.import_vcf_dir)
-        os.makedirs(vcfdir, exist_ok=True)
-        
-        cls.vcf_header = '' # not available for test dataset. TODO: create one to ensure test completeness
+        # inputs: `cls.test_data_path`
+        cls.vcf_header = '' # not available for the test dataset
         # outputs
-        # TODO: make output filename variable and refactor the test
-        cls.output_mt_path = os.path.join(cls.mtdir, 'gatk_unprocessed.mt') # DEBUG: keep for testing new config format
+        cls.output_mt_path = os.path.join(cls.mtdir, 'gatk_unprocessed.mt')
         # reference outputs
-        cls.ref_mt_file = os.path.join(cls.ref_dataset_path, 'matrixtables', 'gatk_unprocessed.mt')
+        cls.ref_mt_file = os.path.join(cls.ref_mtdir, 'gatk_unprocessed.mt')
 
         # add step 1 parameters into the config obj
         config['step1'] = dict(
             gatk_vcf_header_infile = cls.vcf_header,
-            gatk_vcf_indir = cls.import_vcf_dir,
+            gatk_vcf_indir = cls.test_data_path,
             gatk_mt_outfile = '{mtdir}/gatk_unprocessed.mt',
         )
 
         # ===== QC Step 2.1 ===== #
         # apply_hard_filters_outputs()
         # reference inputs
-        cls.ref_unfiltered_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'gatk_unprocessed.mt')
+        cls.ref_unfiltered_mt_path = os.path.join(cls.ref_mtdir, 'gatk_unprocessed.mt')
         # outputs
-        # TODO: make output filename variable and refactor the test
-        cls.output_filtered_mt_path = os.path.join(cls.mtdir, 'mt_hard_filters_annotated.mt') # DEBUG: keep for testing new config format
+        cls.output_filtered_mt_path = os.path.join(cls.mtdir, 'mt_hard_filters_annotated.mt')
         # reference outputs
-        cls.ref_output_filtered_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_hard_filters_annotated.mt')
+        cls.ref_output_filtered_mt_path = os.path.join(cls.ref_mtdir, 'mt_hard_filters_annotated.mt')
 
         # impute_sex()
         # reference inputs: `cls.ref_output_filtered_mt_path`
         # outputs
-        cls.output_sex_annotated_path = os.path.join(cls.annotdir, 'sex_annotated.sex_check.txt.bgz') # DEBUG: keep for testing new config format
-        cls.output_sex_mt_path = os.path.join(cls.mtdir, 'mt_sex_annotated.mt') # DEBUG: keep for testing new config format
+        cls.output_sex_annotated_path = os.path.join(cls.annotdir, 'sex_annotated.sex_check.txt.bgz')
+        cls.output_sex_mt_path = os.path.join(cls.mtdir, 'mt_sex_annotated.mt')
         # reference outputs
-        cls.ref_output_sex_annotated_path = os.path.join(cls.ref_dataset_path, 'annotations', 'sex_annotated.sex_check.txt.bgz')
-        cls.ref_output_sex_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_sex_annotated.mt')
+        cls.ref_output_sex_annotated_path = os.path.join(cls.ref_annotdir, 'sex_annotated.sex_check.txt.bgz')
+        cls.ref_output_sex_mt_path = os.path.join(cls.ref_mtdir, 'mt_sex_annotated.mt')
 
         # identify_inconsistencies()
         # reference inputs: `cls.ref_output_sex_mt_path`
         # outputs
-        cls.conflicting_sex_path = os.path.join(cls.annotdir, 'conflicting_sex.txt.bgz') # DEBUG: keep for testing new config format
-        cls.sex_annotation_f_stat_outliers_path = os.path.join(cls.annotdir, 'sex_annotation_f_stat_outliers.txt.bgz') # DEBUG: keep for testing new config format
+        cls.conflicting_sex_path = os.path.join(cls.annotdir, 'conflicting_sex.txt.bgz')
+        cls.sex_annotation_f_stat_outliers_path = os.path.join(cls.annotdir, 'sex_annotation_f_stat_outliers.txt.bgz')
         # reference outputs
-        cls.ref_conflicting_sex_path = os.path.join(cls.ref_dataset_path, 'annotations', 'conflicting_sex.txt.bgz')
-        cls.ref_sex_annotation_f_stat_outliers_path = os.path.join(cls.ref_dataset_path, 'annotations', 'sex_annotation_f_stat_outliers.txt.bgz')
+        cls.ref_conflicting_sex_path = os.path.join(cls.ref_annotdir, 'conflicting_sex.txt.bgz')
+        cls.ref_sex_annotation_f_stat_outliers_path = os.path.join(cls.ref_annotdir, 'sex_annotation_f_stat_outliers.txt.bgz')
 
         # add step 2.1 parameters into the config obj
-        # TODO: create variables for threshold values
         config['step2'] = dict()
         config['step2']['sex_annotation_hard_filters'] = dict(
             filtered_mt_outfile = '{mtdir}/mt_hard_filters_annotated.mt',
@@ -464,7 +439,7 @@ class TestQCSteps(HailTestCase):
         # outputs
         cls.mt_ldpruned_path = os.path.join(cls.mtdir, 'mt_ldpruned.mt')
         # reference outputs
-        cls.ref_mt_ldpruned_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_ldpruned.mt')
+        cls.ref_mt_ldpruned_path = os.path.join(cls.ref_mtdir, 'mt_ldpruned.mt')
 
         # run_pc_relate()
         # reference inputs: `cls.ref_mt_ldpruned_path`
@@ -473,9 +448,9 @@ class TestQCSteps(HailTestCase):
         cls._path_path = os.path.join(cls.mtdir, 'mt_related_samples_to_remove.ht')
         cls.scores_path = os.path.join(cls.mtdir, 'mt_pruned.pca_scores.ht')
         # reference outputs
-        cls.ref_relatedness_ht_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_relatedness.ht')
-        cls.ref_samples_to_remove_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_related_samples_to_remove.ht')
-        cls.ref_scores_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_pruned.pca_scores.ht')
+        cls.ref_relatedness_ht_path = os.path.join(cls.ref_mtdir, 'mt_relatedness.ht')
+        cls.ref_samples_to_remove_path = os.path.join(cls.ref_mtdir, 'mt_related_samples_to_remove.ht')
+        cls.ref_scores_path = os.path.join(cls.ref_mtdir, 'mt_pruned.pca_scores.ht')
 
         # run_population_pca()
         # reference inputs: `cls.ref_mt_ldpruned_path`, `cls.ref_samples_to_remove_path`
@@ -487,11 +462,11 @@ class TestQCSteps(HailTestCase):
         cls.pca_output_path = os.path.join(cls.plotdir, 'pca.html')
         cls.pca_mt_path = os.path.join(cls.mtdir, 'mt_pca.mt')
         # reference outputs
-        cls.ref_plink_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_unrelated.plink')
-        cls.ref_mt_pca_scores_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_pca_scores.ht')
-        cls.ref_mt_pca_loadings_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_pca_loadings.ht')
-        cls.ref_pca_output_path = path_local(os.path.join(cls.ref_dataset_path, 'plots', 'pca.html')) # DEBUG: not used yet
-        cls.ref_pca_mt_path = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_pca.mt')
+        cls.ref_plink_path = os.path.join(cls.ref_mtdir, 'mt_unrelated.plink')
+        cls.ref_mt_pca_scores_path = os.path.join(cls.ref_mtdir, 'mt_pca_scores.ht')
+        cls.ref_mt_pca_loadings_path = os.path.join(cls.ref_mtdir, 'mt_pca_loadings.ht')
+        cls.ref_pca_output_path = path_local(os.path.join(cls.ref_dataset_path, 'plots', 'pca.html')) # DEBUG: not used
+        cls.ref_pca_mt_path = os.path.join(cls.ref_mtdir, 'mt_pca.mt')
 
         config['step2']['prune'] = {
             'pruned_mt_file': '{mtdir}/mt_ldpruned.mt',
@@ -529,7 +504,7 @@ class TestQCSteps(HailTestCase):
         # outputs
         cls.kg_wes_regions = os.path.join(cls.mtdir, 'kg_wes_regions.mt')
         # reference outputs
-        cls.ref_kg_wes_regions = os.path.join(cls.ref_dataset_path, 'matrixtables', 'kg_wes_regions.mt')
+        cls.ref_kg_wes_regions = os.path.join(cls.ref_mtdir, 'kg_wes_regions.mt')
 
         # merge_with_1kg()
         # reference inputs: `cls.ref_mt_ldpruned_path`
@@ -609,7 +584,6 @@ class TestQCSteps(HailTestCase):
 
         # stratified_sample_qc()
         # reference inputs: `cls.ref_annotated_mt_file`, `cls.ref_annotdir`
-        cls.ref_annotdir = os.path.join(cls.ref_dataset_path, 'annotations')
         # outputs
         cls.mt_qc_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.mt')
         cls.ht_qc_cols_outfile = os.path.join(cls.mtdir, 'mt_pops_sampleqc.ht')
@@ -654,7 +628,14 @@ class TestQCSteps(HailTestCase):
             'sample_qc_filtered_mt_file' : '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
         }
 
-        # ===== QC Step 3.1 ===== #
+        # ===== QC Step 3.1 non-trios ===== #
+        # get_truth_ht()
+        # reference inputs:
+        # outputs
+        cls.truth_ht_outfile = os.path.join(cls.test_resourcedir, 'truthset_table.ht')
+        # reference outputs
+        cls.ref_truth_ht_outfile = os.path.join(cls.ref_resourcedir, 'truthset_table.ht')
+
         # split_multi_and_var_qc()
         # reference inputs: `` # TODO: fill in
         # outputs
@@ -677,7 +658,7 @@ class TestQCSteps(HailTestCase):
         # outputs
         cls.mtfile_filtered = os.path.join(cls.mtdir, 'mt_after_var_qc_hard_filter_gt.mt')
         # reference outputs
-        cls.ref_mtfile_filtered = os.path.join(cls.ref_dataset_path, 'matrixtables', 'mt_after_var_qc_hard_filter_gt.mt')
+        cls.ref_mtfile_filtered = os.path.join(cls.ref_mtdir, 'mt_after_var_qc_hard_filter_gt.mt')
 
         # ===== QC Step 4.1a ===== #
         # remove_samples()
@@ -705,7 +686,7 @@ class TestQCSteps(HailTestCase):
         
         # compare the output to reference
         output_mt_path = self.config['step1']['gatk_mt_outfile']
-        self.assertEqual(output_mt_path, self.output_mt_path) # DEBUG
+        self.assertEqual(output_mt_path, self.output_mt_path)
 
         outputs_are_identical = compare_matrixtables(self.ref_mt_file, output_mt_path)
         self.assertTrue(outputs_are_identical)
@@ -713,14 +694,14 @@ class TestQCSteps(HailTestCase):
     # QC Step 2.1 apply_hard_filters
     def test_2_1_1_apply_hard_filters(self):
         # read reference output of the step 1.1
-        ref_mt_unfiltered = hl.read_matrix_table(self.ref_unfiltered_mt_path)
+        ref_mt_unfiltered = hl.read_matrix_table(path_spark(self.ref_unfiltered_mt_path))
 
         # run function to test
         mt_filtered = qc_step_2_1.apply_hard_filters(ref_mt_unfiltered, self.config)
         
         # compare the output to reference
         output_filtered_mt_path = self.config['step2']['sex_annotation_hard_filters']['filtered_mt_outfile']
-        self.assertEqual(output_filtered_mt_path, self.output_filtered_mt_path) # DEBUG
+        self.assertEqual(output_filtered_mt_path, self.output_filtered_mt_path)
         
         outputs_are_identical = compare_matrixtables(self.ref_output_filtered_mt_path, output_filtered_mt_path)
         self.assertTrue(outputs_are_identical)
@@ -728,7 +709,7 @@ class TestQCSteps(HailTestCase):
     # QC Step 2.1 impute sex
     def test_2_1_2_impute_sex(self):
         # read reference output of the Step 2.1 apply_hard_filters()
-        ref_mt_filtered = hl.read_matrix_table(self.ref_output_filtered_mt_path)
+        ref_mt_filtered = hl.read_matrix_table(path_spark(self.ref_output_filtered_mt_path))
 
         # run function to test
         sex_mt = qc_step_2_1.impute_sex(ref_mt_filtered, self.config)
@@ -736,8 +717,8 @@ class TestQCSteps(HailTestCase):
         # compare the outputs to reference
         output_sex_annotated_path = self.config['step2']['impute_sex']['sex_ht_outfile']
         output_sex_mt_path = self.config['step2']['impute_sex']['sex_mt_outfile']
-        self.assertEqual(output_sex_annotated_path, self.output_sex_annotated_path) # DEBUG
-        self.assertEqual(output_sex_mt_path, self.output_sex_mt_path) # DEBUG
+        self.assertEqual(output_sex_annotated_path, self.output_sex_annotated_path)
+        self.assertEqual(output_sex_mt_path, self.output_sex_mt_path)
 
         self.assertEqual(path_local(output_sex_annotated_path), path_local(output_sex_annotated_path))
 
@@ -749,7 +730,7 @@ class TestQCSteps(HailTestCase):
 
     def test_2_1_3_identify_inconsistencies(self):
         # read reference output of the Step 2.1 impute_sex()
-        ref_output_sex_mt = hl.read_matrix_table(self.ref_output_sex_mt_path)
+        ref_output_sex_mt = hl.read_matrix_table(path_spark(self.ref_output_sex_mt_path))
 
         # run function to test
         qc_step_2_1.identify_inconsistencies(ref_output_sex_mt, self.config)
@@ -758,8 +739,8 @@ class TestQCSteps(HailTestCase):
         conflicting_sex_path = self.config['step2']['sex_inconsistencies']['conflicting_sex_report_file']
         sex_annotation_f_stat_outliers_path = self.config['step2']['sex_inconsistencies']['fstat_outliers_report_file']
 
-        self.assertEqual(conflicting_sex_path, self.conflicting_sex_path) # DEBUG
-        self.assertEqual(sex_annotation_f_stat_outliers_path, self.sex_annotation_f_stat_outliers_path) # DEBUG
+        self.assertEqual(conflicting_sex_path, self.conflicting_sex_path)
+        self.assertEqual(sex_annotation_f_stat_outliers_path, self.sex_annotation_f_stat_outliers_path)
 
         conflicting_sex_are_identical = compare_bgzed_txts(path_local(self.ref_conflicting_sex_path),
                                                            path_local(conflicting_sex_path))
@@ -772,7 +753,7 @@ class TestQCSteps(HailTestCase):
 
     def test_2_2_1_prune_mt(self):
         # read reference output of the Step 2.1 impute_sex()
-        ref_output_sex_mt = hl.read_matrix_table(self.ref_output_sex_mt_path)
+        ref_output_sex_mt = hl.read_matrix_table(path_spark(self.ref_output_sex_mt_path))
 
         # run function to test
         pruned_mt = qc_step_2_2.prune_mt(ref_output_sex_mt, self.config)
@@ -784,7 +765,7 @@ class TestQCSteps(HailTestCase):
 
     def test_2_2_2_run_pc_relate(self):
         # read reference outputs of the Step 2.2 prune_mt()
-        ref_mt_ldpruned = hl.read_matrix_table(self.ref_mt_ldpruned_path)
+        ref_mt_ldpruned = hl.read_matrix_table(path_spark(self.ref_mt_ldpruned_path))
 
         # run function to test
         qc_step_2_2.run_pc_relate(ref_mt_ldpruned, self.config)
@@ -803,8 +784,8 @@ class TestQCSteps(HailTestCase):
     def test_2_2_3_run_population_pca(self):
         # read reference outputs of Step 2.3
         # run function to test
-        ref_mt_ldpruned = hl.read_matrix_table(self.ref_mt_ldpruned_path)
-        ref_samples_to_remove = hl.read_table(self.ref_samples_to_remove_path)
+        ref_mt_ldpruned = hl.read_matrix_table(path_spark(self.ref_mt_ldpruned_path))
+        ref_samples_to_remove = hl.read_table(path_spark(self.ref_samples_to_remove_path))
         qc_step_2_2.run_population_pca(ref_mt_ldpruned, ref_samples_to_remove, self.config)
         
         # compare outputs to reference
@@ -827,7 +808,7 @@ class TestQCSteps(HailTestCase):
 
     def test_2_3_2_merge_with_1kg(self):
         # use reference outputs of Step 2.2 prune_mt()
-        ref_mt_ldpruned = hl.read_matrix_table(self.ref_mt_ldpruned_path)
+        ref_mt_ldpruned = hl.read_matrix_table(path_spark(self.ref_mt_ldpruned_path))
         # run function to test
         qc_step_2_3.merge_with_1kg(ref_mt_ldpruned, self.config)
         merged_mt_identical = compare_matrixtables(self.merged_mt_path, self.ref_merged_mt_path)
@@ -836,7 +817,7 @@ class TestQCSteps(HailTestCase):
 
     def test_2_3_3_annotate_and_filter(self):
         # use reference outputs of Step 2.3 merge_with_1kg()
-        ref_merged_mt = hl.read_matrix_table(self.ref_merged_mt_path)
+        ref_merged_mt = hl.read_matrix_table(path_spark(self.ref_merged_mt_path))
         # run function to test
         qc_step_2_3.annotate_and_filter(ref_merged_mt, self.config)
         filtered_mt_identical = compare_matrixtables(self.filtered_mt_path, self.ref_filtered_mt_path)
@@ -845,7 +826,7 @@ class TestQCSteps(HailTestCase):
 
     def test_2_3_4_run_pca(self):
         # Use reference output of Step 2.3 annotate_and_filter() as input
-        ref_filtered_mt = hl.read_matrix_table(self.ref_filtered_mt_path)
+        ref_filtered_mt = hl.read_matrix_table(path_spark(self.ref_filtered_mt_path))
         # Run function to test
         qc_step_2_3.run_pca(ref_filtered_mt, self.config)
 

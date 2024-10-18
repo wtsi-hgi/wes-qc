@@ -1,17 +1,17 @@
 import os
-import argparse 
-from unittest.mock import patch 
-import re
+import argparse
 import unittest
 import importlib
-from typing import Optional
-import hail as hl
-import hailtop.fs as hfs
-from pyspark import SparkContext
-import subprocess
-from utils.utils import download_test_data_from_s3
 
-# for test config rendering
+from typing import Optional
+from unittest.mock import patch
+from utils.utils import download_test_data_using_files_list
+
+
+# list with the test files must be located in the test directory in the repo
+TEST_FILES_LIST = '../test_files_list_in_bucket.txt'
+
+# variables for test config rendering
 INTEGRATION_TESTS_DIR = '{INTEGRATION_TESTS_DIR}'
 TEST_DATA_DIR = '{TEST_DATA_DIR}'
 RESOURCES_DIR = '{RESOURCES_DIR}'
@@ -85,29 +85,15 @@ class HailTestCase(unittest.TestCase):
         test_suite_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         # specify paths to the test data and resources
-        test_data_path = os.path.join(test_suite_path, 'control_set_small')
-        resources_path = os.path.join(test_suite_path, 'resources')
-        training_sets_path = os.path.join(test_suite_path, 'training_sets')
-        variant_qc_random_forest_path = os.path.join(test_suite_path, 'variant_qc_random_forest')
-        ref_data_path = os.path.join(test_suite_path, 'unit_tests')
+        test_data_download_path = os.path.join(test_suite_path, 'test_data_individual_files')
+        test_data_path = os.path.join(test_data_download_path, 'control_set_small')
+        resources_path = os.path.join(test_data_download_path, 'resources')
+        training_sets_path = os.path.join(test_data_download_path, 'training_sets')
+        variant_qc_random_forest_path = os.path.join(test_data_download_path, 'variant_qc_random_forest')
+        ref_data_path = os.path.join(test_data_download_path, 'unit_tests', 'reference_output_data')
 
-        unzipped_path = os.path.join(test_suite_path, 'unzipped_data')
-        unzipped_control_set_path = os.path.join(unzipped_path, 'control_set_small')
-        unzipped_resources_path = os.path.join(unzipped_path, 'resources')
-        unzipped_training_sets_path = os.path.join(unzipped_path, 'training_sets')
-
-        # not used in integration tests, but prolly better download it as well
-        unzipped_ref_data_path = os.path.join(unzipped_path, 'unit_tests', 'reference_output_data')
-
-
-        test_data_dirs_to_move = {
-            unzipped_control_set_path: test_suite_path,
-            unzipped_resources_path: test_suite_path,
-            unzipped_training_sets_path: test_suite_path,
-            unzipped_ref_data_path: ref_data_path
-        }
-
-        download_test_data_from_s3(unzipped_path, test_data_dirs_to_move)
+        print(f'Downloading data from the bucket using files list {os.path.abspath(TEST_FILES_LIST)}')
+        download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
 
         smoke_test_dir_path = os.path.dirname(os.path.realpath(__file__))
         rendered_config_savefile = os.path.join(smoke_test_dir_path, 'integration_config_rendered.yaml')
