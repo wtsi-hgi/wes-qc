@@ -1072,43 +1072,7 @@ class TestQCSteps(HailTestCase):
         samples_failing_qc_identical = compare_bgzed_txts(path_local(self.samples_failing_qc_file),
                 path_local(self.ref_samples_failing_qc_file))
 
-        self.assertTrue(sample_qc_filtered_identical and samples_failing_qc_identical)
-
-    def test_3_1_1_get_truth_ht(self):
-        qc_step_3_1.get_truth_ht(self.ref_omni, self.ref_mills, self.ref_thousand_genomes,
-                                 self.ref_hapmap, self.truth_ht_file)
-
-        truth_ht_file_identical = compare_tables(self.truth_ht_file, self.ref_truth_ht_file)
-
-        self.assertTrue(truth_ht_file_identical)
-
-    def test_3_1_2_split_multi_and_var_qc(self):
-        qc_step_3_1.split_multi_and_var_qc(self.ref_nonpops_QC_filters_after_sample_qc,
-                                           self.ref_varqc_mtoutfile, self.varqc_mtoutfile_split)
-
-        varqc_mtoutfile_split_identical = compare_matrixtables(self.varqc_mtoutfile_split, self.ref_varqc_mtoutfile_split)
-
-        self.assertTrue(varqc_mtoutfile_split_identical)
-
-    def test_3_1_3_create_inbreeding_ht_with_ac_and_allele_data(self):
-        qc_step_3_1.create_inbreeding_ht_with_ac_and_allele_data(self.ref_varqc_mtoutfile, self.ref_inbreeding_htoutfile,
-                                                                 self.ref_qc_ac_htoutfile, self.allele_data_htfile)
-        
-        allele_data_htfile_identical = compare_matrixtables(self.allele_data_htfile, self.ref_allele_data_htfile)
-        
-        self.assertTrue(allele_data_htfile_identical)
-
-    def test_3_2_1_create_rf_ht(self):
-        qc_step_3_2.create_rf_ht(self.ref_varqc_mtoutfile_split, self.ref_truth_ht_file,
-                                 self.ref_allele_data_htfile, self.ref_qc_ac_htoutfile, 
-                                 self.ref_inbreeding_htoutfile, self.htoutfile_rf_all_cols,
-                                 self.htfile_rf_var_type_all_cols, self.config)
-        
-        htoutfile_rf_all_cols_identical = compare_matrixtables(self.htoutfile_rf_all_cols, self.ref_htoutfile_rf_all_cols)
-        htfile_rf_var_type_all_cols_identical = compare_matrixtables(self.htfile_rf_var_type_all_cols, self.ref_htfile_rf_var_type_all_cols)
-        
-        self.assertTrue(htoutfile_rf_all_cols_identical)
-        self.assertTrue(htfile_rf_var_type_all_cols_identical)
+        self.assertTrue(sample_qc_filtered_identical and samples_failing_qc_identical)      
 
     # tests for 4-genotype_qc
     def test_4_1_1_filter_mt(self):
@@ -1123,16 +1087,40 @@ class TestQCSteps(HailTestCase):
 
     # test data has no trios, so only non-trios scripts are tested
     def test_3_non_trios_1_1_get_truth_ht(self):
-        pass
+        qc_step_3_1.get_truth_ht(self.ref_omni, self.ref_mills, self.ref_thousand_genomes,
+                                 self.ref_hapmap, self.truth_ht_file)
+
+        truth_ht_file_identical = compare_tables(self.truth_ht_file, self.ref_truth_ht_file)
+
+        self.assertTrue(truth_ht_file_identical)
 
     def test_3_non_trios_1_2_split_multi_and_var_qc(self):
-        pass
+        qc_step_3_1.split_multi_and_var_qc(self.ref_nonpops_QC_filters_after_sample_qc,
+                                           self.ref_varqc_mtoutfile, self.varqc_mtoutfile_split)
+
+        varqc_mtoutfile_split_identical = compare_matrixtables(self.varqc_mtoutfile_split, self.ref_varqc_mtoutfile_split)
+
+        self.assertTrue(varqc_mtoutfile_split_identical)
 
     def test_3_non_trios_1_3_create_inbreeding_ht_with_ac_and_allele_data(self):
-        pass
+        qc_step_3_1.create_inbreeding_ht_with_ac_and_allele_data(self.ref_varqc_mtoutfile, self.ref_inbreeding_htoutfile,
+                                                                 self.ref_qc_ac_htoutfile, self.allele_data_htfile)
+        
+        allele_data_htfile_identical = compare_matrixtables(self.allele_data_htfile, self.ref_allele_data_htfile)
+        
+        self.assertTrue(allele_data_htfile_identical)
 
     def test_3_non_trios_2_1_create_rf_ht(self):
-        pass
+        qc_step_3_2.create_rf_ht(self.ref_varqc_mtoutfile_split, self.ref_truth_ht_file,
+                                 self.ref_allele_data_htfile, self.ref_qc_ac_htoutfile, 
+                                 self.ref_inbreeding_htoutfile, self.htoutfile_rf_all_cols,
+                                 self.htfile_rf_var_type_all_cols, self.config)
+        
+        htoutfile_rf_all_cols_identical = compare_matrixtables(self.htoutfile_rf_all_cols, self.ref_htoutfile_rf_all_cols)
+        htfile_rf_var_type_all_cols_identical = compare_matrixtables(self.htfile_rf_var_type_all_cols, self.ref_htfile_rf_var_type_all_cols)
+        
+        self.assertTrue(htoutfile_rf_all_cols_identical)
+        self.assertTrue(htfile_rf_var_type_all_cols_identical)
 
     def test_3_non_trios_5_1_add_cq_annotation(self):
         pass
