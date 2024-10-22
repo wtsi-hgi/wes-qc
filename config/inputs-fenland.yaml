@@ -47,28 +47,28 @@ hard_filters:
       gq: 10
       ab: 0.2
     medium:
-      bin: 84
+      bin: 88
       dp: 5
       gq: 10
       ab: 0.2
     stringent:
-      bin: 78
+      bin: 84
       dp: 5
-      gq: 10
+      gq: 15
       ab: 0.2
   indel:
     relaxed:
-      bin: 72
+      bin: 70
       dp: 5
       gq: 10
       ab: 0.2
     medium:
-      bin: 64
+      bin: 68
       dp: 5
-      gq: 10
+      gq: 15
       ab: 0.2
     stringent:
-      bin: 52
+      bin: 56
       dp: 5
-      gq: 10
-      ab: 0.2
+      gq: 20
+      ab: 0.3
