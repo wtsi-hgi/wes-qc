@@ -382,10 +382,10 @@ def main():
     # 'axis_major_label_text_font_size': "14pt"
     # }
 
-    plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/"
+    plot_dir = os.path.join(root_plot_dir, "variant_qc", args.runhash)
     os.makedirs(plot_dir, exist_ok=True) # create if doesn't exist
 
-    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
+    bin_htfile = os.path.join(rf_dir, args.runhash, "_rf_result_ranked_BINS.ht")
     create_plots(bin_htfile, plot_dir, args.runhash, qc_plots_settings)
 
 

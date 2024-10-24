@@ -1,4 +1,5 @@
 # this is a copy of the annotation script to use when there are mo trios and therefore no transmitted/unstransmitted ratios can be calculated
+import os
 import hail as hl
 import pyspark
 import argparse
@@ -188,14 +189,14 @@ def main():
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     # TODO move runhash from cli to config
-    htfile = rf_dir + args.runhash + "/rf_result.ht"
+    htfile = os.path.join(rf_dir, args.runhash, "rf_result.ht")
     #annotate with synonymous CQs
     synonymous_file = config['step3']['add_cq_annotation']['synonymous_file']
-    ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht"
+    ht_cq_file = os.path.join(rf_dir, args.runhash, "rf_result_with_synonymous.ht")
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
 
     #annotate with gnomad AF
-    final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
+    final_htfile = os.path.join(rf_dir, args.runhash, "rf_result_final_for_ranking.ht")
     gnomad_htfile = config['step3']['annotate_gnomad']['gnomad_htfile']
     annotate_gnomad(ht_cq_file, gnomad_htfile, final_htfile)
 

@@ -150,6 +150,8 @@ def run_population_pca(pruned_mt: hl.MatrixTable, samples_to_remove: hl.Table, c
 
     print("Plotting PC1 vs PC2")
     plot_outfile = path_local(conf['plot_outfile'])
+    os.makedirs(os.path.dirname(plot_outfile), exist_ok=True)
+
     p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title='PCA', xlabel='PC1', ylabel='PC2')
     print(f'saving plot to {plot_outfile} DEBUG') # DEBUG
     bkplt.output_file(plot_outfile)

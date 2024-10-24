@@ -105,7 +105,43 @@ import subprocess
 # === Utils for downloading test data from the s3 storage === #
 
 TEST_DATA_FILENAME = 'all_test_data.zip'
-TEST_DATA_DOWNLOAD_URL = f'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}'
+TEST_DATA_ARCHIVE_URL = f'https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}'
+TEST_DATA_PARENT_DIR_URL = 'https://wes-qc-data.cog.sanger.ac.uk'
+TEST_DATA_DIR_NAMES = ['control_set_small', 'unit_tests', 'resources', 'training_sets']
+
+# TODO: download using a .txt file with the list of all files instead of archiving
+# TODO: test this draft
+def download_test_data_using_files_list(files_list: str, outdir: str) -> None:
+    """ `files_list` must be generated with the following command ran from the directory with the test data:
+    ```
+    find . -print > ../files_list.txt
+    ```
+    Then it can be used as an input to this function.
+    """
+    with open(files_list, 'r') as f:
+        all_files = f.readlines()[1:] # skip the current dir row
+
+    downloaded_test_dirs = [test_dir for test_dir in TEST_DATA_DIR_NAMES if os.path.exists(os.path.join(outdir, test_dir))]    
+    print(f"Test folders {', '.join(downloaded_test_dirs)} already downloaded")
+
+    for file_path in all_files:
+        file_path = file_path.rstrip()
+        file_path_relative_to_current_dir = file_path.replace('./', '', 1)
+        data_folder = file_path_relative_to_current_dir.split('/')[0] # TODO: optimise
+        
+        # naive approach - if parent dir of the file already exists, don't download the file
+        if data_folder in downloaded_test_dirs:
+            continue
+
+        file_url = file_path.replace('.', TEST_DATA_PARENT_DIR_URL, 1) # create download urls for each file
+        file_destination = os.path.dirname(os.path.normpath(os.path.join(outdir, file_path_relative_to_current_dir))) # remove possible double slashes
+
+        subprocess.run(['wget', '-nv', '-nc', file_url, '-P', file_destination]) # downlaod the file into destination
+
+def move_dirs(move_dirs: dict) -> None:
+    print(f'Copying data to correct dirs')
+    for dir_to_move, destination_dir in move_dirs.items():
+        subprocess.run(['cp', '-vnr', dir_to_move, destination_dir])
 
 # TODO: make versatile, don't download if already exists
 def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir: bool = False) -> None:
@@ -129,7 +165,7 @@ def download_test_data_from_s3(outdir: str, move_dirs: dict, clean_up_unzip_dir:
     """
     print(f'Downloading data from the s3 bucket') # TODO: improve logging
     # Download zipped archive with all the data
-    subprocess.run(['wget', '-nc', TEST_DATA_DOWNLOAD_URL, '-P', outdir]) # skip existing
+    subprocess.run(['wget', '-nc', TEST_DATA_ARCHIVE_URL, '-P', outdir]) # skip existing
 
     # Unzip the data
     print(f'Unzipping the data')
