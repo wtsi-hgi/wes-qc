@@ -124,3 +124,7 @@ cython_debug/
 .idea/
 
 .snakemake
+
+# test data
+tests/test_data_individual_files/
+tests/unit_tests/*
