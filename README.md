@@ -34,3 +34,19 @@ It performs a series of operations:
 
 The `hlrun_remote` is designed to work with only one tmux session.
 To start a new task via `hlrun_remote`, first end the existing tmux session, if it exists.
+
+
+# How to run the tests and with coverage
+
+The tests currently require running on the SPARK cluster. There are plans to make them runnable locally.
+They can be run by commands defined in `Makefile`.
+
+To run the tests only:
+```
+make test
+```
+
+To run the tests with coverage:
+```
+make coverage
+```
