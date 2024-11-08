@@ -3,7 +3,7 @@
 
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def run_tdt(varqc_mtfile, pedfile, gnomad_htfile, tdt_htfile):
