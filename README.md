@@ -41,12 +41,18 @@ To start a new task via `hlrun_remote`, first end the existing tmux session, if 
 The tests currently require running on the SPARK cluster. There are plans to make them runnable locally.
 They can be run by commands defined in `Makefile`.
 
-To run the tests only:
-```
+To run all the tests:
+```bash
 make test
+```
+Or you can specify the type of test to run
+```bash
+make unit-test 
+make integration-test
 ```
 
 To run the tests with coverage:
-```
-make coverage
+```bash
+make unit-test-coverage
+make integration-test-coverage
 ```

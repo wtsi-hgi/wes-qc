@@ -1,7 +1,15 @@
 .PHONY: test
 
-test:
+test: unit-test integration-test
+
+integration-test:
+	cd tests/integration_tests && pytest
+
+integration-test-coverage:
+	cd tests/integration_tests && pytest --cov=../..
+
+unit-test:
 	cd tests/unit_tests && pytest
 
-coverage:
-	cd tests/unit_tests && coverage run -m pytest && coverage report -m
+unit-test-coverage:
+	cd tests/unit_tests && pytest --cov=../.. 

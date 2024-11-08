@@ -129,3 +129,7 @@ cython_debug/
 # test data
 tests/test_data_individual_files/
 tests/unit_tests/*
+tests/integration_tests/annotations_new_config/
+tests/integration_tests/integration_config_rendered.yaml
+tests/integration_tests/matrixtables_new_config/
+tests/integration_tests/plots_new_config/
