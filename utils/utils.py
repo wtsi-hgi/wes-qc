@@ -114,7 +114,7 @@ TEST_DATA_DIR_NAMES = ['control_set_small', 'unit_tests', 'resources', 'training
 def download_test_data_using_files_list(files_list: str, outdir: str) -> None:
     """ `files_list` must be generated with the following command ran from the directory with the test data:
     ```
-    find . -print > ../files_list.txt
+    find . ! -type d -print > ../files_list.txt
     ```
     Then it can be used as an input to this function.
     """

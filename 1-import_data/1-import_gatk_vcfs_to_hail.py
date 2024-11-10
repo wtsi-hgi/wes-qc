@@ -59,5 +59,7 @@ def main():
     #load VCFs
     load_vcfs_to_mt(config)
 
+    sc.stop() # DEBUG
+
 if __name__ == '__main__':
     main() 

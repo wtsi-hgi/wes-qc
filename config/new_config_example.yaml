@@ -39,28 +39,28 @@ cvars:
 
 general:
   # CVAR tmpdir
-  tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp/ # output
+  tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp_final_out/ # output
 
   # CVAR anndir
-  annotation_dir: /lustre/scratch126/dh24_test/wes-qc/annotations/ # output
+  annotation_dir: /lustre/scratch126/dh24_test/wes-qc/annotations_final_out/ # output
   
   # CVAR mtdir
-  matrixtables_dir: /lustre/scratch126/dh24_test/wes-qc/matrixtables/ # output
+  matrixtables_dir: /lustre/scratch126/dh24_test/wes-qc/matrixtables_final_out/ # output
 
   # CVAR resdir
-  resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/resources/ # input and output
+  resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/resources/ # input and output
 
   # CVAR 1kg_resdir
-  onekg_resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/resources/mini_1000G # input; must be without trailing slash (TODO: make more robust)
+  onekg_resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/resources/mini_1000G # input; must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
-  plots_dir: /lustre/scratch126/dh24_test/wes-qc/tests/plots/ # output
+  plots_dir: /lustre/scratch126/dh24_test/wes-qc/tests/plots_final_out/ # output
 
   # CVAR traindir
-  training_sets_dir: /lustre/scratch126/dh24_test/wes-qc/tests/training_sets/ # input
+  training_sets_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/training_sets// # input
 
   # CVAR rfdir
-  var_qc_rf_dir: /lustre/scratch126/dh24_test/wes-qc/tests/variant_qc_random_forest/ # output
+  var_qc_rf_dir: /lustre/scratch126/dh24_test/wes-qc/tests/variant_qc_random_forest_final_out/ # output
 
 
 step1:
@@ -366,6 +366,7 @@ step4:
     # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
     gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    annotated_with_gnomad_outfile: '{mtdir}/annotated_with_gnomad.mt'
 
   get_trans_untrans_synon_singleton_counts:
     pedfile: '{resdir}/trios.ped'
