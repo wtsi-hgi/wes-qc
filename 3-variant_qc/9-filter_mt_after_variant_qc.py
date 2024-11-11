@@ -2,7 +2,8 @@
 import hail as hl
 import pyspark
 import argparse
-from utils.utils import parse_config
+import os.path
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -31,8 +32,8 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     :param str cqfile: File containing consequence annotation
     :param str filtered_mtfile: random forest score annotated mtfile
     '''
-    mt = hl.read_matrix_table(mtfile)
-    rf_ht = hl.read_table(rf_htfile)
+    mt = hl.read_matrix_table(path_spark(mtfile))
+    rf_ht = hl.read_table(path_spark(rf_htfile))
 
     # keep only vars with rank_id = rank
     rf_ht = rf_ht.filter(rf_ht.rank_id == 'rank')
@@ -48,8 +49,10 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     )
 
     # annotate with VEP consequence
-    cq_ht = hl.import_table(cqfile, types={'f0': 'str', 'f1': 'int32', 'f2': 'str',
-                            'f3': 'str', 'f4': 'str', 'f5': 'str'}, no_header=True)
+    cq_ht = hl.import_table(path_spark(cqfile), 
+                            types={'f0': 'str', 'f1': 'int32', 'f2': 'str',
+                            'f3': 'str', 'f4': 'str', 'f5': 'str'}, 
+                            no_header=True)
     cq_ht = cq_ht.annotate(chr=cq_ht.f0)
     cq_ht = cq_ht.annotate(pos=cq_ht.f1)
     cq_ht = cq_ht.annotate(rs=cq_ht.f2)
@@ -69,33 +72,34 @@ def annotate_mt_with_cq_rf_score_and_bin(mtfile: str, rf_htfile: str, snv_thresh
     mt_filtered = mt.filter_rows(((hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.info.rf_bin <= snv_threshold)) | (
         (hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.info.rf_bin <= indel_threshold)))
 
-    mt_filtered.write(filtered_mtfile, overwrite = True)
+    mt_filtered.write(path_spark(filtered_mtfile), overwrite = True)
 
     nvars = mt.count_rows()
     nvar_filtered = mt_filtered.count_rows()
-    print(str(nvars) + " variants before filtering, " + str(nvar_filtered) + " variants after filtering")
+    print(f'{str(nvars)} variants before filtering, {str(nvar_filtered)} variants after filtering')
 
 
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
+    config = parse_config()
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
+    mtdir = config['general']['matrixtables_dir']
+    resourcedir = config['general']['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    mtfile_after_varqc = mtdir + "mt_after_var_qc.mt"
-    cqfile = resourcedir + "all_consequences.txt"
+    htfile = os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht")
 
-    annotate_mt_with_cq_rf_score_and_bin(mtfile, htfile, args.snv, args.indel, cqfile, mtfile_after_varqc)
+    mtfile = config['step3']['annotate_mt_with_cq_rf_score_and_bin']['mtfile']
+    cqfile = config['step3']['annotate_mt_with_cq_rf_score_and_bin']['cqfile']
+    mtoutfile_after_varqc = config['step3']['annotate_mt_with_cq_rf_score_and_bin']['mtoutfile_after_varqc']
+
+    annotate_mt_with_cq_rf_score_and_bin(mtfile, htfile, args.snv, args.indel, cqfile, mtoutfile_after_varqc)
 
 
 if __name__ == '__main__':

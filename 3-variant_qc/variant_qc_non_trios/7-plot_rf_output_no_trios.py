@@ -1,15 +1,20 @@
+# TODO: fix bokeh Deprecation Warnings
+
 # create plots from binned random forest output
 import hail as hl
 import pyspark
 import os
 import argparse
 import pandas as pd
-from typing import Union, Dict, List, Set, Tuple
-from bokeh.models import Plot, Row, Span
-from bokeh.plotting import output_file, save
+import numpy as np
+from typing import Union, Dict, List, Set, Tuple, Callable
+import bokeh.models as bm
+
+from bokeh.models.layouts import TabPanel, Tabs
+from bokeh.plotting import output_file, save, figure
 from gnomad.utils.plotting import *
 from hail.plot import show, output_notebook
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -26,12 +31,12 @@ def get_options():
     return args
 
 
-def set_plots_defaults(p: Plot, qc_plots_settings: dict) -> None:
+def set_plots_defaults(p: bm.Plot, qc_plots_settings: dict) -> None:
     p.legend.label_text_font_size = qc_plots_settings['label_text_font_size']
-    p.title.text_font_size = qc_plots_settings['title.text_font_size']
-    p.axis.axis_label_text_font_size = qc_plots_settings['axis.axis_label_text_font_size']
-    p.axis.axis_label_text_font_style = qc_plots_settings['axis.axis_label_text_font_style']
-    p.axis.major_label_text_font_size = qc_plots_settings['axis.major_label_text_font_size']
+    p.title.text_font_size = qc_plots_settings['title_text_font_size']
+    p.axis.axis_label_text_font_size = qc_plots_settings['axis_axis_label_text_font_size']
+    p.axis.axis_label_text_font_style = qc_plots_settings['axis_axis_label_text_font_style']
+    p.axis.major_label_text_font_size = qc_plots_settings['axis_major_label_text_font_size']
 
     
 def get_point_size_col(data: pd.Series, size_prop: str, qc_plots_settings: dict) -> pd.Series:
@@ -109,7 +114,7 @@ def plot_metric(df: pd.DataFrame,
     :return: Plot
     :rtype: Tabs
     """
-    def get_row(df: pd.DataFrame, y_name: str, cols: List[str], y_fun: Callable[[pd.Series], Union[float, int]], titles: List[str], link_cumul_y: bool, cut: int = None) -> Row:
+    def get_row(df: pd.DataFrame, y_name: str, cols: List[str], y_fun: Callable[[pd.Series], Union[float, int]], titles: List[str], link_cumul_y: bool, cut: int = None) -> bm.Row:
         """
         Generates a single row with two plots: a regular scatter plot and a cumulative one.
         Both plots have bins on the x-axis. The y-axis is computed by applying the function `y_fun` on the columns `cols`.
@@ -120,7 +125,7 @@ def plot_metric(df: pd.DataFrame,
 
         """
 
-        def get_plot(data_source: ColumnDataSource, y_name: str, y_col_name: str, titles: List[str], data_ranges: Tuple[DataRange1d, DataRange1d], cut: int = None) -> Plot:
+        def get_plot(data_source: ColumnDataSource, y_name: str, y_col_name: str, titles: List[str], data_ranges: Tuple[DataRange1d, DataRange1d], cut: int = None) -> bm.Plot:
             """
             Generates a single scatter plot panel
             """
@@ -134,7 +139,7 @@ def plot_metric(df: pd.DataFrame,
             p.y_range = data_ranges[1]
 
             if cut:
-                p.add_layout(Span(location=cut, dimension='height', line_color='red', line_dash='dashed'))
+                p.add_layout(bm.Span(location=cut, dimension='height', line_color='red', line_dash='dashed'))
 
             # Add circles layouts one model at a time, so that no default legend is generated.
             # Because data is in the same ColumnDataSource, use a BooleanFilter to plot each model separately
@@ -158,15 +163,19 @@ def plot_metric(df: pd.DataFrame,
 
             # Add subtitles if any
             for title in titles[1:]:
-                p.add_layout(Title(text=title, text_font_size=qc_plots_settings['subtitle.text_font_size']), 'above')
+                p.add_layout(Title(text=title, text_font_size=qc_plots_settings['subtitle_text_font_size']), 'above')
 
             return p
         # Compute non-cumulative values by applying `y_fun`
         df['non_cumul'] = df[cols].apply(y_fun, axis=1)
 
+        # TODO: check if the result is the same after refactoring
         # Compute cumulative values for each of the data columns
         for col in cols:
-            df[f'{col}_cumul'] = df.groupby('model').aggregate(np.cumsum)[col]
+            # skip non-numeric colums
+            if pd.api.types.is_numeric_dtype(df[col]):
+                df[f'{col}_cumul'] = df.groupby('model')[col].cumsum()
+
         df['cumul'] = df[[f'{col}_cumul' for col in cols]].apply(y_fun, axis=1)
 
         # Create data ranges that are either shared or distinct depending on the y_cumul parameter
@@ -174,7 +183,7 @@ def plot_metric(df: pd.DataFrame,
         cumul_data_ranges = non_cumul_data_ranges if link_cumul_y else (non_cumul_data_ranges[0], DataRange1d())
         data_source = ColumnDataSource(df)
 
-        return Row(get_plot(data_source, y_name, 'non_cumul', titles, non_cumul_data_ranges, cut),
+        return bm.Row(get_plot(data_source, y_name, 'non_cumul', titles, non_cumul_data_ranges, cut),
                    get_plot(data_source, y_name, 'cumul', [titles[0] + ', cumulative'] + titles[1:], cumul_data_ranges, cut))
 
     
@@ -209,7 +218,7 @@ def plot_metric(df: pd.DataFrame,
                 print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(Panel(child=Column(children=children), title='All'))
+            tabs.append(TabPanel(child=Column(children=children), title='All'))
 
    
     if plot_singletons:
@@ -224,7 +233,7 @@ def plot_metric(df: pd.DataFrame,
                     print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(Panel(child=Column(children=children), title='Singletons'))
+            tabs.append(TabPanel(child=Column(children=children), title='Singletons'))
 
     return Tabs(tabs=tabs)
 
@@ -354,26 +363,29 @@ def create_plots(bin_htfile: str, plot_dir: str, run_hash: str, qc_plots_setting
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    root_plot_dir = inputs['plots_dir_local']
+    config = parse_config()
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
+    root_plot_dir = config['general']['plots_dir']
 
-    qc_plots_settings = {
-    'mean_point_size': 4.0,
-    'min_point_size': 1.0,
-    'max_point_size': 16.0,
-    'label_text_font_size': "14pt",
-    'title.text_font_size': "16pt",
-    'subtitle.text_font_size': "14pt",
-    'axis.axis_label_text_font_size': "16pt",
-    'axis.axis_label_text_font_style': "normal",
-    'axis.major_label_text_font_size': "14pt"
-    }
-    plot_dir = root_plot_dir + "variant_qc/" + args.runhash + "/"
-    if not os.path.exists(plot_dir):
-        os.makedirs(plot_dir)
+    # TODO DEBUG: test if this way works
+    qc_plots_settings = config['step3']['create_plots']['qc_plots_settings']
 
-    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
+    # qc_plots_settings = {
+    # 'mean_point_size': 4.0,
+    # 'min_point_size': 1.0,
+    # 'max_point_size': 16.0,
+    # 'label_text_font_size': "14pt",
+    # 'title_text_font_size': "16pt",
+    # 'subtitle_text_font_size': "14pt",
+    # 'axis_axis_label_text_font_size': "16pt",
+    # 'axis_axis_label_text_font_style': "normal",
+    # 'axis_major_label_text_font_size': "14pt"
+    # }
+
+    plot_dir = os.path.join(root_plot_dir, "variant_qc", args.runhash)
+    os.makedirs(plot_dir, exist_ok=True) # create if doesn't exist
+
+    bin_htfile = os.path.join(rf_dir, args.runhash, "_rf_result_ranked_BINS.ht")
     create_plots(bin_htfile, plot_dir, args.runhash, qc_plots_settings)
 
 

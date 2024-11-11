@@ -1,10 +1,13 @@
 # population prediction with PCA
 import hail as hl
 import pyspark
+import os
 import argparse
 import pandas as pd
+from typing import Optional
 from gnomad.sample_qc.ancestry import assign_population_pcs
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
+from utils.config import path_local, path_spark
 
 def get_options():
     '''
@@ -23,50 +26,62 @@ def get_options():
         help="assign populations", action="store_true")
     parser.add_argument("-r", "--run",
         help="run all steps except kg_to_mt", action="store_true")
+
     args = parser.parse_args()
 
     return args
     
 
-def create_1kg_mt(resourcedir: str, mtdir: str):
+def create_1kg_mt(config: dict):
     '''
     Create matrixtable of 1kg data
     :param str resourcedir: resources directory
     :param str mtdir: matrixtable directory
     '''
-    indir = resourcedir + "1kg_vcfs_filtered_by_wes_baits/"
-    vcfheader = indir + "header.txt"
+    conf = config['step2']['create_1kg_mt']
+
+    # TODO: correct resource dir: /lustre/scratch126/WES_QC/resources/1000g_VCFs
+    indir = path_spark(conf['indir'])
+    vcfheader = conf['vcfheader'] # TODO: DEBUG: not used during tests on small dataset
     objects = hl.utils.hadoop_ls(indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
     print("Loading VCFs")
     #create and save MT
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = vcfheader)
+    # TODO: make header optional (don't have one for mini 1000g test)
+    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
     print("Saving as hail mt")
-    mt_out_file = mtdir + "kg_wes_regions.mt"
+    mt_out_file = path_spark(conf['mt_out_file'])
     mt.write(mt_out_file, overwrite=True)
 
+    return mt
 
-def merge_with_1kg(pruned_mt_file: str, mtdir: str, merged_mt_file: str):
+
+def merge_with_1kg(pruned_mt_file: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     '''
     merge the birth cohort WES ld-pruned data with 1kg data of known population
     :param str pruned_mt_file: ld pruned MT file
     :param str mtdir: resources directory
     :param str merged_mt_file: merged output MT file
     '''
+    conf = config['step2']['merge_with_1_kg']
     print("Merging with 1kg data")
-    mt = hl.read_matrix_table(pruned_mt_file)
-    kg_mt_file = mtdir + "kg_wes_regions.mt"
+    # mt = hl.read_matrix_table(pruned_mt_file)
+    mt = pruned_mt_file # FIXME: just testing accepting mt instead of a path
+    kg_mt_file = path_spark(conf['kg_mt_file'])
     kg_mt = hl.read_matrix_table(kg_mt_file)
     # in order to create a union dataset the entries and column fields must be 
     # the same in each dataset. The following 2 lines take care of this.
     kg_mt = kg_mt.select_entries(kg_mt.GT)
-    mt = mt.drop('callrate', 'f_stat', 'is_female')
+    mt = mt.drop('callrate', 'f_stat', 'is_female') # TODO: move to config or not? seems to be specific to the qc pipeline so no need to make variable
     # union cols gives all samples and the rows which are found in both
     mt_joined = mt.union_cols(kg_mt)
+    merged_mt_file = path_spark(conf['merged_mt_outfile'])
     mt_joined.write(merged_mt_file, overwrite=True)
 
+    return mt_joined
 
-def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file: str):
+
+def annotate_and_filter(merged_mt_file: hl.MatrixTable, config: dict) -> hl.MatrixTable:
     '''
     Annotate with known pops for 1kg samples and filter to remove long range LD regions, 
     rare variants, palidromic variants, low call rate and HWE filtering
@@ -74,8 +89,10 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     :param str resourcedir: resources directory
     :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
     '''
+    conf = config['step2']['annotate_and_filter']
     print("Adding population annotation for 1kg samples")
-    mt = hl.read_matrix_table(merged_mt_file)   
+    # mt = hl.read_matrix_table(merged_mt_file)
+    mt = merged_mt_file
 
     # The following annotates by population
     # pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
@@ -83,18 +100,21 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
 
     # The following is 1kg superpop
-    pops_file = resourcedir + "/igsr_samples.tsv"
+
+    # TODO: remove leading slash
+    pops_file = path_spark(conf['pops_file'])
     cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
     mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])
 
     print("Filtering variants")
     mt_vqc = hl.variant_qc(mt, name='variant_QC_Hail')
     mt_vqc_filtered = mt_vqc.filter_rows(
-        (mt_vqc.variant_QC_Hail.call_rate >= 0.99) &
-        (mt_vqc.variant_QC_Hail.AF[1] >= 0.05) &
-        (mt_vqc.variant_QC_Hail.p_value_hwe >= 1e-5)
+        (mt_vqc.variant_QC_Hail.call_rate >= conf['call_rate']) &
+        (mt_vqc.variant_QC_Hail.AF[1] >= conf['AF']) &
+        (mt_vqc.variant_QC_Hail.p_value_hwe >= conf['p_value_hwe'])
     )
-    long_range_ld_file = resourcedir + "long_range_ld_regions_chr.txt"
+    # TODO: this file must be .bed (?)
+    long_range_ld_file = path_spark(conf['long_range_ld_file'])
     long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
     mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
     mt_non_pal = mt_vqc_filtered.filter_rows((mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False)
@@ -102,10 +122,13 @@ def annotate_and_filter(merged_mt_file: str, resourcedir: str, filtered_mt_file:
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "A") & (mt_non_pal.alleles[1] == "T"), keep=False)
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "T") & (mt_non_pal.alleles[1] == "A"), keep=False)
 
+    filtered_mt_file = path_spark(conf['filtered_mt_outfile'])
     mt_non_pal.write(filtered_mt_file, overwrite=True)
 
+    return mt_non_pal
 
-def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str, pca_evals_file: str):
+
+def run_pca(filtered_mt_file: hl.MatrixTable, config: dict):
     '''
     Run PCA before population prediction
     :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
@@ -113,17 +136,27 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_loadings_file: str,
     :param str pca_loadings_file: PCA scores HT file
     :param str pca_evals_file: PCA scores HT file
     '''
-    mt = hl.read_matrix_table(filtered_mt_file)
+    conf = config['step2']['run_pca']
+    # mt = hl.read_matrix_table(filtered_mt_file)
+    mt = filtered_mt_file # FIXME: testing accepting mt
     #exclude EGAN00004311029 this is a huge outlier on PCA and skews all the PCs
-    to_exclude = ['EGAN00004311029']
+    to_exclude = ['EGAN00004311029'] # TODO: add as a list parameter to the config
     mt = mt.filter_cols(~hl.set(to_exclude).contains(mt.s)) 
-    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=10, compute_loadings=True)
+
+    # TODO: move k to config
+    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=4, compute_loadings=True)
     pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
+    pca_scores_file = path_spark(conf['pca_scores_outfile'])
     pca_scores.write(pca_scores_file, overwrite=True)
+    pca_loadings_file = path_spark(conf['pca_loadings_outfile'])
     pca_loadings.write(pca_loadings_file, overwrite=True)
+    pca_evals_file = path_local(conf['pca_evals_outfile'])
+
     with open(pca_evals_file, 'w') as f:
         for val in pca_evals:
             f.write(str(val) + "\n")
+
+    # don't return anything as there are multiple outputs
 
 
 def append_row(df, row):
@@ -133,16 +166,23 @@ def append_row(df, row):
            ).reset_index(drop=True)
 
 
-def predict_pops(pca_scores_file: str, pop_ht_file: str, pop_ht_tsv):
+def predict_pops(config: dict):
     '''
     Predict populations from PCA scores
     :param str pca_sores_file: PCA scores HT file
     :param str pop_ht_file: predicted population HT file
     :param str pop_ht_tsv: population tsv file
     '''
+    conf = config['step2']['predict_pops']
+    pca_scores_file = path_spark(conf['pca_scores_file'])
     pca_scores = hl.read_table(pca_scores_file)
     known_col = "known_pop"
-    pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5)
+    pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, 
+                                            known_col=known_col, 
+                                            n_estimators=conf['gnomad_pc_n_estimators'], 
+                                            prop_train=conf['gnomad_prop_train'], 
+                                            min_prob=conf['gnomad_min_prob'])
+    pop_ht_file = path_spark(conf['pop_ht_outfile'])
     pop_ht.write(pop_ht_file, overwrite=True)
     #convert to pandas and put in only pops files, add excluded sample back
     pop_ht_df = pop_ht.to_pandas()
@@ -150,6 +190,8 @@ def predict_pops(pca_scores_file: str, pop_ht_file: str, pop_ht_tsv):
     new_row = pd.Series({'s':'EGAN00004311029', 'pop':'oth'})
     pop_ht_df2 = append_row(pop_ht_df2, new_row)
     print(pop_ht_df2)
+
+    pop_ht_tsv = path_local(conf['pop_ht_outtsv'])
     print(pop_ht_tsv)
 
     pop_ht_df2.to_csv(pop_ht_tsv, sep = '\t')
@@ -166,47 +208,49 @@ def predict_pops(pca_scores_file: str, pop_ht_file: str, pop_ht_tsv):
 
 
 def main():
-    #set up
+    # get cli args
     args = get_options()
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
-    mtdir2 = inputs['load_matrixtables_lustre_dir']
+    config = parse_config()
+    tmp_dir = config['general']['tmp_dir']
+    mtdir = config['general']['matrixtables_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    # tmp_dir = "hdfs://spark-master:9820/"
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     #if needed, create 1kg matrixtable
     if args.kg_to_mt:
-        create_1kg_mt(resourcedir, mtdir)
+        # the output is not used in this main func
+        created_1kg_mt = create_1kg_mt(config)
 
     #combine with 1KG data
-    pruned_mt_file = mtdir + "mt_ldpruned.mt"
-    merged_mt_file = mtdir + "merged_with_1kg.mt"
     if args.merge or args.run:
-        merge_with_1kg(pruned_mt_file, mtdir, merged_mt_file)
+        pruned_mt_file = path_spark(os.path.join(mtdir, 'mt_ldpruned.mt'))
+        pruned_mt = hl.read_matrix_table(pruned_mt_file)
+
+        # the output is not used in this main func
+        mt_joined = merge_with_1kg(pruned_mt, config)
 
     #annotate and filter
-    filtered_mt_file = mtdir + "merged_with_1kg_filtered.mt"
     if args.filter or args.run:
-        annotate_and_filter(merged_mt_file, resourcedir, filtered_mt_file)
+        merged_mt_file = path_spark(config['step2']['merge_with_1_kg']['merged_mt_outfile'])
+        merged_mt = hl.read_matrix_table(merged_mt_file)
+        
+        # the output is not used in this main func
+        mt_non_pal = annotate_and_filter(merged_mt, config)
 
     #run pca
-    pca_scores_file = mtdir + "pca_scores_after_pruning.ht"
-    pca_loadings_file = mtdir + "pca_loadings_after_pruning.ht"
-    pca_evals_file = mtdir2 + "pca_evals_after_pruning.txt"#text file may need to be without file///
     if args.pca or args.run:
-        run_pca(filtered_mt_file, pca_scores_file, pca_loadings_file, pca_evals_file)
+        filtered_mt_file = path_spark(config['step2']['annotate_and_filter']['filtered_mt_outfile'])
+        filtered_mt = hl.read_matrix_table(filtered_mt_file)
+        run_pca(filtered_mt, config)
 
     #assign pops
-    pop_ht_file = mtdir + "pop_assignments.ht"
-    pop_ht_tsv = mtdir2 + "pop_assignemtnts.tsv"
     if args.assign_pops or args.run:
-        predict_pops(pca_scores_file, pop_ht_file, pop_ht_tsv)
-
+        predict_pops(config)
 
 if __name__ == '__main__':
     main() 

@@ -1,0 +1,393 @@
+---
+
+# - You can insert a variable in the string value via '{}'. For example, 
+#   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'. 
+#
+# - If a config field ends with 'dir' or 'file', then parser will consider 
+#   this field as a path and normalize it, thus removing double slashes (foo//bar -> foo/bar)
+#   and redundand dots (foo/./bar -> foo/bar).
+#
+# - Note that string quotes are MANDATORY if using cvars.
+#   That is, variable should be used only inside an explicit string.
+#   Curly braces outside a string will break the YAML parser.
+#
+# - You can use dot-separated name of any config field as a variable name like this:
+#   a:
+#     a1: bar
+#     a2: baz
+#   b: 'foo {a.a1} {a.a2}' (will render to 'foo bar baz')
+#
+# - Special variables from 'cvars' list will be replaced with field  
+#   they are referring to. For example, '{mtdir}/gatk_unprocessed.mt' is 
+#   equivalent to '{general.matrixtables_dir}/gatk_unprocessed.mt'
+#
+# - Parser can only insert variables that were already defined. 
+#   You can't use a variable that will be defined further down the config.
+
+# TODO: custom yaml type for paths
+# TODO: ensure strict variable substitution, from top to bottom of the config
+# TODO: add testcases for cvars, for order of variables, for nested variables  
+cvars:
+  tmpdir: general.tmp_dir
+  anndir: general.annotation_dir
+  mtdir: general.matrixtables_dir
+  resdir: general.resource_dir
+  1kg_resdir: general.onekg_resource_dir
+  pltdir: general.plots_dir
+  traindir: general.training_sets_dir
+  rfdir: general.var_qc_rf_dir
+
+general:
+  # CVAR tmpdir
+  tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp/ # output
+
+  # CVAR anndir
+  annotation_dir: /lustre/scratch126/dh24_test/wes-qc/annotations/ # output
+  
+  # CVAR mtdir
+  matrixtables_dir: /lustre/scratch126/dh24_test/wes-qc/matrixtables/ # output
+
+  # CVAR resdir
+  resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/resources/ # input and output
+
+  # CVAR 1kg_resdir
+  onekg_resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/resources/mini_1000G # input; must be without trailing slash (TODO: make more robust)
+
+  # CVAR pltdir
+  plots_dir: /lustre/scratch126/dh24_test/wes-qc/tests/plots/ # output
+
+  # CVAR traindir
+  training_sets_dir: /lustre/scratch126/dh24_test/wes-qc/tests/training_sets/ # input
+
+  # CVAR rfdir
+  var_qc_rf_dir: /lustre/scratch126/dh24_test/wes-qc/tests/variant_qc_random_forest/ # output
+
+
+step1:
+  # --- Step 1.1 --- #
+  gatk_vcf_header_infile:
+  gatk_vcf_indir: /lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
+
+step2:
+  # --- Step 2.1 --- #
+  sex_annotation_hard_filters:
+    filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
+    n_alt_alleles_threshold: 0.001
+    defined_gt_frac_threshold: 0.99
+
+  impute_sex:
+    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.txt.bgz'
+    sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
+    female_threshold: 0.5
+    male_threshold: 0.8
+    aaf_threshold: 0.05
+    
+  sex_inconsistencies:
+    # TODO: specify structure of a sex metadata file
+    sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
+    fstat_low: 0.2
+    fstat_high: 0.8
+
+  # --- Step 2.2 --- #
+  prune:
+    pruned_mt_file: '{mtdir}/mt_ldpruned.mt' # output
+    ld_prune_args:
+      r2: 0.2
+      # bp_window_size:
+      # memory_per_core:
+      # keep_higher_maf:
+      # block_size: 
+
+  # previously pc_relate
+  prune_pc_relate:
+    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
+    scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
+    pca_components: 3
+    pc_relate_args:
+      min_individual_maf: 0.05
+      block_size: 4096
+      min_kinship: 0.05
+      statistics: 'kin2'
+      # k:
+      # include_self_kinship:
+    relatedness_column: 'kin'
+    relatedness_threshold: 0.125
+    
+  # previously population_pca
+  prune_plot_pca:
+    plink_outfile: '{mtdir}/mt_unrelated.plink'
+    pca_components: 4
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output 
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output 
+    pca_mt_file: '{mtdir}/mt_pca.mt' # output
+    plot_outfile: '{pltdir}/pca.html' # output
+  
+  # --- Step 2.3 --- #
+  create_1kg_mt:
+    indir: '{1kg_resdir}'
+    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
+
+  merge_with_1_kg:
+    kg_mt_file: '{mtdir}/kg_wes_regions.mt'
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output 
+
+  annotate_and_filter:
+    pops_file: '{resdir}/igsr_samples.tsv'
+    call_rate: 0.99
+    AF: 0.05
+    p_value_hwe: 0.00005
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+  
+  run_pca:
+    pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
+    pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
+    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt' # TODO: don't add prefix
+
+  predict_pops:
+    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
+    gnomad_pc_n_estimators: 100
+    gnomad_prop_train: 0.8
+    gnomad_min_prob: 0.5
+    pop_ht_outfile: '{mtdir}/pop_assignments.ht'
+    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+  
+  # --- Step 2.4 --- #
+  # func name: annotate_mt
+  annotate_with_pop:
+    annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
+
+  stratified_sample_qc:
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output 
+    ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
+    qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
+
+    min_depth: 20
+    min_genotype_quality: 20
+    min_vaf: 0.25
+    output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
+    output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
+  
+  # --- Step 2.5 --- #
+  remove_sample_qc_fails:
+    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz' # output
+    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # output
+
+
+step3:
+  # Parameters used in multiple functions # 
+  pedfile: '{resdir}/trios.EGAN.complete.ped'
+
+  # --- Step 3.1 --- #
+  get_truth_ht:
+    truth_ht_outfile: '{resdir}/truthset_table.ht'
+    omni: '{traindir}/1000G_omni2.5.hg38.ht'
+    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht' 
+    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+
+  split_multi_and_var_qc:
+    mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
+    varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
+    varqc_mtoutfile_split: '{mtdir}/mt_varqc_splitmulti.mt'
+
+  # not used for non-trios mode
+  trio_family_dnm_annotation:
+    trio_mtoutfile: '{mtdir}/trios.mt'
+    trio_stats_htoutfile: '{mtdir}/trio_stats.ht'
+    fam_stats_htoutfile: '{mtdir}/family_stats.ht'
+    fam_stats_mtoutfile: '{mtdir}/family_stats.mt'
+    fam_stats_gnomad_mtoutfile: '{mtdir}/family_stats_gnomad.mt'
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    dnm_htoutfile: '{mtdir}/denovo_table.ht'
+
+  create_inbreeding_ht_with_ac_and_allele_data:
+    inbreeding_htoutfile: '{mtdir}/inbreeding.ht'
+    qc_ac_htoutfile: '{mtdir}/qc_ac.ht'
+    allele_data_htoutfile: '{mtdir}/allele_data.ht'
+
+  # --- Step 3.2 --- #
+  create_rf_ht:
+    fail_hard_filters_QD_less_than: 2
+    fail_hard_filters_FS_greater_than: 60
+    fail_hard_filters_MQ_less_than: 30
+
+    truthset_file: '{resdir}/truthset_table.ht'
+    trio_stats_file: '{mtdir}/trio_stats.ht'
+    allele_data_file: '{mtdir}/allele_data.ht'
+    allele_counts_file: '{mtdir}/qc_ac.ht'
+    inbreeding_file: '{mtdir}/inbreeding.ht'
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
+    htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+
+  # --- Step 3.3 --- #
+  rf_test_interval: chr20 # used in multiple functions
+  runs_json: '{rfdir}/rf_runs.json'
+
+  train_rf:
+    input_ht_file: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    gnomad_train_rf_fp_to_tp: 1.0
+    gnomad_train_rf_num_trees: 500
+    gnomad_train_rf_max_depth: 5
+
+  # --- Step 3.4 --- #
+  # only var_qc_rf_dir (which is CVAR) is required
+
+  # --- Step 3.5 --- #
+  add_cq_annotation:
+    synonymous_file: '{resdir}/synonymous_variants.txt'
+
+  dnm_and_family_annotation:
+    dnm_htfile: '{mtdir}/denovo_table.ht'
+    fam_stats_htfile: '{mtdir}/family_stats.ht'
+    trio_stats_htfile: '{mtdir}/trio_stats.ht'
+
+  transmitted_singleton_annotation:
+    trio_mtfile: '{mtdir}/trios.mt'
+    trio_filtered_mtfile: '{mtdir}/trios_filtered_.mt'
+
+  annotate_gnomad:
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+
+  
+  # --- Step 3.6 --- #
+  add_rank:
+    subrank_expr_de_novo_high_quality_rank: 0.9
+    subrank_expr_de_novo_medium_quality_rank: 0.5
+
+  create_binned_data_initial:
+    truth_htfile: '{resdir}/truthset_table.ht'
+
+    high_quality_p_de_novo: 0.99
+    medium_quality_p_de_novo: 0.5
+
+    # TODO: merge these into a single parameter?
+    n_trans_common_gnomad_af: 0.1
+    n_untrans_common_gnomad_af: 0.1
+
+  
+  # --- Step 3.7 --- #
+  create_plots:
+    qc_plots_settings:
+      mean_point_size: 4.0
+      min_point_size: 1.0
+      max_point_size: 16.0
+      label_text_font_size: "14pt"
+      title_text_font_size: "16pt"
+      subtitle_text_font_size: "14pt"
+      axis_axis_label_text_font_size: "16pt"
+      axis_axis_label_text_font_style: "normal"
+      axis_major_label_text_font_size: "14pt"
+
+
+  # --- Step 3.8 --- #
+  # no config parameters used
+
+  # --- Step 3.9 --- #
+  annotate_mt_with_cq_rf_score_and_bin:
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '{resdir}/all_consequences.txt'
+    mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
+
+evaluation:
+  giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+  giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
+  giab_sample: null
+  snp_bins: []
+  indel_bins: []
+  gq_vals: [10, 15, 20]
+  dp_vals: [5, 10]
+  ab_vals: [0.2, 0.3]
+  missing_vals: [0, 0.5, 0.9, 0.95]
+  snp_json: '{anndir}/evaluation.snp.json'
+  snp_tsv_filesuffix: '_genotype_hard_filter_comparison_snv.txt'
+  indel_json: '{anndir}/evaluation.indel.json'
+  indel_tsv_filesuffix: '_genotype_hard_filter_comparison_indel.txt'
+
+step4:
+  # --- Step 4.1 --- #
+  filter_mt:
+    mtfile: '{mtdir}/mt_after_var_qc.mt'
+    mtoutfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
+
+  # --- Step 4.1a --- #
+
+  annotate_cq_rf:
+    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'
+
+  apply_hard_filters:
+    hard_filters:
+      missingness: 0.5
+      snp:
+        relaxed:
+          bin: 92
+          dp: 5
+          gq: 10
+          ab: 0.2
+        medium:
+          bin: 88
+          dp: 5
+          gq: 10
+          ab: 0.2
+        stringent:
+          bin: 84
+          dp: 5
+          gq: 15
+          ab: 0.2
+      indel:
+        relaxed:
+          bin: 68
+          dp: 5
+          gq: 10
+          ab: 0.2
+        medium:
+          bin: 66
+          dp: 5
+          gq: 15
+          ab: 0.2
+        stringent:
+          bin: 58
+          dp: 5
+          gq: 20
+          ab: 0.3
+
+  # used as an output of the whole step
+  mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'
+
+  # --- Step 4.2 --- #
+  annotate_gnomad:
+    # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
+    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+
+  get_trans_untrans_synon_singleton_counts:
+    pedfile: '{resdir}/trios.ped'
+
+  get_counts_per_cq:
+    cqfile: '{pltdir}/variant_counts_per_cq_post_qc.txt'
+  
+  get_ca_fractions:
+    cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
+
+  # --- Step 4.3 --- #
+  export_vcfs:
+    mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
+    # TODO: after adopting new config render change to substitution
+    vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs/' 
+
+  # --- Step 4.3a --- #
+  export_vcfs_a:
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
+    vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs_combinations/'
+
+  # --- Ster 4.3b --- #
+  export_vcfs_b:
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
+    filtered_vcf_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs_combinations_stringent/'

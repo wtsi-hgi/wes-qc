@@ -2,9 +2,10 @@
 import hail as hl
 import pyspark
 import argparse
+import os.path
 from typing import Optional, Dict
 from pprint import pformat
-from utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -95,15 +96,17 @@ def add_rank(
     return ht
 
 
-def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: str, n_bins: int) -> hl.Table:
+def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: str, n_bins: int, config: dict) -> hl.Table:
     '''
     Create binned data from RF
     :param hl.Table ht: Input hail table
     :param str bin_tmp_htfile: Interim hail table file name
     :param str truth_htfile: Truth hail table file
     :param int n_bins: Number of bins to create
+    :param dict config: Dictionary with threshold values
     :return: Table with bins added
     '''
+    conf = config['step3']['create_binned_data_initial']
     # Count variants for ranking
     # count_expr = {x: hl.agg.filter(hl.is_defined(ht[x]), hl.agg.counter(hl.cond(hl.is_snp(
     #     ht.alleles[0], ht.alleles[1]), 'snv', 'indel'))) for x in ht.row if x.endswith('rank')}
@@ -112,7 +115,7 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
     rank_variant_counts = ht.aggregate(hl.Struct(**count_expr))
     print(f"Found the following variant counts:\n {pformat(rank_variant_counts)}")
 
-    ht_truth_data = hl.read_table(truth_htfile)
+    ht_truth_data = hl.read_table(path_spark(truth_htfile))
     ht = ht.annotate_globals(rank_variant_counts=rank_variant_counts)
     # ht = ht.annotate(
     #     **ht_truth_data[ht.key],
@@ -192,21 +195,21 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             # n_clinvar=hl.agg.count_where(ht.clinvar),
             n_singleton=hl.agg.count_where(ht.transmitted_singleton),
             n_high_quality_de_novos=hl.agg.count_where(
-                ht.de_novo_data.p_de_novo[0] > 0.99),
+                ht.de_novo_data.p_de_novo[0] > conf['high_quality_p_de_novo']),
             #n_validated_DDD_denovos=hl.agg.count_where(
             #    ht.inheritance.contains("De novo")),
             n_medium_quality_de_novos=hl.agg.count_where(
-                ht.de_novo_data.p_de_novo[0] > 0.5),
+                ht.de_novo_data.p_de_novo[0] > conf['medium_quality_p_de_novo']),
             n_high_confidence_de_novos=hl.agg.count_where(
                 ht.de_novo_data.confidence[0] == 'HIGH'),
             n_de_novo=hl.agg.filter(ht.family_stats.unrelated_qc_callstats.AC[0][1] == 0, hl.agg.sum(
                 ht.family_stats.mendel[0].errors)),
             n_high_quality_de_novos_synonymous=hl.agg.count_where(
-                (ht.de_novo_data.p_de_novo[0] > 0.99) & (ht.consequence == "synonymous_variant")),
+                (ht.de_novo_data.p_de_novo[0] > conf['high_quality_p_de_novo']) & (ht.consequence == "synonymous_variant")),
             n_trans_singletons_synonymous_algorithm=hl.agg.count_where(
-                ht.variant_transmitted_singletons ==1 ),
+                ht.variant_transmitted_singletons == 1),
             n_untrans_singletons_synonymous_algorithm=hl.agg.count_where(
-                ht.variant_untransmitted_singletons ==1 ),
+                ht.variant_untransmitted_singletons == 1),
             # validated_de_novos=hl.agg.count_where(ht.validated_denovo_inheritance=="De novo constitutive"),
             # n_de_novo_no_lcr=hl.agg.filter(~ht.lcr & (
             #    ht.family_stats.unrelated_qc_callstats.AC[1] == 0), hl.agg.sum(ht.family_stats.mendel.errors)),
@@ -225,8 +228,8 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
             n_train_trans_singletons=hl.agg.count_where(
                 (ht.family_stats.unrelated_qc_callstats.AC[0][1] == 1) & (ht.family_stats.tdt[0].t == 1)),
             #transmitted and untransmitted common variants
-            n_trans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].t)),
-            n_untrans_common=hl.agg.filter(ht.gnomad_af >= 0.1, hl.agg.sum(ht.family_stats.tdt[0].u)),
+            n_trans_common=hl.agg.filter(ht.gnomad_af >= conf['n_trans_common_gnomad_af'], hl.agg.sum(ht.family_stats.tdt[0].t)),
+            n_untrans_common=hl.agg.filter(ht.gnomad_af >= conf['n_untrans_common_gnomad_af'], hl.agg.sum(ht.family_stats.tdt[0].u)),
             #transmitted/untransmitted with Hail's TDT test
             n_trans_singletons_synonymous_tdt=hl.agg.count_where((ht.consequence == "synonymous_variant") & (
                 ht.family_stats.tdt[0].t == 1) & (ht.family_stats.tdt[0].u == 0)),
@@ -272,39 +275,40 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    resourcedir = inputs['resource_dir']
+    config = parse_config()
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
+    resourcedir = config['general']['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     # add rank
-    htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    htrankedfile = rf_dir + args.runhash + "/rf_result_ranked.ht"
-    ht = hl.read_table(htfile)
+    htfile = os.path.join(rf_dir, args.runhash, "rf_result_final_for_ranking.ht")
+    htrankedfile = os.path.join(rf_dir, args.runhash, "rf_result_ranked.ht")
+    ht = hl.read_table(path_spark(htfile))
     ht_ranked = add_rank(ht,
-                        score_expr=(1-ht.rf_probability["TP"]),
+                        score_expr=(1 - ht.rf_probability["TP"]),
                         subrank_expr={
                             'singleton_rank': ht.transmitted_singleton,
                             'biallelic_rank': ~ht.was_split,
                             'biallelic_singleton_rank': ~ht.was_split & ht.transmitted_singleton,
-                            'de_novo_high_quality_rank': ht.de_novo_data.p_de_novo[0] > 0.9,
-                            'de_novo_medium_quality_rank': ht.de_novo_data.p_de_novo[0] > 0.5,
+                            'de_novo_high_quality_rank': ht.de_novo_data.p_de_novo[0] > config['step3']['add_rank']['subrank_expr_de_novo_high_quality_rank'],
+                            'de_novo_medium_quality_rank': ht.de_novo_data.p_de_novo[0] > config['step3']['add_rank']['subrank_expr_de_novo_medium_quality_rank'],
                             'de_novo_synonymous_rank': ht.consequence == "synonymous_variant",
                         }
                         )
-    ht_ranked = ht_ranked.annotate(score=(1-ht_ranked.rf_probability["TP"]))
-    ht_ranked.write(htrankedfile, overwrite=True)
+    ht_ranked = ht_ranked.annotate(score=(1 - ht_ranked.rf_probability["TP"]))
+    ht_ranked.write(path_spark(htrankedfile), overwrite=True)
     # add bins
-    truth_htfile = resourcedir + "truthset_table.ht"
-    bin_tmp_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100)
-    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
-    ht_bins.write(bin_htfile, overwrite=True)
+    truth_htfile = config['step3']['create_binned_data_initial']['truth_htfile']
+    bin_tmp_htfile = os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht")
+    ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100, config=config)
+
+    bin_htfile = os.path.join(rf_dir, args.runhash, "_rf_result_ranked_BINS.ht")
+    ht_bins.write(path_spark(bin_htfile), overwrite=True)
 
 
 if __name__ == '__main__':

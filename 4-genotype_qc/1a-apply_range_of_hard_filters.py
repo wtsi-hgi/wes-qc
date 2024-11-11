@@ -3,7 +3,8 @@
 import hail as hl
 import pyspark
 import argparse
-from utils.utils import parse_config
+import os.path
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -27,7 +28,7 @@ def remove_samples(mt: hl.MatrixTable, exclude_file: str):
     :param str exclude_file: path of file with samples to exclude
     :return: hl.MatrixTable
     '''
-    excl_ht = hl.import_table(exclude_file, impute=True, key = 'exomeID')
+    excl_ht = hl.import_table(path_spark(exclude_file), impute=True, key = 'exomeID')
     mt = mt.filter_cols(hl.is_defined(excl_ht[mt.s]), keep=False)
 
     return mt
@@ -42,7 +43,7 @@ def annotate_cq_rf(mt: hl.MatrixTable, rf_htfile: str, cqfile: str) -> hl.Matrix
     :param str cqfile: consequence file
     :return hl.matrixTable:
     '''
-    rf_ht = hl.read_table(rf_htfile)
+    rf_ht = hl.read_table(path_spark(rf_htfile))
     # keep only vars with rank_id = rank
     rf_ht = rf_ht.filter(rf_ht.rank_id == 'rank')
     # annotate mt with score and bin
@@ -55,8 +56,10 @@ def annotate_cq_rf(mt: hl.MatrixTable, rf_htfile: str, cqfile: str) -> hl.Matrix
             rf_bin=rf_ht[mt.row_key].bin)
     )
 
-    cq_ht = hl.import_table(cqfile, types={'f0': 'str', 'f1': 'int32', 'f2': 'str',
-                            'f3': 'str', 'f4': 'str', 'f5': 'str', 'f6': 'str', 'f7': 'str', 'f8': 'str'}, no_header=True)
+    cq_ht = hl.import_table(path_spark(cqfile), 
+                            types={'f0': 'str', 'f1': 'int32', 'f2': 'str',
+                            'f3': 'str', 'f4': 'str', 'f5': 'str', 'f6': 'str', 'f7': 'str', 'f8': 'str'}, 
+                            no_header=True)
     cq_ht = cq_ht.annotate(chr=cq_ht.f0)
     cq_ht = cq_ht.annotate(pos=cq_ht.f1)
     cq_ht = cq_ht.annotate(rs=cq_ht.f2)
@@ -220,7 +223,8 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
     return mt
 
 
-def apply_missingness(mt: hl.MatrixTable, call_rate_stringent: float, call_rate_medium: float, call_rate_relaxed: float) -> hl.MatrixTable:
+def apply_missingness(mt: hl.MatrixTable, call_rate_stringent: float, 
+                      call_rate_medium: float, call_rate_relaxed: float) -> hl.MatrixTable:
     n = mt.count_cols()
 
     mt = mt.annotate_rows(
@@ -243,26 +247,29 @@ def apply_missingness(mt: hl.MatrixTable, call_rate_stringent: float, call_rate_
 def main():
     #set up
     args = get_options()
-    inputs = parse_config()
-    mtdir = inputs['matrixtables_lustre_dir']
-    rf_dir = inputs['var_qc_rf_dir']
-    resourcedir = inputs['resource_dir']
-    hard_filters = inputs['hard_filters']
-    annotdir = inputs['annotation_lustre_dir']
+    config = parse_config()
+    mtdir = config['general']['matrixtables_dir']
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: use adapters inside the functions to enhance robustness
+    resourcedir = config['general']['resource_dir']
+    annotdir = config['general']['annotation_dir']
+
+
+    hard_filters = config['step4']['apply_hard_filters']['hard_filters']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    exclude_file = annotdir + "to_be_excluded_exome.txt"
-    rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    cqfile = resourcedir + "all_consequences_with_gene_and_csq.txt"
-    mtfile_annot = mtdir + "mt_hard_filter_combinations.mt"
+    # exclude_file = annotdir + "to_be_excluded_exome.txt" # not used
 
-    mt = hl.read_matrix_table(mtfile)
+    rf_htfile = os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht")  # move runhash to config
+    mtfile = config['step4']['annotate_cq_rf']['mtfile']
+    cqfile = config['step4']['annotate_cq_rf']['cqfile'] 
+    mtfile_annot = config['step4']['mtoutfile_annot']
+
+    mt = hl.read_matrix_table(path_spark(mtfile))
 
     #remove unwanted samples
     # mt = remove_samples(mt, exclude_file)
@@ -272,7 +279,7 @@ def main():
 
     #annotate with all combinations of filters (pass/fail) and add missingness
     mt_annot = apply_hard_filters(mt_annot, hard_filters)
-    mt_annot.write(mtfile_annot, overwrite = True)
+    mt_annot.write(path_spark(mtfile_annot), overwrite = True)
 
 
 if __name__ == '__main__':

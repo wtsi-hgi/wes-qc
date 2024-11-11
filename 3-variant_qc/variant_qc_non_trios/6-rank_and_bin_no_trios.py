@@ -1,11 +1,12 @@
 # rank and bin RF output
 #copy of the original for a cohort with no trios so no transmitted/untransmitted can be calculated
+import os
 import hail as hl
 import pyspark
 import argparse
 from typing import Optional, Dict
 from pprint import pformat
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -96,7 +97,7 @@ def add_rank(
     return ht
 
 
-def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: str, n_bins: int) -> hl.Table:
+def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: str, n_bins: int, config: dict) -> hl.Table:
     '''
     Create binned data from RF
     :param hl.Table ht: Input hail table
@@ -105,6 +106,8 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
     :param int n_bins: Number of bins to create
     :return: Table with bins added
     '''
+    conf = config['step3']['create_binned_data_initial'] # not used in non-trios
+
     # Count variants for ranking
     # count_expr = {x: hl.agg.filter(hl.is_defined(ht[x]), hl.agg.counter(hl.cond(hl.is_snp(
     #     ht.alleles[0], ht.alleles[1]), 'snv', 'indel'))) for x in ht.row if x.endswith('rank')}
@@ -113,7 +116,7 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
     rank_variant_counts = ht.aggregate(hl.Struct(**count_expr))
     print(f"Found the following variant counts:\n {pformat(rank_variant_counts)}")
 
-    ht_truth_data = hl.read_table(truth_htfile)
+    ht_truth_data = hl.read_table(path_spark(truth_htfile))
     ht = ht.annotate_globals(rank_variant_counts=rank_variant_counts)
     # ht = ht.annotate(
     #     **ht_truth_data[ht.key],
@@ -157,7 +160,7 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
     )
     ht = ht.filter(hl.is_defined(ht.bin))
 
-    ht = ht.checkpoint(bin_tmp_htfile, overwrite=True)
+    ht = ht.checkpoint(path_spark(bin_tmp_htfile), overwrite=True)
 
     # Create binned data
     return (
@@ -267,20 +270,21 @@ def create_binned_data_initial(ht: hl.Table, bin_tmp_htfile: str, truth_htfile: 
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    resourcedir = inputs['resource_dir']
+    config = parse_config()
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
+    resourcedir = config['general']['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     # add rank
-    htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    htrankedfile = rf_dir + args.runhash + "/rf_result_ranked.ht"
-    ht = hl.read_table(htfile)
+    htfile = os.path.join(rf_dir, args.runhash, "rf_result_final_for_ranking.ht")
+    htrankedfile = os.path.join(rf_dir, args.runhash, "rf_result_ranked.ht")
+
+    ht = hl.read_table(path_spark(htfile))
     ht_ranked = add_rank(ht,
                         score_expr=(1-ht.rf_probability["TP"]),
                         subrank_expr={
@@ -293,13 +297,13 @@ def main():
                         }
                         )
     ht_ranked = ht_ranked.annotate(score=(1-ht_ranked.rf_probability["TP"]))
-    ht_ranked.write(htrankedfile, overwrite=True)
+    ht_ranked.write(path_spark(htrankedfile), overwrite=True)
     # add bins
-    truth_htfile = resourcedir + "truthset_table.ht"
-    bin_tmp_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
-    ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100)
-    bin_htfile = rf_dir + args.runhash + "/_rf_result_ranked_BINS.ht"
-    ht_bins.write(bin_htfile, overwrite=True)
+    truth_htfile = config['step3']['create_binned_data_initial']['truth_htfile']
+    bin_tmp_htfile = os.path.join(rf_dir, args.runhash, "_gnomad_score_binning_tmp.ht")
+    ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100, config=config)
+    bin_htfile = os.path.join(rf_dir, args.runhash, "_rf_result_ranked_BINS.ht")
+    ht_bins.write(path_spark(bin_htfile), overwrite=True)
 
 
 if __name__ == '__main__':

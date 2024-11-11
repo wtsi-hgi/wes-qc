@@ -1,8 +1,9 @@
 # this is a copy of the annotation script to use when there are mo trios and therefore no transmitted/unstransmitted ratios can be calculated
+import os
 import hail as hl
 import pyspark
 import argparse
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config, path_spark, path_local
 
 
 def get_options():
@@ -26,7 +27,9 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     ;param str synonymous_file: text file containing synonymous variants
     ;param str ht_cq_fle: Output hail table file annotated with synonymous variants
     '''
-    synonymous_ht=hl.import_table(synonymous_file,types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'}, no_header=True)
+    synonymous_ht=hl.import_table(path_spark(synonymous_file), 
+                                  types={'f0':'str','f1':'int32', 'f2':'str','f3':'str','f4':'str', 'f5':'str'},
+                                  no_header=True)
     synonymous_ht=synonymous_ht.annotate(chr=synonymous_ht.f0)
     synonymous_ht=synonymous_ht.annotate(pos=synonymous_ht.f1)
     synonymous_ht=synonymous_ht.annotate(rs=synonymous_ht.f2)
@@ -38,9 +41,9 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     synonymous_ht=synonymous_ht.drop(synonymous_ht.f0,synonymous_ht.f1,synonymous_ht.f2,synonymous_ht.f3,synonymous_ht.f4,synonymous_ht.chr,synonymous_ht.pos,synonymous_ht.ref,synonymous_ht.alt)
     synonymous_ht = synonymous_ht.key_by(synonymous_ht.locus, synonymous_ht.alleles)
 
-    ht = hl.read_table(htfile)
+    ht = hl.read_table(path_spark(htfile))
     ht=ht.annotate(consequence=synonymous_ht[ht.key].consequence)
-    ht.write(ht_cq_file, overwrite=True)
+    ht.write(path_spark(ht_cq_file), overwrite=True)
 
 
 def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, family_annot_htfile: str):
@@ -52,14 +55,14 @@ def dnm_and_family_annotation(ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile:
     :param str trio_stats_htfile: Trio stats hail table file
     :param str family_annot_htfile: Output hail table annotated with DNMs and family stats file
     '''
-    ht = hl.read_table(ht_cq_fle)
-    dnm_ht = hl.read_table(dnm_htfile)
-    fam_stats_ht = hl.read_table(fam_stats_htfile)
-    trio_stats_ht = hl.read_table(trio_stats_htfile)
+    ht = hl.read_table(path_spark(ht_cq_fle))
+    dnm_ht = hl.read_table(path_spark(dnm_htfile))
+    fam_stats_ht = hl.read_table(path_spark(fam_stats_htfile))
+    trio_stats_ht = hl.read_table(path_spark(trio_stats_htfile))
     ht=ht.annotate(de_novo_data=dnm_ht[ht.key].de_novo_data)
     ht=ht.annotate(family_stats=fam_stats_ht[ht.key].family_stats)
     ht=ht.annotate(fam=trio_stats_ht[ht.key])
-    ht.write(family_annot_htfile, overwrite=True)
+    ht.write(path_spark(family_annot_htfile), overwrite=True)
 
 
 def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Table) -> hl.Table:
@@ -126,8 +129,8 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     :param str trans_sing_htfile: Variant QC hail table file with transmitted singleton annotation
     '''
     print("Annotating with transmitted singletons")
-    ht = hl.read_table(family_annot_htfile)
-    mt_trios = hl.read_matrix_table(trio_mtfile)
+    ht = hl.read_table(path_spark(family_annot_htfile))
+    mt_trios = hl.read_matrix_table(path_spark(trio_mtfile))
     mt_trios = mt_trios.annotate_rows(consequence=ht[mt_trios.row_key].consequence)
     #there is a save step here in Pavlos file, is it needed?
     mt_filtered = mt_trios.filter_rows((mt_trios.info.AC[0] <= 2) & (mt_trios.consequence == "synonymous_variant"))
@@ -135,7 +138,7 @@ def transmitted_singleton_annotation(family_annot_htfile: str, trio_mtfile: str,
     mt_filtered.write(trio_filtered_mtfile, overwrite=True)
 
     ht = count_trans_untransmitted_singletons(mt_filtered, ht)
-    ht.write(trans_sing_htfile, overwrite=True)    
+    ht.write(path_spark(trans_sing_htfile), overwrite=True)    
 
 
 # def run_tdt(mtfile: str, trans_sing_htfile: str, pedfile: str, tdt_htfile: str):
@@ -165,54 +168,36 @@ def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
     :param str final_htfile: Final RF htfile for ranking and binning
     '''
     print("Annotating with gnomad AF")
-    ht = hl.read_table(tdt_htfile)
-    gnomad_ht = hl.read_table(gnomad_htfile)
-    ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].maf)
-    ht.write(final_htfile, overwrite = True)
+    ht = hl.read_table(path_spark(tdt_htfile))
+    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
+    ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].faf) # DEBUG: maf or faf? maf results in an error for me
+    ht.write(path_spark(final_htfile), overwrite = True)
 
 
 def main():
     # set up
     args = get_options()
-    inputs = parse_config()
-    rf_dir = inputs['var_qc_rf_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-    resourcedir = inputs['resource_dir']
+    config = parse_config()
+    rf_dir = path_spark(config['general']['var_qc_rf_dir']) # TODO: add adapters inside the functions to enhance robustness
+    mtdir = config['general']['matrixtables_dir']
+    resourcedir = config['general']['resource_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
+    tmp_dir = config['general']['tmp_dir']
+    sc = pyspark.SparkContext.getOrCreate()
     hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
-    htfile = rf_dir + args.runhash + "/rf_result.ht"
+    # TODO move runhash from cli to config
+    htfile = os.path.join(rf_dir, args.runhash, "rf_result.ht")
     #annotate with synonymous CQs
-    synonymous_file = resourcedir + "synonymous_variants.txt"
-    ht_cq_file = rf_dir + args.runhash + "/rf_result_with_synonymous.ht"
+    synonymous_file = config['step3']['add_cq_annotation']['synonymous_file']
+    ht_cq_file = os.path.join(rf_dir, args.runhash, "rf_result_with_synonymous.ht")
     add_cq_annotation(htfile, synonymous_file, ht_cq_file)
-    #annotate with family stats and DNMs
-    # dnm_htfile = mtdir + "denovo_table.ht"
-    # fam_stats_htfile = mtdir + "family_stats.ht"
-    # trio_stats_htfile = mtdir + "trio_stats.ht"
-    # family_annot_htfile = rf_dir + args.runhash + "/rf_result_denovo_family_stats.ht"
-    # dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
-
-    #annotate with transmitted singletons
-    # trio_mtfile = mtdir + "trios.mt"
-    # trio_filtered_mtfile = mtdir + "trios_filtered_.mt"
-    # trans_sing_htfile = rf_dir + args.runhash + "/rf_result_trans_sing.ht"
-    # transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_filtered_mtfile, trans_sing_htfile)
-
-    #annotate with number transmitted, number untransmitted (from transmission disequilibrium test)
-    # mtfile = mtdir + "mt_varqc_splitmulti.mt"
-    # pedfile = resourcedir + "trios.ped"
-    # tdt_htfile = rf_dir + args.runhash + "/rf_result_tdt.ht"
-    # run_tdt(mtfile, trans_sing_htfile, pedfile, tdt_htfile)
 
     #annotate with gnomad AF
-    final_htfile = rf_dir + args.runhash + "/rf_result_final_for_ranking.ht"
-    gnomad_htfile = resourcedir + "gnomad_v3-0_AF.ht"
-    #annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
+    final_htfile = os.path.join(rf_dir, args.runhash, "rf_result_final_for_ranking.ht")
+    gnomad_htfile = config['step3']['annotate_gnomad']['gnomad_htfile']
     annotate_gnomad(ht_cq_file, gnomad_htfile, final_htfile)
 
 

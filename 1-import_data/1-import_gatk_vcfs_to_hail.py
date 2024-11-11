@@ -1,42 +1,63 @@
 # Load GATK VCFs into hail and save as matrixtable
-import hail as hl
 import pyspark
 import yaml
 import os
 import sys
-from wes_qc.utils.utils import parse_config
+import re
+import hail as hl
+from utils.utils import parse_config, path_local, path_spark
 
+# DEBUG: for some reason, paths prefix is `file:`, not a `file://`
+VCF_PATTERN = re.compile("file:.*vcf.b?gz")
 
-def load_vcfs_to_mt(indir, outdir, tmp_dir, header):
+def load_vcfs_to_mt(config):
     '''
-    load VCFs and save as hail mt
+    load VCFs and save as hail mt.  
+    Save mt as outdir/gatk_unprocessed.mt
+
+    ### Config fields
+    ```
+    step1.gatk_vcf_header_infile
+    step1.gatk_vcf_indir
+    step1.gatk_mt_outfile
+    ```
     '''
-    objects = hl.utils.hadoop_ls(indir)
-    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
-    print("Loading VCFs")
+    indir, header, outfile = (
+        config['step1']['gatk_vcf_indir'], 
+        config['step1'].get('gatk_vcf_header_infile'), # optional
+        config['step1']['gatk_mt_outfile']
+    )
+
+    objects = hl.utils.hadoop_ls(path_spark(indir))
+    
+    # get paths of all vcf files
+    vcfs = [vcf["path"] for vcf in objects if VCF_PATTERN.match(vcf["path"])]
+    print(f"info: Found {len(vcfs)} VCFs in {indir}")
     #create and save MT
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file = header)
-    print("Saving as hail mt")
-    mt_out_file = outdir + "gatk_unprocessed.mt"
+    if header:
+        print("info: Loading VCFs with header")
+        mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True, header_file=header)
+    else:
+        print("info: Loading VCFs WITHOUT header")
+        mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
+        
+    mt_out_file = path_spark(outfile)
+    print(f"Saving as hail mt to {mt_out_file}")
     mt.write(mt_out_file, overwrite=True)
-
 
 def main():
     #set up input variables
-    inputs = parse_config()
-    vcf_header = inputs['gatk_vcf_header']
-    import_vcf_dir = inputs['gatk_import_lustre_dir']
-    mtdir = inputs['matrixtables_lustre_dir']
-
+    config = parse_config()
+    
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
-    sc = pyspark.SparkContext()
-    hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
+    tmp_dir = config['general']['tmp_dir']
+    # sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
+    hadoop_config = sc._jsc.hadoopConfiguration() # unused
+    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
 
     #load VCFs
-    load_vcfs_to_mt(import_vcf_dir, mtdir, tmp_dir, vcf_header)
-
+    load_vcfs_to_mt(config)
 
 if __name__ == '__main__':
     main() 
