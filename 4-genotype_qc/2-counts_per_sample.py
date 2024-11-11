@@ -292,9 +292,6 @@ def main():
     mt = hl.read_matrix_table(path_spark(mtfile))
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    # TODO: save mt to generate reference output for tests
-    mt.write(path_spark(config['step4']['annotate_gnomad']['annotated_with_gnomad_outfile']), overwrite = True)
-
     # TODO: make optional as it only prints info to stdout
     pedfile = config['step4']['get_trans_untrans_synon_singleton_counts']['pedfile']
     # get_trans_untrans_synon_singleton_counts(mt, pedfile) # test data has no trios
