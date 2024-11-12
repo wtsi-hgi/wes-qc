@@ -11,6 +11,13 @@ from utils.utils import download_test_data_using_files_list
 # list with the test files must be located in the test directory in the repo
 TEST_FILES_LIST = '../test_files_list_in_bucket.txt'
 
+# configuration file template for the integration tests
+INTEGRATION_TESTS_CONFIG_TEMPLATE = 'new_config_test_template.yaml'
+INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE = 'integration_config_rendered.yaml'
+
+# set up explicit runhash parameter for reproducible RF training
+RF_RUN_TEST_HASH = 'testhash' # manually set rf run id
+
 # variables for test config rendering
 INTEGRATION_TESTS_DIR = '{INTEGRATION_TESTS_DIR}'
 TEST_DATA_DIR = '{TEST_DATA_DIR}'
@@ -85,22 +92,24 @@ class HailTestCase(unittest.TestCase):
         test_suite_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         # specify paths to the test data and resources
-        test_data_download_path = os.path.join(test_suite_path, 'test_data_individual_files')
+        test_data_download_path = os.path.join(test_suite_path, 'test_data')
+
         test_data_path = os.path.join(test_data_download_path, 'control_set_small')
         resources_path = os.path.join(test_data_download_path, 'resources')
         training_sets_path = os.path.join(test_data_download_path, 'training_sets')
         variant_qc_random_forest_path = os.path.join(test_data_download_path, 'variant_qc_random_forest')
-        ref_data_path = os.path.join(test_data_download_path, 'unit_tests', 'reference_output_data')
+
+        ref_data_path = os.path.join(test_data_download_path, 'unit_tests', 'reference_output_data') # not needed for integration tests
 
         print(f'Downloading data from the bucket using files list {os.path.abspath(TEST_FILES_LIST)}')
         download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
 
-        smoke_test_dir_path = os.path.dirname(os.path.realpath(__file__))
-        rendered_config_savefile = os.path.join(smoke_test_dir_path, 'integration_config_rendered.yaml')
+        integration_tests_dir = os.path.dirname(os.path.realpath(__file__))
+        rendered_config_savefile = os.path.join(integration_tests_dir, INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE)
         
         # # render test config from the template
         # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
-        render_config('new_config_test_template.yaml', test_data_path, resources_path, training_sets_path, variant_qc_random_forest_path,
+        render_config(INTEGRATION_TESTS_CONFIG_TEMPLATE, test_data_path, resources_path, training_sets_path, variant_qc_random_forest_path,
                       savefile=rendered_config_savefile)
 
         # set up path to test config
@@ -111,7 +120,6 @@ class HailTestCase(unittest.TestCase):
         # TODO: clean up logs
         pass
 
-RF_RUN_TEST_HASH = 'testhash' # manually set rf run id 
 class IntegrationTests(HailTestCase):
     def test_1_1_import_data(self):
         try:
@@ -179,6 +187,7 @@ class IntegrationTests(HailTestCase):
     @patch('argparse.ArgumentParser.parse_args',
     return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
     def test_3_4_variant_qc(self, mock_args):
+        # set up correct PYSPARK_PYTHON env variable
         try:
             qc_step_3_4.main()
         except Exception as e:

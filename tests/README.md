@@ -1,10 +1,10 @@
 # How to run tests
 
-## Unit tests
+## Regression tests
 
 Run all tests with: 
 ```Python
-cd unit_tests/
+cd regression_tests/
 python -m unittest test_regression
 ```
 
@@ -13,10 +13,12 @@ To run individual tests, you have to specify the test name. For instance:
 python -m unittest test_regression.RegressionTests.test_1_1_load_vcfs_to_mt
 ```
 
-Unit tests can be executed in any order as they rely on the reference test data stored in a dedicated S3 bucket.
+Regression tests can be executed in any order as they rely on the reference test data stored in a dedicated S3 bucket.
 
 ## Integration tests
-Similarly to the unit tests, run all integration tests with:
+Before running integration tests, make sure that the `PYSPARK_PYTHON` environment variable is set correctly. 
+
+Similarly to regression tests, run all integration tests with:
 ```Python
 cd integration_tests
 python -m unittest test_integration

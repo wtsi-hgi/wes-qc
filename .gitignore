@@ -127,6 +127,11 @@ cython_debug/
 .snakemake
 
 # test data
+# this folder name for tests data is deprecated
 tests/test_data_individual_files/
+
+# the new name for test data directory is the following
+tests/test_data/
+
 tests/unit_tests/*
 tests/integration_tests/*

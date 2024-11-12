@@ -147,7 +147,7 @@ step2:
   run_pca:
     pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
     pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
-    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt' # TODO: don't add prefix
+    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt'
 
   predict_pops:
     pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
@@ -379,7 +379,7 @@ step4:
   # --- Step 4.3 --- #
   export_vcfs:
     mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    # TODO: after adopting new config render change to substitution
+    # TODO: after adopting new config rendering system change full path to CVAR substitution
     vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs/' 
 
   # --- Step 4.3a --- #
