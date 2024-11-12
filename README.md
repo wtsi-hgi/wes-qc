@@ -47,7 +47,7 @@ make test
 ```
 Or you can specify the type of test to run
 ```bash
-make unit-test 
+make unit-test
 make integration-test
 ```
 
@@ -55,4 +55,22 @@ To run the tests with coverage:
 ```bash
 make unit-test-coverage
 make integration-test-coverage
+```
+
+# Developer's howto
+
+## To run pre-commit hooks on commit
+
+1. Install pre-commit
+```shell
+pip install pre-commit
+```
+2. `pre-commit` will automatically run on every commit
+3. To run pre-commit manually on specific files
+```shell
+pre-commit run --files <file1> <file2>
+```
+4. `mypy` is configured to run manually because now it produce too many errors. To run it:
+```shell
+pre-commit run --hook-stage manual
 ```
