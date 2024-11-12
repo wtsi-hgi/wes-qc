@@ -1,2 +1,2 @@
-unit_tests/test_all_modules.py
+unit_tests/test_regression.py
 integration_tests/test_integrations.py
