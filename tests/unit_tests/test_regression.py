@@ -12,6 +12,7 @@ from pyspark import SparkContext
 from hail_utils import (
     compare_tables, 
     compare_matrixtables, 
+    compare_plinks, 
     compare_txts, 
     compare_bgzed_txts
 )
@@ -90,7 +91,7 @@ class RegressionTests(HailTestCase):
         # `tests/` folder in the repo
         cls.test_suite_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-        cls.test_data_download_path = os.path.join(cls.test_suite_path, 'test_data_individual_files')
+        cls.test_data_download_path = os.path.join(cls.test_suite_path, 'test_data')
 
         # static test data used in multiple functions 
         cls.control_data_dir = os.path.join(cls.test_data_download_path, 'control_set_small')
@@ -416,7 +417,7 @@ class RegressionTests(HailTestCase):
         # outputs
         cls.truth_ht = os.path.join(cls.out_resourcedir, 'truthset_table.ht')
         # reference outputs
-        cls.ref_truth_ht = os.path.join(cls.ref_resourcedir, 'truthset_table.ht')
+        cls.ref_truth_ht = os.path.join(cls.resourcedir, 'truthset_table.ht')
 
         # split_multi_and_var_qc()
         # reference inputs: `cls.ref_sample_qc_filtered_mt_file`

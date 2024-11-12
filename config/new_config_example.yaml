@@ -39,13 +39,13 @@ cvars:
 
 general:
   # CVAR tmpdir
-  tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp_final_out/ # output
+  tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp/ # output
 
   # CVAR anndir
-  annotation_dir: /lustre/scratch126/dh24_test/wes-qc/annotations_final_out/ # output
+  annotation_dir: /lustre/scratch126/dh24_test/wes-qc/annotations/ # output
   
   # CVAR mtdir
-  matrixtables_dir: /lustre/scratch126/dh24_test/wes-qc/matrixtables_final_out/ # output
+  matrixtables_dir: /lustre/scratch126/dh24_test/wes-qc/matrixtables/ # output
 
   # CVAR resdir
   resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/resources/ # input and output
@@ -54,13 +54,13 @@ general:
   onekg_resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/resources/mini_1000G # input; must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
-  plots_dir: /lustre/scratch126/dh24_test/wes-qc/tests/plots_final_out/ # output
+  plots_dir: /lustre/scratch126/dh24_test/wes-qc/tests/plots/ # output
 
   # CVAR traindir
   training_sets_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/training_sets/ # input
 
   # CVAR rfdir
-  var_qc_rf_dir: /lustre/scratch126/dh24_test/wes-qc/tests/variant_qc_random_forest_final_out/ # output
+  var_qc_rf_dir: /lustre/scratch126/dh24_test/wes-qc/tests/variant_qc_random_forest/ # output
 
 
 step1:
