@@ -135,3 +135,8 @@ tests/test_data/
 
 tests/unit_tests/*
 tests/integration_tests/*
+
+# ignore the pyproject.toml and poetry.lock files for now 
+# TODO: add these files after implementing the local running tests
+pyproject.toml
+poetry.lock
