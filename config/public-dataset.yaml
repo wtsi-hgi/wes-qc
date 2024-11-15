@@ -1,9 +1,15 @@
 ---
 
-# - You can insert a variable in the string value via '{}'. For example, 
-#   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'. 
+#############################################################################################
+# This is a config file example to process public 1000 Genomes dataset.
+# All data files and resources are here: s3://wes-qc-data/test_data_from_1000_genomes_v2
+# To download it to sanger farm, use s3cmd command.
+#############################################################################################
+
+# - You can insert a variable in the string value via '{}'. For example,
+#   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'.
 #
-# - If a config field ends with 'dir' or 'file', then parser will consider 
+# - If a config field ends with 'dir' or 'file', then parser will consider
 #   this field as a path and normalize it, thus removing double slashes (foo//bar -> foo/bar)
 #   and redundand dots (foo/./bar -> foo/bar).
 #
@@ -17,17 +23,19 @@
 #     a2: baz
 #   b: 'foo {a.a1} {a.a2}' (will render to 'foo bar baz')
 #
-# - Special variables from 'cvars' list will be replaced with field  
-#   they are referring to. For example, '{mtdir}/gatk_unprocessed.mt' is 
+# - Special variables from 'cvars' list will be replaced with field
+#   they are referring to. For example, '{mtdir}/gatk_unprocessed.mt' is
 #   equivalent to '{general.matrixtables_dir}/gatk_unprocessed.mt'
 #
-# - Parser can only insert variables that were already defined. 
+# - Parser can only insert variables that were already defined.
 #   You can't use a variable that will be defined further down the config.
 
 # TODO: custom yaml type for paths
 # TODO: ensure strict variable substitution, from top to bottom of the config
-# TODO: add testcases for cvars, for order of variables, for nested variables  
+# TODO: add testcases for cvars, for order of variables, for nested variables
 cvars:
+  dataset: general.dataset_name
+  dataroot: general.data_root
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir
   mtdir: general.matrixtables_dir
@@ -38,35 +46,29 @@ cvars:
   rfdir: general.var_qc_rf_dir
 
 general:
-  # CVAR tmpdir
-  tmp_dir: /lustre/scratch126/dh24_test/wes-qc/tmp/ # output
+  # Dataset name - to name plots, files, legends, etc
+  dataset_name: 'public-dataset'
 
-  # CVAR anndir
-  annotation_dir: /lustre/scratch126/dh24_test/wes-qc/annotations/ # output
-  
-  # CVAR mtdir
-  matrixtables_dir: /lustre/scratch126/dh24_test/wes-qc/matrixtables/ # output
+  # Dataset root directory - to use in folder paths
+  data_root: '/lustre/scratch126/gz3/{general.dataset_name}'
 
-  # CVAR resdir
-  resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/resources/ # input and output
+  tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
+  # To use local temp dir you need to specify it with 'file://' prefix
+  # For data_root file prefix is added automatically
+  # tmp_dir: '{general.data_root}/tmp'
 
-  # CVAR 1kg_resdir
-  onekg_resource_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/resources/mini_1000G # input; must be without trailing slash (TODO: make more robust)
-
-  # CVAR pltdir
-  plots_dir: /lustre/scratch126/dh24_test/wes-qc/tests/plots/ # output
-
-  # CVAR traindir
-  training_sets_dir: /lustre/scratch126/dh24_test/wes-qc/tests/test_data_individual_files/training_sets/ # input
-
-  # CVAR rfdir
-  var_qc_rf_dir: /lustre/scratch126/dh24_test/wes-qc/tests/variant_qc_random_forest/ # output
-
+  annotation_dir: '{general.data_root}/annotations/'
+  matrixtables_dir: '{general.data_root}/matrixtables/'
+  resource_dir: '{general.data_root}/resources/'
+  onekg_resource_dir: '{general.data_root}/resources/mini_1000G/'
+  plots_dir: '{general.data_root}/plots/'
+  training_sets_dir: '{general.data_root}/training_sets/' # input
+  var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
 
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
-  gatk_vcf_indir: /lustre/scratch126/WES_QC/control_set_vcfs/control_set_small/
+  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
 step2:
@@ -82,7 +84,7 @@ step2:
     female_threshold: 0.5
     male_threshold: 0.8
     aaf_threshold: 0.05
-    
+
   sex_inconsistencies:
     # TODO: specify structure of a sex metadata file
     sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
@@ -99,7 +101,7 @@ step2:
       # bp_window_size:
       # memory_per_core:
       # keep_higher_maf:
-      # block_size: 
+      # block_size:
 
   # previously pc_relate
   prune_pc_relate:
@@ -116,16 +118,16 @@ step2:
       # include_self_kinship:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
-    
+
   # previously population_pca
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
     pca_components: 4
-    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output 
-    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output 
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output
     pca_mt_file: '{mtdir}/mt_pca.mt' # output
     plot_outfile: '{pltdir}/pca.html' # output
-  
+
   # --- Step 2.3 --- #
   create_1kg_mt:
     indir: '{1kg_resdir}'
@@ -134,7 +136,7 @@ step2:
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output 
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
@@ -143,7 +145,7 @@ step2:
     p_value_hwe: 0.00005
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
-  
+
   run_pca:
     pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
     pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
@@ -156,14 +158,14 @@ step2:
     gnomad_min_prob: 0.5
     pop_ht_outfile: '{mtdir}/pop_assignments.ht'
     pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
-  
+
   # --- Step 2.4 --- #
   # func name: annotate_mt
   annotate_with_pop:
     annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
 
   stratified_sample_qc:
-    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output 
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
     ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
     qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
 
@@ -172,7 +174,7 @@ step2:
     min_vaf: 0.25
     output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
     output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
-  
+
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
     samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz' # output
@@ -180,15 +182,20 @@ step2:
 
 
 step3:
-  # Parameters used in multiple functions # 
-  pedfile: '{resdir}/trios.EGAN.complete.ped'
+  # Parameters used in multiple functions #
+  pedfile: '{resdir}/trios.ped'
+
+  # TODO: implement reading runhash from config
+  # The runhash of the Random Forest model. Generated at the step 3.3
+  # Hashes for all trained models can be found in {dataroot}/variant_qc_random_forest
+  rf_runhash: '19327460'
 
   # --- Step 3.1 --- #
   get_truth_ht:
     truth_ht_outfile: '{resdir}/truthset_table.ht'
     omni: '{traindir}/1000G_omni2.5.hg38.ht'
     mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht' 
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
     hapmap: '{traindir}/hapmap_3.3.hg38.ht'
 
   split_multi_and_var_qc:
@@ -255,7 +262,7 @@ step3:
   annotate_gnomad:
     gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
 
-  
+
   # --- Step 3.6 --- #
   add_rank:
     subrank_expr_de_novo_high_quality_rank: 0.9
@@ -271,7 +278,7 @@ step3:
     n_trans_common_gnomad_af: 0.1
     n_untrans_common_gnomad_af: 0.1
 
-  
+
   # --- Step 3.7 --- #
   create_plots:
     qc_plots_settings:
@@ -327,23 +334,23 @@ step4:
       missingness: 0.5
       snp:
         relaxed:
-          bin: 92
+          bin: 90
           dp: 5
           gq: 10
           ab: 0.2
         medium:
-          bin: 88
+          bin: 82
           dp: 5
           gq: 10
           ab: 0.2
         stringent:
-          bin: 84
+          bin: 72
           dp: 5
           gq: 15
           ab: 0.2
       indel:
         relaxed:
-          bin: 68
+          bin: 72
           dp: 5
           gq: 10
           ab: 0.2
@@ -353,7 +360,7 @@ step4:
           gq: 15
           ab: 0.2
         stringent:
-          bin: 58
+          bin: 54
           dp: 5
           gq: 20
           ab: 0.3
@@ -372,15 +379,15 @@ step4:
 
   get_counts_per_cq:
     cqfile: '{pltdir}/variant_counts_per_cq_post_qc.txt'
-  
+
   get_ca_fractions:
     cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
 
   # --- Step 4.3 --- #
   export_vcfs:
     mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    # TODO: after adopting new config rendering system change full path to CVAR substitution
-    vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs/' 
+    # TODO: after adopting new config render change to substitution
+    vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs/'
 
   # --- Step 4.3a --- #
   export_vcfs_a:

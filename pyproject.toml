@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "wes-qc"
+version = "0.1.0"
+description = "This repository contains the code used for the QC of human exome cohorts."
+authors = ["Eric Hidari <eh19@sanger.ac.uk>", "Gennadii Zakharov <gz2@sanger.ac.uk>"]
+readme = "README.md"
+packages = [ { include = "**/*.py", from = "."  }]
+
+[tool.poetry.dependencies]
+python = "^3.9.5"
+hail = "^0.2.133"
+# gnomad = "^0.8.1"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+coverage = "*"
+pytest-cov = "^6.0.0"
+pre-commit = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.report]
+show_missing = true
