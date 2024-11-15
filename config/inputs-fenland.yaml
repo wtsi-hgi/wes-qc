@@ -34,7 +34,7 @@ rf_test_interval: chr20
 runhash: 5278832e # trained on chr20
 # runhash: 9370bdf6 # trained on chr1
 
-samples_to_exclude: ""
+samples_to_exclude: "Fenland_samples_failed_gtcheck_ids.txt"
 samples_rename_map: ""
 
 #hard filter
