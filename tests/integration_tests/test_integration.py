@@ -151,7 +151,7 @@ class IntegrationTests(HailTestCase):
     @patch(
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(
-            kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=False, kg_remove_related_samples=False
+            kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=False
         ),
     )
     def test_1_4_import_data(self, mock_args):

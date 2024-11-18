@@ -22,23 +22,20 @@ from utils.config import path_spark
 from wes_qc import hail_utils, filtering
 
 
-def create_1kg_mt(config: dict) -> None:
+def create_1kg_mt(vcf_indir: str, kg_unprocessed_mt: str) -> None:
     """
     Create matrixtable of 1kg data
     :param str resourcedir: resources directory
     :param str mtdir: matrixtable directory
     """
-    conf = config["step1"]["create_1kg_mt"]
-    vcf_indir = path_spark(conf["indir"])
     print(f"Loading VCFs from {vcf_indir}")
     objects = hl.utils.hadoop_ls(vcf_indir)
     vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
 
     # create and save MT
     mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
-    mt_out_file = path_spark(conf["kg_unprocessed"])
-    print(f"Saving as hail mt to {mt_out_file}")
-    mt.write(mt_out_file, overwrite=True)
+    print(f"Saving as hail mt to {kg_unprocessed_mt}")
+    mt.write(kg_unprocessed_mt, overwrite=True)
 
 
 # TODO: This function as a full copy form the step 2/2-prune-related_samples. Need to extract it to a separate module
@@ -95,37 +92,39 @@ def main() -> None:
     sc = hail_utils.init_hl(tmp_dir)
 
     step_conf = config["step1"]["create_1kg_mt"]
-    kg_unprocessed = path_spark(step_conf["kg_unprocessed"])
+    vcf_indir = path_spark(step_conf["indir"])
+    kg_unprocessed_mt = path_spark(step_conf["kg_unprocessed"])
     if args.kg_to_mt:
-        create_1kg_mt(config)
+        create_1kg_mt(vcf_indir, kg_unprocessed_mt)
 
     pruned_kg_file = path_spark(step_conf["pruned_kg_file"])
-    long_range_ld_file = path_spark(step_conf["pruned_kg_file"])
+    long_range_ld_file = path_spark(step_conf["long_range_ld_file"])
+
     if args.kg_filter_and_prune:
         # prunning of the linked Variants
         kg_mt = hl.read_matrix_table(kg_unprocessed)
         kg_mt_filtered = filtering.filter_matrix_for_ldprune(kg_mt, long_range_ld_file)
-        # prunning of the linked Variants
+
         # TODO: this par from the the file 2/2-3a-merge-and-prune. Need to extract to a separate function
+        # prunning some part of the chromosome,  the linked Variantion regions that are related to each other
         pruned_kg_ht = hl.ld_prune(kg_mt_filtered.GT, r2=0.2)
         pruned_kg_mt = kg_mt_filtered.filter_rows(hl.is_defined(pruned_kg_ht[kg_mt_filtered.row_key]))
         pruned_kg_mt = pruned_kg_mt.select_entries(
             GT=hl.unphased_diploid_gt_index_call(pruned_kg_mt.GT.n_alt_alleles())
         )
         # saving matrix
-        pruned_kg_mt.write("file://" + pruned_kg_file, overwrite=True)
+        pruned_kg_mt.write(pruned_kg_file, overwrite=True)
 
     # TODO: this part is from the file 2-prune-related-samples. NExx to extract to separate function
-    relatedness_ht_file = os.path.join(mtdir, "kg_relatedness.ht")
-    samples_to_remove_file = os.path.join(mtdir, "kg_related_samples_to_remove.ht")
-    scores_file = os.path.join(mtdir, "kg_pruned.pca_scores.ht")
+    relatedness_ht_file = path_spark(step_conf["relatedness_ht_file"])
+    samples_to_remove_file = path_spark(step_conf["samples_to_remove_file"])
+    scores_file = path_spark(step_conf["scores_file"])
     if args.kg_pc_relate:
-        # run pcrelate
         run_pc_relate(
-            "file://" + pruned_kg_file,
-            "file://" + relatedness_ht_file,
-            "file://" + samples_to_remove_file,
-            "file://" + scores_file,
+            pruned_kg_file,
+            relatedness_ht_file,
+            samples_to_remove_file,
+            scores_file
         )
 
     kg_mt_file = os.path.join(mtdir, "kg_wes_regions.mt")

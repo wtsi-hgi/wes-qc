@@ -41,6 +41,17 @@ step1:
   gatk_vcf_indir: {TEST_DATA_DIR}
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
+  create_1kg_mt:
+    indir: '{1kg_resdir}'
+    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    kg_unprocessed: '{mtdir}/kg_unprocessed.mt'
+    pruned_kg_file: '{mtdir}/kg_pruned_ld.mt'
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+    relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
+    samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
+    scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
+
+    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
 
 step2:
   # --- Step 2.1 --- #
