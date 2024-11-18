@@ -73,6 +73,17 @@ step1:
   gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
+  create_1kg_mt:
+    indir: '{1kg_resdir}'
+    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    kg_unprocessed: '{mtdir}/kg_unprocessed.mt'
+    pruned_kg_file: '{mtdir}/kg_pruned_ld.mt'
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+
+    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
+
+
+
 step2:
   # --- Step 2.1 --- #
   sex_annotation_hard_filters:
@@ -131,10 +142,6 @@ step2:
     plot_outfile: '{pltdir}/pca.html' # output
 
   # --- Step 2.3 --- #
-  create_1kg_mt:
-    indir: '{1kg_resdir}'
-    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
-    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
