@@ -44,6 +44,7 @@ cvars:
   pltdir: general.plots_dir
   traindir: general.training_sets_dir
   rfdir: general.var_qc_rf_dir
+  vcf_export_dir: general.vcf_export_dir
 
 general:
   # Dataset name - to name plots, files, legends, etc
@@ -64,6 +65,7 @@ general:
   plots_dir: '{general.data_root}/plots/'
   training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
+  vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
 
 step1:
   # --- Step 1.1 --- #
@@ -149,7 +151,7 @@ step2:
   run_pca:
     pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
     pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
-    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt' # TODO: don't add prefix
+    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt'
 
   predict_pops:
     pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
@@ -387,14 +389,14 @@ step4:
   export_vcfs:
     mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
     # TODO: after adopting new config render change to substitution
-    vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs/'
+    vcf_output_dir: '{vcf_export_dir}/filtered_vcfs/'
 
   # --- Step 4.3a --- #
   export_vcfs_a:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    vcf_output_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs_combinations/'
+    vcf_output_dir: '{vcf_export_dir}/filtered_vcfs_combinations/'
 
   # --- Ster 4.3b --- #
   export_vcfs_b:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    filtered_vcf_dir: '/lustre/scratch126/dh24_test/wes-qc/tests/filtered_vcfs_combinations_stringent/'
+    filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'

@@ -12,13 +12,13 @@ cvars:
 
 general:
   # CVAR tmpdir
-  tmp_dir: {INTEGRATION_TESTS_DIR}/tmp_new_config/ # output
+  tmp_dir: {INTEGRATION_TESTS_DIR}/tmp/ # output
 
   # CVAR anndir
-  annotation_dir: {INTEGRATION_TESTS_DIR}/annotations_new_config/ # output
+  annotation_dir: {INTEGRATION_TESTS_DIR}/annotations/ # output
   
   # CVAR mtdir
-  matrixtables_dir: {INTEGRATION_TESTS_DIR}/matrixtables_new_config/ # output
+  matrixtables_dir: {INTEGRATION_TESTS_DIR}/matrixtables/ # output
 
   # CVAR resdir
   resource_dir: {RESOURCES_DIR} # input and output
@@ -27,7 +27,7 @@ general:
   onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input; must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
-  plots_dir: {INTEGRATION_TESTS_DIR}/plots_new_config/ # output
+  plots_dir: {INTEGRATION_TESTS_DIR}/plots/ # output
 
   # CVAR traindir
   training_sets_dir: {TRAINING_SETS_DIR} # input
@@ -75,7 +75,7 @@ step2:
 
   # for function `pc_relate()`
   prune_pc_relate:
-    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output 
+    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
     pca_components: 3
@@ -93,8 +93,8 @@ step2:
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
     pca_components: 4
-    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
-    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output 
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output 
     pca_mt_file: '{mtdir}/mt_pca.mt' # output
     plot_outfile: '{pltdir}/pca.html' # output
   
@@ -106,7 +106,7 @@ step2:
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output 
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
@@ -135,7 +135,7 @@ step2:
     annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
 
   stratified_sample_qc:
-    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output 
     ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
     qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
 
