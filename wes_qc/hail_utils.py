@@ -24,7 +24,8 @@ def clear_temp_folder(tmp_dir: str) -> None:
 def init_hl(tmp_dir: str) -> pyspark.SparkContext:
     clear_temp_folder(tmp_dir)
     print("=== Checking for SparkContext ===")
-    sc = pyspark.SparkContext()
+    sc = pyspark.SparkContext.getOrCreate()
+    # sc = pyspark.SparkContext()
     print("=== Initializing Hail ===")
     hl.init(sc=sc, tmp_dir=tmp_dir)
     hl.default_reference("GRCh38")

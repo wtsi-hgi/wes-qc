@@ -15,7 +15,6 @@ import argparse
 from typing import Any
 
 import hail as hl
-import os
 
 from utils.utils import parse_config
 from utils.config import path_spark
@@ -86,10 +85,9 @@ def main() -> None:
     # set up input variables
     config = parse_config()
     tmp_dir = config["general"]["tmp_dir"]
-    mtdir = config["general"]["matrixtables_dir"]
 
     # initialise hail
-    sc = hail_utils.init_hl(tmp_dir)
+    _ = hail_utils.init_hl(tmp_dir)
 
     step_conf = config["step1"]["create_1kg_mt"]
     vcf_indir = path_spark(step_conf["indir"])
@@ -102,7 +100,7 @@ def main() -> None:
 
     if args.kg_filter_and_prune:
         # prunning of the linked Variants
-        kg_mt = hl.read_matrix_table(kg_unprocessed)
+        kg_mt = hl.read_matrix_table(kg_unprocessed_mt)
         kg_mt_filtered = filtering.filter_matrix_for_ldprune(kg_mt, long_range_ld_file)
 
         # TODO: this par from the the file 2/2-3a-merge-and-prune. Need to extract to a separate function
@@ -120,27 +118,22 @@ def main() -> None:
     samples_to_remove_file = path_spark(step_conf["samples_to_remove_file"])
     scores_file = path_spark(step_conf["scores_file"])
     if args.kg_pc_relate:
-        run_pc_relate(
-            pruned_kg_file,
-            relatedness_ht_file,
-            samples_to_remove_file,
-            scores_file
-        )
+        run_pc_relate(pruned_kg_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
-    kg_mt_file = os.path.join(mtdir, "kg_wes_regions.mt")
+    kg_mt_file = path_spark(step_conf["kg_out_mt"])
     if args.kg_remove_related_samples:
         # TODO: This part of code is from the script 2/2 fucntion run_population_pca().
-        kg_mt = hl.read_matrix_table("file://" + kg_unprocessed)
+        kg_mt = hl.read_matrix_table(kg_unprocessed_mt)
         variants, samples = kg_mt.count()
         print(f"=== Loaded form initial table: {samples} samples, {variants} variants.")
         print("=== Removing related samples")
-        related_samples_to_remove = hl.read_table("file://" + samples_to_remove_file)
+        related_samples_to_remove = hl.read_table(samples_to_remove_file)
         kg_mt_remove_related = kg_mt.filter_cols(hl.is_defined(related_samples_to_remove[kg_mt.col_key]), keep=False)
         variants, samples = kg_mt_remove_related.count()
         print(f"=== Remains after removing related samples: {samples} samples, {variants} variants.")
-        kg_mt_remove_related.write("file://" + kg_mt_file, overwrite=True)
+        kg_mt_remove_related.write(kg_mt_file, overwrite=True)
 
-    hail_utils.stop_hl(sc)
+    # hail_utils.stop_hl(sc)
 
 
 if __name__ == "__main__":

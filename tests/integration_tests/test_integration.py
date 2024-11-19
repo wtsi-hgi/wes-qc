@@ -111,10 +111,6 @@ class HailTestCase(unittest.TestCase):
         training_sets_path = os.path.join(test_data_download_path, "training_sets")
         variant_qc_random_forest_path = os.path.join(test_data_download_path, "variant_qc_random_forest")
 
-        ref_data_path = os.path.join(
-            test_data_download_path, "unit_tests", "reference_output_data"
-        )  # not needed for integration tests
-
         print(f"Downloading data from the bucket using files list {os.path.abspath(TEST_FILES_LIST)}")
         download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
 
@@ -151,7 +147,7 @@ class IntegrationTests(HailTestCase):
     @patch(
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(
-            kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=False
+            kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=True
         ),
     )
     def test_1_4_import_data(self, mock_args):

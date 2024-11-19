@@ -12,33 +12,33 @@ cvars:
 
 general:
   # CVAR tmpdir
-  tmp_dir: {INTEGRATION_TESTS_DIR}/tmp/ # output
+  tmp_dir: "{INTEGRATION_TESTS_DIR}/tmp/" # output
 
   # CVAR anndir
-  annotation_dir: {INTEGRATION_TESTS_DIR}/annotations/ # output
-  
+  annotation_dir: "{INTEGRATION_TESTS_DIR}/annotations/" # output
+
   # CVAR mtdir
-  matrixtables_dir: {INTEGRATION_TESTS_DIR}/matrixtables/ # output
+  matrixtables_dir: "{INTEGRATION_TESTS_DIR}/matrixtables/" # output
 
   # CVAR resdir
-  resource_dir: {RESOURCES_DIR} # input and output
+  resource_dir: "{RESOURCES_DIR}" # input and output
 
   # CVAR 1kg resource dir
-  onekg_resource_dir: {RESOURCES_DIR}/mini_1000G # input; must be without trailing slash (TODO: make more robust)
+  onekg_resource_dir: "{RESOURCES_DIR}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
 
   # CVAR pltdir
-  plots_dir: {INTEGRATION_TESTS_DIR}/plots/ # output
+  plots_dir: "{INTEGRATION_TESTS_DIR}/plots/" # output
 
   # CVAR traindir
-  training_sets_dir: {TRAINING_SETS_DIR} # input
+  training_sets_dir: "{TRAINING_SETS_DIR}" # input
 
   # CVAR rfdir
-  var_qc_rf_dir: {VARIANT_QC_RANDOM_FOREST_DIR} # output 
+  var_qc_rf_dir: "{VARIANT_QC_RANDOM_FOREST_DIR}" # output
 
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
-  gatk_vcf_indir: {TEST_DATA_DIR}
+  gatk_vcf_indir: "{TEST_DATA_DIR}"
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
   create_1kg_mt:
@@ -50,8 +50,7 @@ step1:
     relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
     samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
     scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
-
-    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
+    kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
 
 step2:
   # --- Step 2.1 --- #
@@ -66,7 +65,7 @@ step2:
     female_threshold: 0.5
     male_threshold: 0.8
     aaf_threshold: 0.05
-    
+
   sex_inconsistencies:
     sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
     conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
@@ -82,7 +81,7 @@ step2:
       # bp_window_size:
       # memory_per_core:
       # keep_higher_maf:
-      # block_size: 
+      # block_size:
 
   # for function `pc_relate()`
   prune_pc_relate:
@@ -99,16 +98,16 @@ step2:
       # include_self_kinship:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
-    
+
   # for function `population_pca()`
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
     pca_components: 4
-    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output 
-    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output 
+    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
+    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output
     pca_mt_file: '{mtdir}/mt_pca.mt' # output
     plot_outfile: '{pltdir}/pca.html' # output
-  
+
   # --- Step 2.3 --- #
   create_1kg_mt:
     indir: '{1kg_resdir}'
@@ -117,7 +116,7 @@ step2:
 
   merge_with_1_kg:
     kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output 
+    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
@@ -126,7 +125,7 @@ step2:
     p_value_hwe: 0.00005
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
-  
+
   run_pca:
     pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
     pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
@@ -146,7 +145,7 @@ step2:
     annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
 
   stratified_sample_qc:
-    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output 
+    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
     ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
     qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
 
@@ -155,7 +154,7 @@ step2:
     min_vaf: 0.25
     output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
     output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
-  
+
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
     samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz' # output
@@ -163,7 +162,7 @@ step2:
 
 
 step3:
-  # Parameters used in multiple functions # 
+  # Parameters used in multiple functions #
   pedfile: '{resdir}/trios.EGAN.complete.ped'
 
   # --- Step 3.1 --- #
@@ -171,15 +170,13 @@ step3:
     truth_ht_outfile: '{resdir}/truthset_table.ht'
     omni: '{traindir}/1000G_omni2.5.hg38.ht'
     mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht' 
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
     hapmap: '{traindir}/hapmap_3.3.hg38.ht'
 
   split_multi_and_var_qc:
     mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
     varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
     varqc_mtoutfile_split: '{mtdir}/mt_varqc_splitmulti.mt'
-
-  pedfile: '{resdir}/trios.EGAN.complete.ped'
 
   # not used for non-trios mode
   trio_family_dnm_annotation:
@@ -242,7 +239,7 @@ step3:
   annotate_gnomad:
     gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
 
-  
+
   # --- Step 3.6 --- #
   add_rank:
     subrank_expr_de_novo_high_quality_rank: 0.9
@@ -343,14 +340,14 @@ step4:
 
   get_counts_per_cq:
     cqfile: '{pltdir}/variant_counts_per_cq_post_qc.txt'
-  
+
   get_ca_fractions:
     cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
 
   # --- Step 4.3 --- #
   export_vcfs:
     mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs/' 
+    vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs/'
 
   # --- Step 4.3a --- #
 
@@ -362,4 +359,4 @@ step4:
   # --- Ster 4.3b --- #
   export_vcfs_b:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    filtered_vcf_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations_stringent/'  
+    filtered_vcf_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations_stringent/'
