@@ -5,8 +5,8 @@ export PYSPARK_DRIVER_PYTHON:="/home/ubuntu/venv/bin/python"
 
 test: unit-test integration-test
 
-# test-ut-one-step:
-# 	cd tests/unit_tests && pytest $(test)
+test-ut-one-step:
+	cd tests/unit_tests && pytest -vv -s $(test)
 
 test-it-one-step:
 	cd tests/integration_tests && pytest -vv -s test_integration.py::IntegrationTests::$(test)
@@ -22,3 +22,9 @@ unit-test:
 
 unit-test-coverage:
 	cd tests/unit_tests && pytest --cov=../..
+
+clear-logs:
+	rm hail*.log
+	rm hlrun_local_*
+	rm tests/unit_tests/hail*.log
+	rm tests/integration_tests/hail*.log

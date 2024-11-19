@@ -14,10 +14,7 @@ def clear_temp_folder(tmp_dir: str) -> None:
         return
     tmp_dir = tmp_dir.replace("file://", "")
     print(f"=== Cleaning up temporary folder {tmp_dir}")
-    try:
-        shutil.rmtree(tmp_dir)
-    except FileNotFoundError:
-        print("TMP folder was cleaned up by Spark. Proceeding to the next step.")
+    shutil.rmtree(tmp_dir)
     os.makedirs(tmp_dir, exist_ok=True)
 
 
