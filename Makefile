@@ -5,6 +5,7 @@ test: unit-test integration-test
 # test-ut-one-step:
 # 	cd tests/unit_tests && pytest $(test)
 
+
 test-it-one-step:
 	cd tests/integration_tests && pytest test_integration.py::IntegrationTests::$(test)
 
@@ -18,4 +19,4 @@ unit-test:
 	cd tests/unit_tests && pytest
 
 unit-test-coverage:
-	cd tests/unit_tests && pytest --cov=../.. 
+	cd tests/unit_tests && pytest --cov=../..
