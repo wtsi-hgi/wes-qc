@@ -136,6 +136,7 @@ tests/test_data/
 tests/unit_tests/*
 # except the test_*.py files
 !tests/unit_tests/test_*.py
+!tests/unit_tests/conftest.py
 tests/integration_tests/*
 # except the test_*.py files
 !tests/integration_tests/test_*.py

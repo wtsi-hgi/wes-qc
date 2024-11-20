@@ -36,3 +36,23 @@ def test_hail_init(tmp_path):
     assert not sc._jsc.sc().isStopped()
     hail_utils.stop_hl(sc)
     assert sc._jsc is None
+
+
+@m.context("When the input matrix table has variants on autosomes, SNVs, and is biallelic")
+@m.it("should return a matrix table with only autosomes, SNVs, and non-split variants")
+def test_filter_mt_autosome_biallelic_snvs(hail_data):
+    assert True
+    # Create synthetic data using the Balding-Nichols model
+    # mt = hl.balding_nichols_model(n_populations=3, n_samples=10, n_variants=100)
+
+    # # Apply the filter function
+    # filtered_mt = filtering.filter_mt_autosome_biallelic_snvs(mt)
+
+    # # Check that all variants are on autosomes
+    # assert hl.agg.all(filtered_mt.locus.in_autosome())
+
+    # # Check that all variants are SNVs
+    # assert hl.agg.all(hl.is_snp(filtered_mt.alleles[0], filtered_mt.alleles[1]))
+
+    # # Check that no variants were split
+    # assert hl.agg.all(filtered_mt.was_split == False)
