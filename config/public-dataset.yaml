@@ -51,7 +51,7 @@ general:
   dataset_name: 'public-dataset'
 
   # Dataset root directory - to use in folder paths
-  data_root: '/lustre/scratch126/gz3/{general.dataset_name}'
+  data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
 
   tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
@@ -79,10 +79,10 @@ step1:
     kg_unprocessed: '{mtdir}/kg_unprocessed.mt'
     pruned_kg_file: '{mtdir}/kg_pruned_ld.mt'
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
-
-    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
-
-
+    relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
+    samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
+    scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
+    kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
 
 step2:
   # --- Step 2.1 --- #
@@ -395,7 +395,6 @@ step4:
   # --- Step 4.3 --- #
   export_vcfs:
     mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    # TODO: after adopting new config render change to substitution
     vcf_output_dir: '{vcf_export_dir}/filtered_vcfs/'
 
   # --- Step 4.3a --- #
