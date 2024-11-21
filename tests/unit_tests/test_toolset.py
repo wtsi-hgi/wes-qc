@@ -1,4 +1,4 @@
-from wes_qc import hail_utils
+from wes_qc import hail_utils, filtering
 import hail as hl
 from pytest import mark as m
 
@@ -40,19 +40,18 @@ def test_hail_init(tmp_path):
 
 @m.context("When the input matrix table has variants on autosomes, SNVs, and is biallelic")
 @m.it("should return a matrix table with only autosomes, SNVs, and non-split variants")
-def test_filter_mt_autosome_biallelic_snvs(hail_data):
-    assert True
-    # Create synthetic data using the Balding-Nichols model
-    # mt = hl.balding_nichols_model(n_populations=3, n_samples=10, n_variants=100)
+def test_filter_mt_autosome_biallelic_snvs(variation_mt, mt_sex_chr):
+    # Apply the filter function
+    filtered_mt = filtering.filter_mt_autosome_biallelic_snvs(mt_sex_chr)
 
-    # # Apply the filter function
-    # filtered_mt = filtering.filter_mt_autosome_biallelic_snvs(mt)
+    # Check that all variants are on autosomes
+    assert filtered_mt.aggregate_rows(hl.agg.all(filtered_mt.locus.in_autosome()))
 
-    # # Check that all variants are on autosomes
-    # assert hl.agg.all(filtered_mt.locus.in_autosome())
+    filtered_mt = filtering.filter_mt_autosome_biallelic_snvs(variation_mt)
 
-    # # Check that all variants are SNVs
-    # assert hl.agg.all(hl.is_snp(filtered_mt.alleles[0], filtered_mt.alleles[1]))
+    # Check that all variants are SNVs
+    assert filtered_mt.aggregate_rows(hl.agg.all(hl.is_snp(filtered_mt.alleles[0], filtered_mt.alleles[1])))
 
-    # # Check that no variants were split
-    # assert hl.agg.all(filtered_mt.was_split == False)
+    # Check that we have no variants were split
+    multiallelic_mt = filtered_mt.filter_rows(hl.len(filtered_mt.alleles) > 2)
+    assert multiallelic_mt.count_rows() == 0
