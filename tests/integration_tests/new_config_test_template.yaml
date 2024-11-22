@@ -51,6 +51,9 @@ step1:
     samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
     scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
     kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
+    call_rate_threshold: 0.99
+    af_threshold: 0.05
+    hwe_threshold: 1e-5
 
 step2:
   # --- Step 2.1 --- #

@@ -4,7 +4,7 @@ A service module to work with Hail and Spark - spin up, shut down, work with tem
 
 import sys
 import pyspark
-import hail as hl
+import hail as hl  # type: ignore
 import shutil
 import os
 

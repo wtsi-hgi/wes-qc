@@ -1,17 +1,17 @@
-from wes_qc import hail_utils, filtering
-import hail as hl
+import pathlib
+import hail as hl  # type: ignore
 from pytest import mark as m
+from wes_qc import hail_utils, filtering
 
 
 @m.context("When the temp folder does not have file:// prefix")
 @m.it("should return None and do nothing")
-def test_clear_temp_folder_1(tmp_path):
+def test_clear_temp_folder_1(tmp_path: pathlib.Path) -> None:
     tempdir = tmp_path / "temp"
     tempfile = tempdir / "test.txt"
     tempdir.mkdir()
     tempfile.touch()
-    res = hail_utils.clear_temp_folder(str(tempdir))
-    assert res is None
+    hail_utils.clear_temp_folder(str(tempdir))
     assert tempdir.exists()
     assert len(list(tempdir.glob("*"))) == 1
 
@@ -55,3 +55,12 @@ def test_filter_mt_autosome_biallelic_snvs(variation_mt, mt_sex_chr):
     # Check that we have no variants were split
     multiallelic_mt = filtered_mt.filter_rows(hl.len(filtered_mt.alleles) > 2)
     assert multiallelic_mt.count_rows() == 0
+
+
+@m.context("Filters only variations with good quality metrics")
+@m.it("Should run without exceptions")
+def test_filter_vars_for_quality(mt_sex_chr):
+    mt_vqc_filtered = filtering.filter_vars_for_quality(
+        mt_sex_chr, call_rate_threshold=0.99, af_threshold=0.05, hwe_threshold=1e-5
+    )
+    mt_vqc_filtered.count_rows()

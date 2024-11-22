@@ -14,7 +14,7 @@ To prepare data for this script
 import argparse
 from typing import Any
 
-import hail as hl
+import hail as hl  # type: ignore
 
 from utils.utils import parse_config
 from utils.config import path_spark
@@ -75,7 +75,8 @@ def get_options() -> Any:
     parser.add_argument("--kg-to-mt", help="Convert 1kg data to matrixtable", action="store_true")
     parser.add_argument("--kg-filter-and-prune", help="Prune related variants from 1kg matrix", action="store_true")
     parser.add_argument("--kg-pc-relate", help="Run PC relate for 1KG ", action="store_true")
-    parser.add_argument("--kg-remove-related-samples", help="Run PC relate for 1KG ", action="store_true")
+    parser.add_argument("--kg-remove-related-samples", help="Run PC relate for 1KG", action="store_true")
+    parser.add_argument("-a", "--all", help="Run All steps", action="store_true")
     args = parser.parse_args()
     return args
 
@@ -92,16 +93,21 @@ def main() -> None:
     step_conf = config["step1"]["create_1kg_mt"]
     vcf_indir = path_spark(step_conf["indir"])
     kg_unprocessed_mt = path_spark(step_conf["kg_unprocessed"])
-    if args.kg_to_mt:
+    if args.kg_to_mt or args.all:
         create_1kg_mt(vcf_indir, kg_unprocessed_mt)
 
     pruned_kg_file = path_spark(step_conf["pruned_kg_file"])
     long_range_ld_file = path_spark(step_conf["long_range_ld_file"])
+    call_rate_threshold = float(step_conf["call_rate_threshold"])
+    af_threshold = float(step_conf["af_threshold"])
+    hwe_threshold = float(step_conf["hwe_threshold"])
 
-    if args.kg_filter_and_prune:
+    if args.kg_filter_and_prune or args.all:
         # prunning of the linked Variants
         kg_mt = hl.read_matrix_table(kg_unprocessed_mt)
-        kg_mt_filtered = filtering.filter_matrix_for_ldprune(kg_mt, long_range_ld_file)
+        kg_mt_filtered = filtering.filter_matrix_for_ldprune(
+            kg_mt, long_range_ld_file, call_rate_threshold, af_threshold, hwe_threshold
+        )
 
         # TODO: this par from the the file 2/2-3a-merge-and-prune. Need to extract to a separate function
         # prunning some part of the chromosome,  the linked Variantion regions that are related to each other
@@ -117,11 +123,11 @@ def main() -> None:
     relatedness_ht_file = path_spark(step_conf["relatedness_ht_file"])
     samples_to_remove_file = path_spark(step_conf["samples_to_remove_file"])
     scores_file = path_spark(step_conf["scores_file"])
-    if args.kg_pc_relate:
+    if args.kg_pc_relate or args.all:
         run_pc_relate(pruned_kg_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
     kg_mt_file = path_spark(step_conf["kg_out_mt"])
-    if args.kg_remove_related_samples:
+    if args.kg_remove_related_samples or args.all:
         # TODO: This part of code is from the script 2/2 fucntion run_population_pca().
         kg_mt = hl.read_matrix_table(kg_unprocessed_mt)
         variants, samples = kg_mt.count()
