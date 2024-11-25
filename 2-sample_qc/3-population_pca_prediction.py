@@ -6,64 +6,69 @@ from gnomad.sample_qc.ancestry import assign_population_pcs
 from utils.utils import parse_config
 from utils.config import path_local, path_spark
 from wes_qc import hail_utils, filtering
+from typing import Tuple
 
 
-def merge_1kg_and_ldprune(mt: hl.MatrixTable, kg_mt: hl.MatrixTable, conf: dict) -> hl.MatrixTable:
+def merge_1kg_and_ldprune(
+    mt: hl.MatrixTable,
+    kg_mt: hl.MatrixTable,
+    long_range_ld_file: str,
+    merged_filtered_mt_outfile: str,
+    r2_threshold: float,
+    call_rate_threshold: float,
+    af_threshold: float,
+    hwe_threshold: float,
+    **kwargs,
+) -> hl.MatrixTable:
+    """
+    Merge input and 1kg matrix and run LD pruning
+    :param mt: input matrix table
+    :param kg_mt: 1kg matrix table
+    :param long_range_ld_file: Long range LD file
+    :param merged_filtered_mt_outfile: Merged and filtered matrix output file
+    :param r2_threshold: Correlation threshold for LD pruning
+    :param call_rate_threshold: Call rate threshold for filtering
+    :param af_threshold: Allele frequency threshold for filtering
+    :param hwe_threshold: Hardy-Weinberg equilibrium threshold for filtering
+    """
+
     # filter sample matrix
-    long_range_ld_file = conf["long_range_ld_file"]
-    merged_1kg_filterd_mt_file = conf["merged_filtered_mt_outfile"]
-    mt_filtered = filtering.filter_matrix_for_ldprune(mt, long_range_ld_file)
-    # TODO: probably next step is obsolete because we filtered 1kg matrix in the step 1.4
-    kg_filtered = filtering.filter_matrix_for_ldprune(kg_mt, long_range_ld_file)
+    mt_filtered = filtering.filter_matrix_for_ldprune(
+        mt, path_spark(long_range_ld_file), call_rate_threshold, af_threshold, hwe_threshold
+    )
 
     # removing and adding needed entries to replicate filtered_mt_file structure
     mt_filtered = mt_filtered.drop(
         "AD", "DP", "GQ", "MIN_DP", "PGT", "PID", "PL", "PS", "SB", "RGQ", "callrate", "f_stat", "is_female"
     )
-    kg_filtered = kg_filtered.select_entries(kg_filtered.GT)
+    mt_filtered = mt_filtered.annotate_cols(known_pop="")
     # merging matrices
-    mt_merged = mt_filtered.union_cols(kg_filtered)
+    mt_merged = mt_filtered.union_cols(kg_mt)
     # saving the merged matrix
-    mt_merged = mt_merged.checkpoint(merged_1kg_filterd_mt_file, overwrite=True)
+    mt_merged = mt_merged.checkpoint(merged_filtered_mt_outfile, overwrite=True)
 
     # prunning of the linked Variants
-    pruned_ht = hl.ld_prune(mt_merged.GT, r2=0.2)
+    pruned_ht = hl.ld_prune(mt_merged.GT, r2=r2_threshold)
     pruned_mt = mt_merged.filter_rows(hl.is_defined(pruned_ht[mt_merged.row_key]))
     pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
 
-    # saving matrix
     return pruned_mt
 
 
-def run_pca(filtered_mt_file: hl.MatrixTable, config: dict):
+def run_pca(mt: hl.MatrixTable, pca_evals_outfile: str, pca_components: int) -> Tuple[hl.Table, hl.Table]:
     """
     Run PCA before population prediction
-    :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
-    :param str pca_sores_file: PCA scores HT file
-    :param str pca_loadings_file: PCA scores HT file
-    :param str pca_evals_file: PCA scores HT file
+    :param mt: merged birth cohort wes and 1kg MT file annotated with pops and filtered
+    :param str pca_evals_outfile: PCA scores HT file
+    :param int pca_components: the number of principal components
     """
-    conf = config["step2"]["run_pca"]
-    # mt = hl.read_matrix_table(filtered_mt_file)
-    mt = filtered_mt_file  # FIXME: testing accepting mt
-    # exclude EGAN00004311029 this is a huge outlier on PCA and skews all the PCs
-    to_exclude = ["EGAN00004311029"]  # TODO: add as a list parameter to the config
-    mt = mt.filter_cols(~hl.set(to_exclude).contains(mt.s))
 
-    # TODO: move k to config
-    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=4, compute_loadings=True)
+    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=pca_components, compute_loadings=True)
     pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
-    pca_scores_file = path_spark(conf["pca_scores_outfile"])
-    pca_scores.write(pca_scores_file, overwrite=True)
-    pca_loadings_file = path_spark(conf["pca_loadings_outfile"])
-    pca_loadings.write(pca_loadings_file, overwrite=True)
-    pca_evals_file = path_local(conf["pca_evals_outfile"])
-
-    with open(pca_evals_file, "w") as f:
+    with open(path_local(pca_evals_outfile), "w") as f:
         for val in pca_evals:
             f.write(str(val) + "\n")
-
-    # don't return anything as there are multiple outputs
+    return pca_scores, pca_loadings
 
 
 def append_row(df, row):
@@ -139,37 +144,36 @@ def main():
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
-    conf = config["step2"][""]
+    ## No parameters for this step
 
     # = STEP DEPENDENCIES = #
+    mtfile = path_spark(config["step2"]["impute_sex"]["sex_mt_outfile"])
+    kg_mt_file = path_spark(config["step1"]["create_1kg_mt"]["kg_out_mt"])
 
     # = STEP OUTPUTS = #
+    pruned_mt_file = config["step2"]["merge_1kg_and_ldprune"]["filtered_and_pruned_mt_outfile"]
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
 
     if args.merge_and_ldprune:
-        # = STEP DEPENDENCIES = #
-        mtfile = config["step2"]["impute_sex"]["sex_mt_outfile"]
-        kg_mt_file = config["step1"]["create_1kg_mt"]["kg_out_mt"]
-        pruned_mt_file = conf["filtered_and_pruned_mt_outfile"]
-
-        # = STEP LOGIC = #
-        _ = hail_utils.init_hl(tmp_dir)
-        mt = hl.read_matrix_table("file://" + mtfile)
-        kg_mt = hl.read_matrix_table("file://" + kg_mt_file)
-        pruned_mt = merge_1kg_and_ldprune(mt, kg_mt, conf)
+        mt = hl.read_matrix_table(mtfile)
+        kg_mt = hl.read_matrix_table(kg_mt_file)
+        pruned_mt = merge_1kg_and_ldprune(mt, kg_mt, **config["step2"]["merge_1kg_and_ldprune"])
         pruned_mt.write(pruned_mt_file, overwrite=True)
 
     # run pca
-    if args.pca or args.run:
+    if args.pca:
         filtered_mt_file = path_spark(config["step2"]["merge_1kg_and_ldprune"]["filtered_and_pruned_mt_outfile"])
         filtered_mt = hl.read_matrix_table(filtered_mt_file)
-        run_pca(filtered_mt, config)
+        pca_scores, pca_loadings = run_pca(filtered_mt, **config["step2"]["run_pca"])
+        pca_scores.write(path_spark(config["step2"]["run_pca"]["pca_scores_outfile"]), overwrite=True)
+        pca_loadings.write(path_spark(config["step2"]["run_pca"]["pca_loadings_outfile"]), overwrite=True)
 
+        print(config.step2.run_pca)
     # assign pops
-    if args.assign_pops or args.run:
-        predict_pops(config)
+    if args.assign_pops:
+        predict_pops(config, **config["step2"]["predict_pops"])
 
 
 if __name__ == "__main__":

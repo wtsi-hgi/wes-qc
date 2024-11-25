@@ -76,7 +76,7 @@ def run_pc_relate(
     pruned_mt: hl.MatrixTable,
     relatedness_ht_file,
     scores_file: str,
-    n_principal_components: int,
+    pca_components: int,
     kin_threshold: float,
     hl_pc_related_kwargs=dict(),
     **kwargs,
@@ -86,7 +86,7 @@ def run_pc_relate(
     :param str pruned_mt: matrixtable to prune
     :param str relatedness_ht_file: relatedness ht file
     :param str scores_file: file to wtire scores ht
-    :param int n_principal_components:  the number of principal components
+    :param int pca_components:  the number of principal components
     :param dict hl_pc_related_kwargs: kwargs to pass to HL PC relate
     """
     if hl_pc_related_kwargs is None:
@@ -95,7 +95,7 @@ def run_pc_relate(
     scores_file = path_spark(scores_file)
 
     print("=== Running PC relate")
-    eig, scores, _ = hl.hwe_normalized_pca(pruned_mt.GT, k=n_principal_components, compute_loadings=False)
+    eig, scores, _ = hl.hwe_normalized_pca(pruned_mt.GT, k=pca_components, compute_loadings=False)
     scores.write(scores_file, overwrite=True)
 
     print("=== Calculating relatedness (this step usually takes a while)")

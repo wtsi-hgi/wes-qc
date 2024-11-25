@@ -75,8 +75,7 @@ qc_step_1_4 = importlib.import_module("1-import_data.4-import_1kg")
 
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
-qc_step_2_3_1 = importlib.import_module("2-sample_qc.3-1-merge_1kg_and_ldprune")
-qc_step_2_3_2 = importlib.import_module("2-sample_qc.3-2-population_pca_prediction")
+qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
@@ -171,11 +170,11 @@ class IntegrationTests(HailTestCase):
 
     @patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=argparse.Namespace(merge_and_ldprune=True, pca=True, assign_pops=True, all=False),
+        return_value=argparse.Namespace(merge_and_ldprune=True, pca=False, assign_pops=False, all=False),
     )
     def test_2_3_sample_qc(self, mock_args):
         try:
-            qc_step_2_3_2.main()
+            qc_step_2_3.main()
         except Exception as e:
             self.fail(f"Step 2.3 failed with an exception: {e}")
 

@@ -62,7 +62,7 @@ step1:
       block_size: 4096
       min_kinship: 0.05
       statistics: "kin2"
-    n_principal_components: 10
+    pca_components: 10
     kin_threshold: 0.125
 
 step2:
@@ -130,17 +130,22 @@ step2:
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
 
-  # --- Step 2.3.1 --- #
+  # --- Step 2.3 --- #
+
   merge_1kg_and_ldprune:
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
-    r2: 0.2
+    call_rate_threshold: 0.99
+    af_threshold: 0.05
+    hwe_threshold: 0.00001 #1e-5
+    r2_threshold: 0.2
     filtered_and_pruned_mt_outfile: '{mtdir}/merged_with_1kg_filtered_ldpruned.mt'
 
   run_pca:
     pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
     pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
     pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt'
+    pca_components: 4
 
   predict_pops:
     pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
