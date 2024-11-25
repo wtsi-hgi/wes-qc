@@ -44,17 +44,26 @@ step1:
   create_1kg_mt:
     indir: '{1kg_resdir}'
     vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    kg_pop_file: '{resdir}/igsr_samples.tsv'
     kg_unprocessed: '{mtdir}/kg_unprocessed.mt'
     pruned_kg_file: '{mtdir}/kg_pruned_ld.mt'
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
     samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
     scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
-    kg_pop: '{resdir}/igsr_samples.tsv'
+
     kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
     call_rate_threshold: 0.99
     af_threshold: 0.05
-    hwe_threshold: 1e-5
+    hwe_threshold: 0.00001 #1e-5
+    r2_threshold: 0.2
+    hl_pc_related_kwargs:
+      min_individual_maf: 0.05
+      block_size: 4096
+      min_kinship: 0.05
+      statistics: "kin2"
+    n_principal_components: 10
+    kin_threshold: 0.125
 
 step2:
   # --- Step 2.1 --- #

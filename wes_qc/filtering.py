@@ -13,10 +13,10 @@ def filter_matrix_for_ldprune(
     hwe_threshold: float = 1e-5,
 ) -> hl.MatrixTable:
     """
-    This fucntion filters samples and variants to perform LD pruning,
+    This function filters samples and variants to perform LD pruning,
     pruning of related samples
 
-    The fucntion is taken from the step 2/3-annotate_and_filter
+    The function is taken from the step 2/3-annotate_and_filter
     In future step 2/3 should be refactored to use this function
     """
     mt = filter_mt_autosome_biallelic_snvs(mt)

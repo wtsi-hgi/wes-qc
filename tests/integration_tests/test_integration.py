@@ -75,7 +75,8 @@ qc_step_1_4 = importlib.import_module("1-import_data.4-import_1kg")
 
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
-qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
+qc_step_2_3_1 = importlib.import_module("2-sample_qc.3-1-merge_1kg_and_ldprune")
+qc_step_2_3_2 = importlib.import_module("2-sample_qc.3-2-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
@@ -147,7 +148,7 @@ class IntegrationTests(HailTestCase):
     @patch(
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(
-            kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=True
+            kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=True, all=False
         ),
     )
     def test_1_4_import_data(self, mock_args):
@@ -168,16 +169,18 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 2.2 failed with an exception: {e}")
 
-    # mock cli arguments
-    @patch(
-        "argparse.ArgumentParser.parse_args",
-        return_value=argparse.Namespace(kg_to_mt=True, run=True, merge=True, filter=True, pca=True, assign_pops=True),
-    )
-    def test_2_3_sample_qc(self, mock_args):
+    def test_2_3_1_sample_qc(self, mock_args):
         try:
-            qc_step_2_3.main()
+            qc_step_2_3_1.main()
         except Exception as e:
-            self.fail(f"Step 2.3 failed with an exception: {e}")
+            self.fail(f"Step 2.3.1 failed with an exception: {e}")
+
+    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(pca=True, assign_pops=True))
+    def test_2_3_2_sample_qc(self, mock_args):
+        try:
+            qc_step_2_3_2.main()
+        except Exception as e:
+            self.fail(f"Step 2.3.2 failed with an exception: {e}")
 
     def test_2_4_sample_qc(self):
         try:
