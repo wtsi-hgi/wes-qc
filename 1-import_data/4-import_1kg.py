@@ -101,10 +101,16 @@ def main() -> None:
     call_rate_threshold = float(step_conf["call_rate_threshold"])
     af_threshold = float(step_conf["af_threshold"])
     hwe_threshold = float(step_conf["hwe_threshold"])
+    pops_file = path_spark(step_conf["kg_pop"])
 
     if args.kg_filter_and_prune or args.all:
         # prunning of the linked Variants
         kg_mt = hl.read_matrix_table(kg_unprocessed_mt)
+
+        # Annotating known populations
+        cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by("Sample name")
+        kg_mt = kg_mt.annotate_cols(known_pop=cohorts_pop[kg_mt.s]["Superpopulation code"])
+
         kg_mt_filtered = filtering.filter_matrix_for_ldprune(
             kg_mt, long_range_ld_file, call_rate_threshold, af_threshold, hwe_threshold
         )

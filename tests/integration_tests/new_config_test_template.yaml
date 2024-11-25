@@ -50,6 +50,7 @@ step1:
     relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
     samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
     scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
+    kg_pop: '{resdir}/igsr_samples.tsv'
     kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
     call_rate_threshold: 0.99
     af_threshold: 0.05
@@ -111,15 +112,6 @@ step2:
     pca_mt_file: '{mtdir}/mt_pca.mt' # output
     plot_outfile: '{pltdir}/pca.html' # output
 
-  # --- Step 2.3 --- #
-  create_1kg_mt:
-    indir: '{1kg_resdir}'
-    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
-    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
-
-  merge_with_1_kg:
-    kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output
 
   annotate_and_filter:
     pops_file: '{resdir}/igsr_samples.tsv'
@@ -128,6 +120,13 @@ step2:
     p_value_hwe: 0.00005
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+
+  # --- Step 2.3.1 --- #
+  merge_1kg_and_ldprune:
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+    merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+    r2: 0.2
+    filtered_and_pruned_mt_outfile: '{mtdir}/merged_with_1kg_filtered_ldpruned.mt'
 
   run_pca:
     pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
