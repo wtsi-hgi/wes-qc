@@ -169,18 +169,15 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 2.2 failed with an exception: {e}")
 
-    def test_2_3_1_sample_qc(self, mock_args):
-        try:
-            qc_step_2_3_1.main()
-        except Exception as e:
-            self.fail(f"Step 2.3.1 failed with an exception: {e}")
-
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(pca=True, assign_pops=True))
-    def test_2_3_2_sample_qc(self, mock_args):
+    @patch(
+        "argparse.ArgumentParser.parse_args",
+        return_value=argparse.Namespace(merge_and_ldprune=True, pca=True, assign_pops=True, all=False),
+    )
+    def test_2_3_sample_qc(self, mock_args):
         try:
             qc_step_2_3_2.main()
         except Exception as e:
-            self.fail(f"Step 2.3.2 failed with an exception: {e}")
+            self.fail(f"Step 2.3 failed with an exception: {e}")
 
     def test_2_4_sample_qc(self):
         try:
