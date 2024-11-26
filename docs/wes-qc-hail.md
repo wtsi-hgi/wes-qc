@@ -37,7 +37,7 @@ export PYTHONPATH=/path/to/wes-qc
 >To submit jobs to spark one can either:
 >```shell
 ># OPTION 1
->export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python 
+>export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
 ># OPTION 2
 >source /home/ubuntu/venv/bin/activate
 >
@@ -114,7 +114,7 @@ Now that we have the predicted populations that each sample belongs to we can ru
 spark-submit 2-sample_qc/4-find_population_outliers.py
 ```
 
-5. Filter data to exclude samples which fail QC. 
+5. Filter data to exclude samples which fail QC.
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script. <!At this stage samples failing on FREEMIX score and on identity checks are also removed. This samples should be in files in the annotations directory: `verify_bam_id_result_concat.selfSM` lists sample ID and FREEMIX score and `sanger_samples_excluded_after_gtcheck.txt` lists samples failing identity checks. If no samples fail identify checks the latter file could be empty.> These samples are saved in `samples_failing_qc.tsv.bgz` in the annotation directory.
 
@@ -150,49 +150,49 @@ Next train the random forest model, note the use of --master local[*] here which
 spark-submit --master local[*] 3-variant_qc/3-train_rf.py
 ```
 
-A run hash ID will be printed to STDOUT, this is needed for future steps, so note it down. It is an 8 character string consisting of letters and numbers and is represented in the following commands as run_hash.
+A run hash ID will be printed to STDOUT, this is needed for future steps, so note it down. It is an 8 character string consisting of letters and numbers and is represented in the following commands as model_id.
 
 Now apply the random forest to the entire dataset.
 
 ``` shell
-spark-submit --master local[*] 3-variant_qc/4-apply_rf.py --runhash run_hash
+spark-submit --master local[*] 3-variant_qc/4-apply_rf.py --runhash model_id
 ```
 
 Annotate the random forest output with metrics including synonymous variants, family annotation, transmitted/untransmitted singletons and gnomAD allele frequency. Synonymous variants are required in a file generated from VEP annotation and in the following format:
 
 ```
-chr10   100202145   rs200461553 T   G   synonymous_variant  
-chr10   100204510   rs2862988   C   T   synonymous_variant  
-chr10   100204528   rs374991603 G   A   synonymous_variant  
-chr10   100204555   rs17880383  G   A   synonymous_variant  
+chr10   100202145   rs200461553 T   G   synonymous_variant
+chr10   100204510   rs2862988   C   T   synonymous_variant
+chr10   100204528   rs374991603 G   A   synonymous_variant
+chr10   100204555   rs17880383  G   A   synonymous_variant
 ```
 
 ``` shell
-spark-submit 3-variant_qc/5-annotate_ht_after_rf.py  --runhash run_hash
+spark-submit 3-variant_qc/5-annotate_ht_after_rf.py  --runhash model_id
 ```
 
 Add ranks to variants based on random forest score, and bin the variants based on this.
 
 ``` shell
-spark-submit 3-variant_qc/6-rank_and_bin.py --runhash run_hash
+spark-submit 3-variant_qc/6-rank_and_bin.py --runhash model_id
 ```
 
 Create plots of the binned random forest output to use in the selection of thresholds. Separate thresholds are used for SNPs and indels.
 
 ``` shell
-spark-submit 3-variant_qc/7-plot_rf_output.py --runhash run_hash
+spark-submit 3-variant_qc/7-plot_rf_output.py --runhash model_id
 ```
 
 After examining the plots and selecting suitable thresholds for SNPs and indels you can calculate the number of true positive and false positive variants remaining at your chosen thresholds and at the bins surrounding it using the following (where snp_bin and indel_bin are the thresholds selected for SNPs and indels respectively).
 
 ``` shell
-spark-submit 3-variant_qc/8-select_thresholds.py --runhash run_hash --snv snp_bin --indel indel_bin
+spark-submit 3-variant_qc/8-select_thresholds.py --runhash model_id --snv snp_bin --indel indel_bin
 ```
 
 Filter the variants in the Hail MatrixTable based on the selected threshold for SNPs and indels
 
 ``` shell
-spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --runhash run_hash --snv snp_bin --indel indel_bin
+spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --runhash model_id --snv snp_bin --indel indel_bin
 ```
 
 ### 4. Genotype QC
@@ -200,17 +200,17 @@ spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --runhash run_hash --s
 Genotype QC may be performed using a range of filters defined in *config/inputs.yaml* or it may be performed using a single set of filters for DP, GQ, VAF and bins. Here we apply a range of filters (relaxed, medium and stringent) which we have defined in the *config/inputs.yaml* file
 
 ``` shell
-spark-submit 4-genotype_qc/1a-apply_range_of_hard_filters.py --runhash run_hash
+spark-submit 4-genotype_qc/1a-apply_range_of_hard_filters.py --runhash model_id
 ```
 
 In order to evaluate these filters, variant counts per consequence per sample and transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data) are calculated as follows. VEP annotation is required for this step in the following format:
 
 ```
-chr10   100199947   rs367984062 A   C   intron_variant  
-chr10   100199976   rs774723210 G   A   missense_variant  
-chr10   100200004   .   C   A   missense_variant  
-chr10   100200012   rs144642900 C   T   missense_variant  
-chr1    100200019   .  C    A   stop_gained&splice_region_variant  
+chr10   100199947   rs367984062 A   C   intron_variant
+chr10   100199976   rs774723210 G   A   missense_variant
+chr10   100200004   .   C   A   missense_variant
+chr10   100200012   rs144642900 C   T   missense_variant
+chr1    100200019   .  C    A   stop_gained&splice_region_variant
 ```
 
 ``` shell
@@ -222,5 +222,3 @@ Export the filtered variants to VCF.
 ``` shell
 spark-submit 4-genotype_qc/3-export_vcfs.py
 ```
-
-
