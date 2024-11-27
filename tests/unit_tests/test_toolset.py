@@ -1,7 +1,7 @@
 import pathlib
 import hail as hl  # type: ignore
 from pytest import mark as m
-from wes_qc import hail_utils, filtering
+from wes_qc import hail_utils, filtering, visualize
 
 
 @m.context("When the temp folder does not have file:// prefix")
@@ -64,3 +64,11 @@ def test_filter_vars_for_quality(mt_sex_chr):
         mt_sex_chr, call_rate_threshold=0.99, af_threshold=0.05, hwe_threshold=1e-5
     )
     mt_vqc_filtered.count_rows()
+
+
+@m.context("Plots results of the population PCA")
+@m.it("Should run without exceptions")
+def test_plot_pop_pca(pca_scores_table, tmp_path):
+    plot_path = tmp_path / "test_pop_pca_plot.html"
+    visualize.plot_pop_pca(pca_scores_table, str(plot_path), n_pca=3, pop="known_pop")
+    assert plot_path.exists()

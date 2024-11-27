@@ -144,7 +144,7 @@ step2:
   pop_pca:
     pca_1kg_scores_file: '{mtdir}/pop_pca_1kg_scores.ht'
     pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
-    pca_1kg_evals_file: '{mtdir}/pop_pca_1kg_loadings.ht'
+    pca_1kg_evals_file: '{mtdir}/pop_pca_1kg_evals.tsv'
     pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
     pca_components: 4
 
@@ -158,7 +158,7 @@ step2:
     gnomad_prop_train: 0.8
     gnomad_min_prob: 0.5
     pop_ht_outfile: '{mtdir}/pop_assignments.ht'
-    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+    pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
 
   plot_pop_pca_assigned:
     pca_components: 3

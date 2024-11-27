@@ -44,6 +44,55 @@ def variation_mt(n_vars=32, include_indels=True, include_multiallelic=True):
     return mt
 
 
+@pytest.fixture(scope="session")
+def pca_scores_table() -> hl.Table:
+    samples = [
+        hl.Struct(
+            s="NA20894",
+            scores=[-0.06455414043179736, -0.14946688518899134, -0.2456780547093593, -0.23921033922105084],
+            known_pop="SAS",
+        ),
+        hl.Struct(
+            s="NA20903",
+            scores=[-0.07126483958325104, -0.24364068671180367, -0.16253488146259326, -0.27010859769162615],
+            known_pop=None,
+        ),
+        hl.Struct(
+            s="NA19751",
+            scores=[-0.15598650919318002, -0.0442263377892484, 0.13368269478712813, -0.04503040877066483],
+            known_pop="AMR",
+        ),
+        hl.Struct(
+            s="NA20764",
+            scores=[-0.011736033892254222, -0.34824623124705745, -0.04832096176489377, -0.08749133180605716],
+            known_pop="EUR",
+        ),
+        hl.Struct(
+            s="NA20766",
+            scores=[-0.0944388589031874, -0.2037407129001564, -0.0036595171865637217, 0.07110249529033492],
+            known_pop="EUR",
+        ),
+        hl.Struct(
+            s="NA20772",
+            scores=[-0.1031612294892679, -0.29375836490379226, -0.00945596551086085, -0.025279767480578638],
+            known_pop=None,
+        ),
+        hl.Struct(
+            s="NA19625",
+            scores=[0.18882141015602674, 0.04675680416694248, 0.12086001948711221, 0.05616217397859573],
+            known_pop="AFR",
+        ),
+        hl.Struct(
+            s="NA19082",
+            scores=[-0.10142021239596818, 0.2640727135985397, -0.156534646894955, 0.21255105227110127],
+            known_pop="EAS",
+        ),
+    ]
+
+    # Convert the list to a Hail table
+    return hl.Table.parallelize(samples)
+
+
 """
 def generate_indel_mt():
     mt = hl.balding_nichols_model(n_populations=3, n_samples=1, n_variants=10, reference_genome="GRCh38")

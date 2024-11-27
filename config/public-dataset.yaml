@@ -182,7 +182,7 @@ step2:
     gnomad_prop_train: 0.8
     gnomad_min_prob: 0.5
     pop_ht_outfile: '{mtdir}/pop_assignments.ht'
-    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+    pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
 
   plot_pop_pca_assigned:
     pca_components: 3

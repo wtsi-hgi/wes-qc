@@ -3,7 +3,6 @@ import argparse
 from typing import Tuple
 
 import hail as hl
-import pandas as pd
 from gnomad.sample_qc.ancestry import assign_population_pcs, pc_project
 
 from utils.config import path_local, path_spark
@@ -43,7 +42,7 @@ def merge_1kg_and_ldprune(
     mt_filtered = mt_filtered.drop(
         "AD", "DP", "GQ", "MIN_DP", "PGT", "PID", "PL", "PS", "SB", "RGQ", "callrate", "f_stat", "is_female"
     )
-    mt_filtered = mt_filtered.annotate_cols(known_pop=hl.null(hl.tstr))
+    mt_filtered = mt_filtered.annotate_cols(known_pop=hl.missing(hl.tstr))
     # merging matrices
     mt_merged = mt_filtered.union_cols(kg_mt)
     # saving the merged matrix
@@ -57,16 +56,17 @@ def merge_1kg_and_ldprune(
     return pruned_mt
 
 
-def pop_pca(mt: hl.MatrixTable, pca_components: int, pca_1kg_evals_file: str, **kwargs) -> Tuple[hl.Table, hl.Table]:
+def pop_pca(
+    mt: hl.MatrixTable, pca_components: int, pca_1kg_evals_file: str, **kwargs
+) -> Tuple[hl.Table, hl.Table, hl.Table]:
     """
     Run PCA before population prediction
     :param mt: merged birth cohort wes and 1kg MT file annotated with pops and filtered
-    :param str pca_evals_outfile: PCA scores HT file
+    :param str pca_1kg_evals_file: PCA scores HT file
     :param int pca_components: the number of principal components
     """
 
     # divide matrix to make a projection
-    # TODO: NEED to fix joining step to make his work
     mt_kg = mt.filter_cols(hl.is_defined(mt.known_pop))  # The golden source 1000G with known population
     mt_study = mt.filter_cols(hl.is_missing(mt.known_pop))
     # PCA for golden source 1000 Genomes
@@ -85,23 +85,28 @@ def pop_pca(mt: hl.MatrixTable, pca_components: int, pca_1kg_evals_file: str, **
 
     # projection of samples on precomputed PCs and combining of two PCA_scores tables
     print("=== Projecting PCA scores to the cohort samples ===")
-    projection_PCA_scores = pc_project(mt_study, pca_1kg_loadings, loading_location="loadings", af_location="pca_af")
-    union_PCA_scores = pca_1kg_scores_nopop.union(projection_PCA_scores)
-    union_PCA_scores = union_PCA_scores.annotate(known_pop=mt.cols()[union_PCA_scores.s].known_pop)
+    projection_pca_scores = pc_project(mt_study, pca_1kg_loadings, loading_location="loadings", af_location="pca_af")
+    union_pca_scores = pca_1kg_scores_nopop.union(projection_pca_scores)
+    union_pca_scores = union_pca_scores.annotate(known_pop=mt.cols()[union_pca_scores.s].known_pop)
 
-    return pca_1kg_scores, pca_1kg_loadings, union_PCA_scores
-
-
-def append_row(df, row):
-    return pd.concat([df, pd.DataFrame([row], columns=row.index)]).reset_index(drop=True)
+    return pca_1kg_scores, pca_1kg_loadings, union_pca_scores
 
 
-def predict_pops(pop_pca_scores, gnomad_pc_n_estimators, gnomad_prop_train, gnomad_min_prob, pop_ht_outtsv, **kwargs):
+def predict_pops(
+    pop_pca_scores: hl.Table,
+    gnomad_pc_n_estimators: int,
+    gnomad_prop_train: float,
+    gnomad_min_prob: float,
+    pop_ht_out_tsv: str,
+    **kwargs,
+):
     """
     Predict populations from PCA scores
-    :param str pca_sores_file: PCA scores HT file
-    :param str pop_ht_file: predicted population HT file
-    :param str pop_ht_tsv: population tsv file
+    :param pop_pca_scores: PCA scores Hail table
+    :param gnomad_pc_n_estimators: see assign_population_pcs() from gnomAD
+    :param gnomad_prop_train: see assign_population_pcs() from gnomAD
+    :param gnomad_min_prob: see assign_population_pcs() from gnomAD
+    :param pop_ht_out_tsv: population tsv file
     """
     known_col = "known_pop"
     pop_ht, pop_clf = assign_population_pcs(
@@ -112,14 +117,10 @@ def predict_pops(pop_pca_scores, gnomad_pc_n_estimators, gnomad_prop_train, gnom
         prop_train=gnomad_prop_train,
         min_prob=gnomad_min_prob,
     )
-
-    # convert to pandas and put in only pops files, add excluded sample back
+    # convert to pandas and put in only pops files
     pop_ht_df = pop_ht.to_pandas()
     pop_ht_df2 = pop_ht_df[["s", "pop"]]
-    # new_row = pd.Series({"s": "EGAN00004311029", "pop": "oth"}) # TODO: Why we're including hardcoded string. Commented for now
-    # pop_ht_df2 = append_row(pop_ht_df2, new_row)
-
-    pop_ht_tsv = path_local(pop_ht_outtsv)
+    pop_ht_tsv = path_local(pop_ht_out_tsv)
     pop_ht_df2.to_csv(pop_ht_tsv, sep="\t")
     return pop_ht
 
@@ -165,6 +166,11 @@ def main():
     pca_1kg_scores_file = path_spark(config["step2"]["pop_pca"]["pca_1kg_scores_file"])
     pca_1kg_loadings_file = path_spark(config["step2"]["pop_pca"]["pca_1kg_loadings_file"])
     pca_union_scores_file = path_spark(config["step2"]["pop_pca"]["pca_union_scores_file"])
+    pop_pca_1kg_graph = config["step2"]["plot_pop_pca"]["pop_pca_1kg_graph"]
+    pop_pca_union_graph = config["step2"]["plot_pop_pca"]["pop_pca_union_graph"]
+    pop_ht_file = path_spark(config["step2"]["predict_pops"]["pop_ht_outfile"])
+    pop_assigned_pca_union_graph = config["step2"]["plot_pop_pca_assigned"]["pop_assigned_pca_union_graph"]
+    pop_pca_assigned_dataset_graph = config["step2"]["plot_pop_pca_assigned"]["pop_assigned_pca_dataset_graph"]
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
@@ -187,20 +193,17 @@ def main():
         print(f"Plotting PCA components for {pca_union_scores_file}")
         pca_union_scores = hl.read_table(pca_union_scores_file)
         print("Union components:", pca_union_scores.count())
-        pop_pca_union_graph = config["step2"]["plot_pop_pca"]["pop_pca_union_graph"]
         n_pca = config["step2"]["plot_pop_pca"]["pca_components"]
         visualize.plot_pop_pca(pca_union_scores, pop_pca_union_graph, n_pca, pop="known_pop")
-
         print(f"Plotting PCA components for {pca_1kg_scores_file}")
-        pop_pca_1kg_graph = config["step2"]["plot_pop_pca"]["pop_pca_1kg_graph"]
         pca_1kg_scores = hl.read_table(pca_1kg_scores_file)
         print("1kg components:", pca_1kg_scores.count())
+        # TODO: Modify pop_pca to assing 1KG populations from the original matrixtable and avoid using the kg_pop_file
         cohorts_pop = hl.import_table(kg_pop_file, delimiter="\t").key_by("Sample name")
         pca_1kg_scores = pca_1kg_scores.annotate(known_pop=cohorts_pop[pca_1kg_scores.s]["Superpopulation code"])
         visualize.plot_pop_pca(pca_1kg_scores, pop_pca_1kg_graph, n_pca, pop="known_pop")
 
     # assign pops
-    pop_ht_file = path_spark(config["step2"]["predict_pops"]["pop_ht_outfile"])
     if args.assign_pops:
         union_PCA_scores = hl.read_table(pca_union_scores_file)
         pop_ht = predict_pops(union_PCA_scores, **config["step2"]["predict_pops"])
@@ -208,22 +211,18 @@ def main():
 
     if args.pca_plot_assigned:
         n_pca = config["step2"]["plot_pop_pca_assigned"]["pca_components"]
-
         print(f"Plotting PCA components for assigned populations: {pop_ht_file}")
         pop_ht = hl.read_table(pop_ht_file)
         pop_ht = pop_ht.transmute(scores=pop_ht.pca_scores)
         print(f"Total samples: {pop_ht.count()}")
-        pop_assigned_pca_union_graph = config["step2"]["plot_pop_pca_assigned"]["pop_assigned_pca_union_graph"]
-
         visualize.plot_pop_pca(pop_ht, pop_assigned_pca_union_graph, n_pca, pop="pop")
 
         print("Plotting PCA components for the dataset:")
         pop_ht_datasetonly = pop_ht.filter(~hl.is_defined(pop_ht.known_pop))
         print(f"Total samples: {pop_ht_datasetonly.count()}")
-        pop_pca_assigned_1kg_graph = config["step2"]["plot_pop_pca_assigned"]["pop_assigned_pca_dataset_graph"]
         visualize.plot_pop_pca(
             pop_ht_datasetonly,
-            pop_pca_assigned_1kg_graph,
+            pop_pca_assigned_dataset_graph,
             n_pca,
             pop="pop",
         )
