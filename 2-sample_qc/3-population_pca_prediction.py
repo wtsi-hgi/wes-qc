@@ -148,7 +148,7 @@ def main():
         args.pca = True
         args.pca_plot = True
         args.assign_pops = True
-        args.plot_pca_assigned = True
+        args.pca_plot_assigned = True
 
     tmp_dir = config["general"]["tmp_dir"]
 
@@ -227,3 +227,7 @@ def main():
             n_pca,
             pop="pop",
         )
+
+
+if __name__ == "__main__":
+    main()
