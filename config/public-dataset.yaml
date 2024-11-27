@@ -51,7 +51,7 @@ general:
   dataset_name: 'public-dataset'
 
   # Dataset root directory - to use in folder paths
-  data_root: '/lustre/scratch126/gz3/{general.dataset_name}'
+  data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
 
   tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
@@ -72,6 +72,30 @@ step1:
   gatk_vcf_header_infile:
   gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
+
+  create_1kg_mt:
+    indir: '{1kg_resdir}'
+    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    kg_pop_file: '{resdir}/igsr_samples.tsv'
+    kg_unprocessed: '{mtdir}/kg_unprocessed.mt'
+    pruned_kg_file: '{mtdir}/kg_pruned_ld.mt'
+    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+    relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
+    samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
+    scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
+
+    kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
+    call_rate_threshold: 0.99
+    af_threshold: 0.05
+    hwe_threshold: 0.00001 #1e-5
+    r2_threshold: 0.2
+    hl_pc_related_kwargs:
+      min_individual_maf: 0.05
+      block_size: 4096
+      min_kinship: 0.05
+      statistics: "kin2"
+    pca_components: 10
+    kin_threshold: 0.125
 
 step2:
   # --- Step 2.1 --- #
@@ -131,35 +155,40 @@ step2:
     plot_outfile: '{pltdir}/pca.html' # output
 
   # --- Step 2.3 --- #
-  create_1kg_mt:
-    indir: '{1kg_resdir}'
-    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
-    mt_out_file: '{mtdir}/kg_wes_regions.mt' # output
 
-  merge_with_1_kg:
-    kg_mt_file: '{mtdir}/kg_wes_regions.mt'
-    merged_mt_outfile: '{mtdir}/merged_with_1kg.mt' # output
-
-  annotate_and_filter:
-    pops_file: '{resdir}/igsr_samples.tsv'
-    call_rate: 0.99
-    AF: 0.05
-    p_value_hwe: 0.00005
+  merge_1kg_and_ldprune:
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
-    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+    merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+    call_rate_threshold: 0.99
+    af_threshold: 0.05
+    hwe_threshold: 0.00001 #1e-5
+    r2_threshold: 0.2
+    filtered_and_pruned_mt_outfile: '{mtdir}/merged_with_1kg_filtered_ldpruned.mt'
 
-  run_pca:
-    pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
-    pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
-    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt'
+  pop_pca:
+    pca_1kg_scores_file: '{mtdir}/pop_pca_1kg_scores.ht'
+    pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
+    pca_1kg_evals_file: '{anndir}/pop_pca_1kg_evals.tsv'
+    pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
+    pca_components: 4
+
+  plot_pop_pca:
+    pca_components: 3
+    pop_pca_1kg_graph: '{pltdir}/pop_pca_scores_1kg.html'
+    pop_pca_union_graph: '{pltdir}/pop_pca_scores_union.html'
 
   predict_pops:
-    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
     gnomad_pc_n_estimators: 100
     gnomad_prop_train: 0.8
     gnomad_min_prob: 0.5
     pop_ht_outfile: '{mtdir}/pop_assignments.ht'
-    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+    pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
+
+  plot_pop_pca_assigned:
+    pca_components: 3
+    pop_assigned_pca_dataset_graph: '{pltdir}/pop_pca_assigned_scores_dataset.html'
+    pop_assigned_pca_union_graph: '{pltdir}/pop_pca_assigned_scores_union.html'
+
 
   # --- Step 2.4 --- #
   # func name: annotate_mt
@@ -388,7 +417,6 @@ step4:
   # --- Step 4.3 --- #
   export_vcfs:
     mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    # TODO: after adopting new config render change to substitution
     vcf_output_dir: '{vcf_export_dir}/filtered_vcfs/'
 
   # --- Step 4.3a --- #

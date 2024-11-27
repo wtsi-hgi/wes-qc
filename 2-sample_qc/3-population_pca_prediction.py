@@ -1,256 +1,232 @@
 # population prediction with PCA
-import hail as hl
-import pyspark
-import os
 import argparse
-import pandas as pd
-from typing import Optional
-from gnomad.sample_qc.ancestry import assign_population_pcs
-from utils.utils import parse_config
+from typing import Tuple
+
+import hail as hl
+from gnomad.sample_qc.ancestry import assign_population_pcs, pc_project
+
 from utils.config import path_local, path_spark
-
-def get_options():
-    '''
-    Get options from the command line
-    '''
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-k", "--kg_to_mt", 
-        help="convert 1kg data to matrixtable", action="store_true")
-    parser.add_argument("-m", "--merge",
-        help="merge alspac mt with 1kg mt", action="store_true")
-    parser.add_argument("-f", "--filter",
-        help="annotate and filter merged mt", action="store_true")
-    parser.add_argument("-p", "--pca",
-        help="run pca", action="store_true")
-    parser.add_argument("-a", "--assign_pops",
-        help="assign populations", action="store_true")
-    parser.add_argument("-r", "--run",
-        help="run all steps except kg_to_mt", action="store_true")
-
-    args = parser.parse_args()
-
-    return args
-    
-
-def create_1kg_mt(config: dict):
-    '''
-    Create matrixtable of 1kg data
-    :param str resourcedir: resources directory
-    :param str mtdir: matrixtable directory
-    '''
-    conf = config['step2']['create_1kg_mt']
-
-    # TODO: correct resource dir: /lustre/scratch126/WES_QC/resources/1000g_VCFs
-    indir = path_spark(conf['indir'])
-    vcfheader = conf['vcfheader'] # TODO: DEBUG: not used during tests on small dataset
-    objects = hl.utils.hadoop_ls(indir)
-    vcfs = [vcf["path"] for vcf in objects if (vcf["path"].startswith("file") and vcf["path"].endswith("vcf.gz"))]
-    print("Loading VCFs")
-    #create and save MT
-    # TODO: make header optional (don't have one for mini 1000g test)
-    mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
-    print("Saving as hail mt")
-    mt_out_file = path_spark(conf['mt_out_file'])
-    mt.write(mt_out_file, overwrite=True)
-
-    return mt
+from utils.utils import parse_config
+from wes_qc import hail_utils, filtering, visualize
 
 
-def merge_with_1kg(pruned_mt_file: hl.MatrixTable, config: dict) -> hl.MatrixTable:
-    '''
-    merge the birth cohort WES ld-pruned data with 1kg data of known population
-    :param str pruned_mt_file: ld pruned MT file
-    :param str mtdir: resources directory
-    :param str merged_mt_file: merged output MT file
-    '''
-    conf = config['step2']['merge_with_1_kg']
-    print("Merging with 1kg data")
-    # mt = hl.read_matrix_table(pruned_mt_file)
-    mt = pruned_mt_file # FIXME: just testing accepting mt instead of a path
-    kg_mt_file = path_spark(conf['kg_mt_file'])
-    kg_mt = hl.read_matrix_table(kg_mt_file)
-    # in order to create a union dataset the entries and column fields must be 
-    # the same in each dataset. The following 2 lines take care of this.
-    kg_mt = kg_mt.select_entries(kg_mt.GT)
-    mt = mt.drop('callrate', 'f_stat', 'is_female') # TODO: move to config or not? seems to be specific to the qc pipeline so no need to make variable
-    # union cols gives all samples and the rows which are found in both
-    mt_joined = mt.union_cols(kg_mt)
-    merged_mt_file = path_spark(conf['merged_mt_outfile'])
-    mt_joined.write(merged_mt_file, overwrite=True)
+def merge_1kg_and_ldprune(
+    mt: hl.MatrixTable,
+    kg_mt: hl.MatrixTable,
+    long_range_ld_file: str,
+    merged_filtered_mt_outfile: str,
+    r2_threshold: float,
+    call_rate_threshold: float,
+    af_threshold: float,
+    hwe_threshold: float,
+    **kwargs,
+) -> hl.MatrixTable:
+    """
+    Merge input and 1kg matrix and run LD pruning
+    :param mt: input matrix table
+    :param kg_mt: 1kg matrix table
+    :param long_range_ld_file: Long range LD file
+    :param merged_filtered_mt_outfile: Merged and filtered matrix output file
+    :param r2_threshold: Correlation threshold for LD pruning
+    :param call_rate_threshold: Call rate threshold for filtering
+    :param af_threshold: Allele frequency threshold for filtering
+    :param hwe_threshold: Hardy-Weinberg equilibrium threshold for filtering
+    """
 
-    return mt_joined
-
-
-def annotate_and_filter(merged_mt_file: hl.MatrixTable, config: dict) -> hl.MatrixTable:
-    '''
-    Annotate with known pops for 1kg samples and filter to remove long range LD regions, 
-    rare variants, palidromic variants, low call rate and HWE filtering
-    :param str merged_mt_file: merged birth cohort wes and 1kg MT file
-    :param str resourcedir: resources directory
-    :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
-    '''
-    conf = config['step2']['annotate_and_filter']
-    print("Adding population annotation for 1kg samples")
-    # mt = hl.read_matrix_table(merged_mt_file)
-    mt = merged_mt_file
-
-    # The following annotates by population
-    # pops_file = resourcedir + "integrated_call_samples.20130502.ALL.ped"
-    # cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Individual ID')
-    # mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s].Population)
-
-    # The following is 1kg superpop
-
-    # TODO: remove leading slash
-    pops_file = path_spark(conf['pops_file'])
-    cohorts_pop = hl.import_table(pops_file, delimiter="\t").key_by('Sample name')
-    mt = mt.annotate_cols(known_pop=cohorts_pop[mt.s]['Superpopulation code'])
-
-    print("Filtering variants")
-    mt_vqc = hl.variant_qc(mt, name='variant_QC_Hail')
-    mt_vqc_filtered = mt_vqc.filter_rows(
-        (mt_vqc.variant_QC_Hail.call_rate >= conf['call_rate']) &
-        (mt_vqc.variant_QC_Hail.AF[1] >= conf['AF']) &
-        (mt_vqc.variant_QC_Hail.p_value_hwe >= conf['p_value_hwe'])
+    # filter sample matrix
+    mt_filtered = filtering.filter_matrix_for_ldprune(
+        mt, path_spark(long_range_ld_file), call_rate_threshold, af_threshold, hwe_threshold
     )
-    # TODO: this file must be .bed (?)
-    long_range_ld_file = path_spark(conf['long_range_ld_file'])
-    long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
-    mt_vqc_filtered = mt_vqc_filtered.filter_rows(hl.is_defined(long_range_ld_to_exclude[mt_vqc_filtered.locus]), keep=False)
-    mt_non_pal = mt_vqc_filtered.filter_rows((mt_vqc_filtered.alleles[0] == "G") & (mt_vqc_filtered.alleles[1] == "C"), keep=False)
-    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "C") & (mt_non_pal.alleles[1] == "G"), keep=False)
-    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "A") & (mt_non_pal.alleles[1] == "T"), keep=False)
-    mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "T") & (mt_non_pal.alleles[1] == "A"), keep=False)
 
-    filtered_mt_file = path_spark(conf['filtered_mt_outfile'])
-    mt_non_pal.write(filtered_mt_file, overwrite=True)
+    # removing and adding needed entries to replicate filtered_mt_file structure
+    mt_filtered = mt_filtered.drop(
+        "AD", "DP", "GQ", "MIN_DP", "PGT", "PID", "PL", "PS", "SB", "RGQ", "callrate", "f_stat", "is_female"
+    )
+    mt_filtered = mt_filtered.annotate_cols(known_pop=hl.missing(hl.tstr))
+    # merging matrices
+    mt_merged = mt_filtered.union_cols(kg_mt)
+    # saving the merged matrix
+    mt_merged = mt_merged.checkpoint(merged_filtered_mt_outfile, overwrite=True)
 
-    return mt_non_pal
+    # prunning of the linked Variants
+    pruned_ht = hl.ld_prune(mt_merged.GT, r2=r2_threshold)
+    pruned_mt = mt_merged.filter_rows(hl.is_defined(pruned_ht[mt_merged.row_key]))
+    pruned_mt = pruned_mt.select_entries(GT=hl.unphased_diploid_gt_index_call(pruned_mt.GT.n_alt_alleles()))
+
+    return pruned_mt
 
 
-def run_pca(filtered_mt_file: hl.MatrixTable, config: dict):
-    '''
+def pop_pca(
+    mt: hl.MatrixTable, pca_components: int, pca_1kg_evals_file: str, **kwargs
+) -> Tuple[hl.Table, hl.Table, hl.Table]:
+    """
     Run PCA before population prediction
-    :param str filtered_mt_file: merged birth cohort wes and 1kg MT file annotated with pops and filtered
-    :param str pca_sores_file: PCA scores HT file
-    :param str pca_loadings_file: PCA scores HT file
-    :param str pca_evals_file: PCA scores HT file
-    '''
-    conf = config['step2']['run_pca']
-    # mt = hl.read_matrix_table(filtered_mt_file)
-    mt = filtered_mt_file # FIXME: testing accepting mt
-    #exclude EGAN00004311029 this is a huge outlier on PCA and skews all the PCs
-    to_exclude = ['EGAN00004311029'] # TODO: add as a list parameter to the config
-    mt = mt.filter_cols(~hl.set(to_exclude).contains(mt.s)) 
+    :param mt: merged birth cohort wes and 1kg MT file annotated with pops and filtered
+    :param str pca_1kg_evals_file: PCA scores HT file
+    :param int pca_components: the number of principal components
+    """
 
-    # TODO: move k to config
-    pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(mt.GT, k=4, compute_loadings=True)
-    pca_scores = pca_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
-    pca_scores_file = path_spark(conf['pca_scores_outfile'])
-    pca_scores.write(pca_scores_file, overwrite=True)
-    pca_loadings_file = path_spark(conf['pca_loadings_outfile'])
-    pca_loadings.write(pca_loadings_file, overwrite=True)
-    pca_evals_file = path_local(conf['pca_evals_outfile'])
+    # divide matrix to make a projection
+    mt_kg = mt.filter_cols(hl.is_defined(mt.known_pop))  # The golden source 1000G with known population
+    mt_study = mt.filter_cols(hl.is_missing(mt.known_pop))
+    # PCA for golden source 1000 Genomes
+    pca_1kg_evals, pca_1kg_scores, pca_1kg_loadings = hl.hwe_normalized_pca(
+        mt_kg.GT, k=pca_components, compute_loadings=True
+    )
+    pca_1kg_scores = pca_1kg_scores.annotate(known_pop=mt_kg.cols()[pca_1kg_scores.s].known_pop)
+    pca_af_ht = mt_kg.annotate_rows(pca_af=hl.agg.mean(mt_kg.GT.n_alt_alleles()) / 2).rows()
+    pca_1kg_loadings = pca_1kg_loadings.annotate(pca_af=pca_af_ht[pca_1kg_loadings.key].pca_af)
 
-    with open(pca_evals_file, 'w') as f:
-        for val in pca_evals:
+    with open(pca_1kg_evals_file, "w") as f:
+        for val in pca_1kg_evals:
             f.write(str(val) + "\n")
 
-    # don't return anything as there are multiple outputs
+    pca_1kg_scores_nopop = pca_1kg_scores.drop(pca_1kg_scores.known_pop)
+
+    # projection of samples on precomputed PCs and combining of two PCA_scores tables
+    print("=== Projecting PCA scores to the cohort samples ===")
+    projection_pca_scores = pc_project(mt_study, pca_1kg_loadings, loading_location="loadings", af_location="pca_af")
+    union_pca_scores = pca_1kg_scores_nopop.union(projection_pca_scores)
+    union_pca_scores = union_pca_scores.annotate(known_pop=mt.cols()[union_pca_scores.s].known_pop)
+
+    return pca_1kg_scores, pca_1kg_loadings, union_pca_scores
 
 
-def append_row(df, row):
-    return pd.concat([
-                df, 
-                pd.DataFrame([row], columns=row.index)]
-           ).reset_index(drop=True)
-
-
-def predict_pops(config: dict):
-    '''
+def predict_pops(
+    pop_pca_scores: hl.Table,
+    gnomad_pc_n_estimators: int,
+    gnomad_prop_train: float,
+    gnomad_min_prob: float,
+    pop_ht_out_tsv: str,
+    **kwargs,
+):
+    """
     Predict populations from PCA scores
-    :param str pca_sores_file: PCA scores HT file
-    :param str pop_ht_file: predicted population HT file
-    :param str pop_ht_tsv: population tsv file
-    '''
-    conf = config['step2']['predict_pops']
-    pca_scores_file = path_spark(conf['pca_scores_file'])
-    pca_scores = hl.read_table(pca_scores_file)
+    :param pop_pca_scores: PCA scores Hail table
+    :param gnomad_pc_n_estimators: see assign_population_pcs() from gnomAD
+    :param gnomad_prop_train: see assign_population_pcs() from gnomAD
+    :param gnomad_min_prob: see assign_population_pcs() from gnomAD
+    :param pop_ht_out_tsv: population tsv file
+    """
     known_col = "known_pop"
-    pop_ht, pop_clf = assign_population_pcs(pca_scores, pca_scores.scores, 
-                                            known_col=known_col, 
-                                            n_estimators=conf['gnomad_pc_n_estimators'], 
-                                            prop_train=conf['gnomad_prop_train'], 
-                                            min_prob=conf['gnomad_min_prob'])
-    pop_ht_file = path_spark(conf['pop_ht_outfile'])
-    pop_ht.write(pop_ht_file, overwrite=True)
-    #convert to pandas and put in only pops files, add excluded sample back
+    pop_ht, pop_clf = assign_population_pcs(
+        pop_pca_scores,
+        pop_pca_scores.scores,
+        known_col=known_col,
+        n_estimators=gnomad_pc_n_estimators,
+        prop_train=gnomad_prop_train,
+        min_prob=gnomad_min_prob,
+    )
+    # convert to pandas and put in only pops files
     pop_ht_df = pop_ht.to_pandas()
-    pop_ht_df2 =pop_ht_df[['s', 'pop']]
-    new_row = pd.Series({'s':'EGAN00004311029', 'pop':'oth'})
-    pop_ht_df2 = append_row(pop_ht_df2, new_row)
-    print(pop_ht_df2)
+    pop_ht_df2 = pop_ht_df[["s", "pop"]]
+    pop_ht_tsv = path_local(pop_ht_out_tsv)
+    pop_ht_df2.to_csv(pop_ht_tsv, sep="\t")
+    return pop_ht
 
-    pop_ht_tsv = path_local(conf['pop_ht_outtsv'])
-    print(pop_ht_tsv)
 
-    pop_ht_df2.to_csv(pop_ht_tsv, sep = '\t')
-    
-    # This is a work around for hail <0.2.88 - convert hail table to pandas df then run assign_population_pcs
-    # pop_pca_scores = pca_scores.select(known_col, pca_scores=pca_scores.scores)
-    # pop_pc_pd = pop_pca_scores.to_pandas()
-    # pop_pc_pd = expand_pd_array_col(pop_pc_pd, "pca_scores", 10, 'PC')  
-
-    # pop_pca_scores = pca_scores.select(known_col, pca_scores=pc_cols)
-    # pop_pc_pd = pop_pca_scores.to_pandas()
-    # pc_cols = [f"PC{i+1}" for i in range(10)]
-    # pop_pd, pop_clf = assign_population_pcs(pop_pc_pd, pc_cols, known_col=known_col, n_estimators=100, prop_train=0.8, min_prob=0.5)
+def get_options() -> argparse.Namespace:
+    """
+    Get options from the command line
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--merge-and-ldprune", help="Merge with 1000G data and run LD-pruning", action="store_true")
+    parser.add_argument("--pca", help="Run pca", action="store_true")
+    parser.add_argument("--pca-plot", help="Plot PCA for 1000genomes", action="store_true")
+    parser.add_argument("--assign_pops", help="Assign populations", action="store_true")
+    parser.add_argument("--pca-plot-assigned", help="Plot PCA for assigned populations", action="store_true")
+    parser.add_argument("--all", help="Run all steps", action="store_true")
+    args = parser.parse_args()
+    return args
 
 
 def main():
-    # get cli args
-    args = get_options()
+    # = STEP SETUP = #
     config = parse_config()
-    tmp_dir = config['general']['tmp_dir']
-    mtdir = config['general']['matrixtables_dir']
+    args = get_options()
+    if args.all:
+        args.merge_and_ldprune = True
+        args.pca = True
+        args.pca_plot = True
+        args.assign_pops = True
+        args.pca_plot_assigned = True
 
-    #initialise hail
-    # tmp_dir = "hdfs://spark-master:9820/"
-    # sc = pyspark.SparkContext()
-    sc = pyspark.SparkContext.getOrCreate()
-    hadoop_config = sc._jsc.hadoopConfiguration()
-    hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38", idempotent=True)
+    tmp_dir = config["general"]["tmp_dir"]
 
-    #if needed, create 1kg matrixtable
-    if args.kg_to_mt:
-        # the output is not used in this main func
-        created_1kg_mt = create_1kg_mt(config)
+    # = STEP PARAMETERS = #
+    ## No parameters for this step
 
-    #combine with 1KG data
-    if args.merge or args.run:
-        pruned_mt_file = path_spark(os.path.join(mtdir, 'mt_ldpruned.mt'))
-        pruned_mt = hl.read_matrix_table(pruned_mt_file)
+    # = STEP DEPENDENCIES = #
+    mtfile = path_spark(config["step2"]["impute_sex"]["sex_mt_outfile"])
+    kg_mt_file = path_spark(config["step1"]["create_1kg_mt"]["kg_out_mt"])
+    kg_pop_file = path_spark(config["step1"]["create_1kg_mt"]["kg_pop_file"])
 
-        # the output is not used in this main func
-        mt_joined = merge_with_1kg(pruned_mt, config)
+    # = STEP OUTPUTS = #
+    pruned_mt_file = path_spark(config["step2"]["merge_1kg_and_ldprune"]["filtered_and_pruned_mt_outfile"])
+    pca_1kg_scores_file = path_spark(config["step2"]["pop_pca"]["pca_1kg_scores_file"])
+    pca_1kg_loadings_file = path_spark(config["step2"]["pop_pca"]["pca_1kg_loadings_file"])
+    pca_union_scores_file = path_spark(config["step2"]["pop_pca"]["pca_union_scores_file"])
+    pop_pca_1kg_graph = config["step2"]["plot_pop_pca"]["pop_pca_1kg_graph"]
+    pop_pca_union_graph = config["step2"]["plot_pop_pca"]["pop_pca_union_graph"]
+    pop_ht_file = path_spark(config["step2"]["predict_pops"]["pop_ht_outfile"])
+    pop_assigned_pca_union_graph = config["step2"]["plot_pop_pca_assigned"]["pop_assigned_pca_union_graph"]
+    pop_pca_assigned_dataset_graph = config["step2"]["plot_pop_pca_assigned"]["pop_assigned_pca_dataset_graph"]
 
-    #annotate and filter
-    if args.filter or args.run:
-        merged_mt_file = path_spark(config['step2']['merge_with_1_kg']['merged_mt_outfile'])
-        merged_mt = hl.read_matrix_table(merged_mt_file)
-        
-        # the output is not used in this main func
-        mt_non_pal = annotate_and_filter(merged_mt, config)
+    # = STEP LOGIC = #
+    _ = hail_utils.init_hl(tmp_dir)
 
-    #run pca
-    if args.pca or args.run:
-        filtered_mt_file = path_spark(config['step2']['annotate_and_filter']['filtered_mt_outfile'])
-        filtered_mt = hl.read_matrix_table(filtered_mt_file)
-        run_pca(filtered_mt, config)
+    if args.merge_and_ldprune:
+        mt = hl.read_matrix_table(mtfile)
+        kg_mt = hl.read_matrix_table(kg_mt_file)
+        pruned_mt = merge_1kg_and_ldprune(mt, kg_mt, **config["step2"]["merge_1kg_and_ldprune"])
+        pruned_mt.write(pruned_mt_file, overwrite=True)
 
-    #assign pops
-    if args.assign_pops or args.run:
-        predict_pops(config)
+    # run pca
+    if args.pca:
+        filtered_mt = hl.read_matrix_table(pruned_mt_file)
+        pca_1kg_scores, pca_1kg_loadings, union_PCA_scores = pop_pca(filtered_mt, **config["step2"]["pop_pca"])
+        pca_1kg_scores.write(pca_1kg_scores_file, overwrite=True)
+        pca_1kg_loadings.write(pca_1kg_loadings_file, overwrite=True)
+        union_PCA_scores.write(pca_union_scores_file, overwrite=True)
 
-if __name__ == '__main__':
-    main() 
+    if args.pca_plot:
+        print(f"Plotting PCA components for {pca_union_scores_file}")
+        pca_union_scores = hl.read_table(pca_union_scores_file)
+        print("Union components:", pca_union_scores.count())
+        n_pca = config["step2"]["plot_pop_pca"]["pca_components"]
+        visualize.plot_pop_pca(pca_union_scores, pop_pca_union_graph, n_pca, pop="known_pop")
+        print(f"Plotting PCA components for {pca_1kg_scores_file}")
+        pca_1kg_scores = hl.read_table(pca_1kg_scores_file)
+        print("1kg components:", pca_1kg_scores.count())
+        # TODO: Modify pop_pca to assing 1KG populations from the original matrixtable and avoid using the kg_pop_file
+        cohorts_pop = hl.import_table(kg_pop_file, delimiter="\t").key_by("Sample name")
+        pca_1kg_scores = pca_1kg_scores.annotate(known_pop=cohorts_pop[pca_1kg_scores.s]["Superpopulation code"])
+        visualize.plot_pop_pca(pca_1kg_scores, pop_pca_1kg_graph, n_pca, pop="known_pop")
+
+    # assign pops
+    if args.assign_pops:
+        union_PCA_scores = hl.read_table(pca_union_scores_file)
+        pop_ht = predict_pops(union_PCA_scores, **config["step2"]["predict_pops"])
+        pop_ht.write(pop_ht_file, overwrite=True)
+
+    if args.pca_plot_assigned:
+        n_pca = config["step2"]["plot_pop_pca_assigned"]["pca_components"]
+        print(f"Plotting PCA components for assigned populations: {pop_ht_file}")
+        pop_ht = hl.read_table(pop_ht_file)
+        pop_ht = pop_ht.transmute(scores=pop_ht.pca_scores)
+        print(f"Total samples: {pop_ht.count()}")
+        visualize.plot_pop_pca(pop_ht, pop_assigned_pca_union_graph, n_pca, pop="pop")
+
+        print("Plotting PCA components for the dataset:")
+        pop_ht_datasetonly = pop_ht.filter(~hl.is_defined(pop_ht.known_pop))
+        print(f"Total samples: {pop_ht_datasetonly.count()}")
+        visualize.plot_pop_pca(
+            pop_ht_datasetonly,
+            pop_pca_assigned_dataset_graph,
+            n_pca,
+            pop="pop",
+        )
+
+
+if __name__ == "__main__":
+    main()
