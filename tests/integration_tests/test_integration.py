@@ -170,7 +170,9 @@ class IntegrationTests(HailTestCase):
 
     @patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=argparse.Namespace(merge_and_ldprune=True, pca=False, assign_pops=False, all=False),
+        return_value=argparse.Namespace(
+            merge_and_ldprune=True, pca=True, pca_plot=True, assign_pops=True, pca_plot_assigned=True, all=False
+        ),
     )
     def test_2_3_sample_qc(self, mock_args):
         try:

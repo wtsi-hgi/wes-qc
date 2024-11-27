@@ -141,19 +141,30 @@ step2:
     r2_threshold: 0.2
     filtered_and_pruned_mt_outfile: '{mtdir}/merged_with_1kg_filtered_ldpruned.mt'
 
-  run_pca:
-    pca_scores_outfile: '{mtdir}/pca_scores_after_pruning.ht'
-    pca_loadings_outfile: '{mtdir}/pca_loadings_after_pruning.ht'
-    pca_evals_outfile: '{mtdir}/pca_evals_after_pruning.txt'
+  pop_pca:
+    pca_1kg_scores_file: '{mtdir}/pop_pca_1kg_scores.ht'
+    pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
+    pca_1kg_evals_file: '{mtdir}/pop_pca_1kg_evals.tsv'
+    pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
     pca_components: 4
 
+  plot_pop_pca:
+    pca_components: 3
+    pop_pca_1kg_graph: '{pltdir}/pop_pca_scores_1kg.html'
+    pop_pca_union_graph: '{pltdir}/pop_pca_scores_union.html'
+
   predict_pops:
-    pca_scores_file: '{mtdir}/pca_scores_after_pruning.ht'
     gnomad_pc_n_estimators: 100
     gnomad_prop_train: 0.8
     gnomad_min_prob: 0.5
     pop_ht_outfile: '{mtdir}/pop_assignments.ht'
-    pop_ht_outtsv: '{mtdir}/pop_assignments.tsv'
+    pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
+
+  plot_pop_pca_assigned:
+    pca_components: 3
+    pop_assigned_pca_dataset_graph: '{pltdir}/pop_pca_assigned_scores_dataset.html'
+    pop_assigned_pca_union_graph: '{pltdir}/pop_pca_assigned_scores_union.html'
+
 
   # --- Step 2.4 --- #
   # func name: annotate_mt
