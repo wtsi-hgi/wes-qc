@@ -1,8 +1,8 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
 import hail as hl
+from wes_qc import hail_utils
 from utils.utils import parse_config, path_spark
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
-from wes_qc import hail_utils
 
 
 # TODO: rename to annotate_with_pop
@@ -141,7 +141,6 @@ def main():
     # annotate mt with runid and pop
     raw_mt_file = config["step1"]["gatk_mt_outfile"]
     pop_ht_file = config["step2"]["predict_pops"]["pop_ht_outfile"]
-    # pop_ht_tsv = config["step2"]["predict_pops"]["pop_ht_out_tsv"]
     annotated_mt_file = config["step2"]["annotate_with_pop"]["annotated_mt_file"]
     annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file)
 

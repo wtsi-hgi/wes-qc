@@ -72,3 +72,6 @@ def test_plot_pop_pca(pca_scores_table, tmp_path):
     plot_path = tmp_path / "test_pop_pca_plot.html"
     visualize.plot_pop_pca(pca_scores_table, str(plot_path), n_pca=3, pop="known_pop")
     assert plot_path.exists()
+    plot_path = tmp_path / "test_pop_pca_plot_no_pop_color.html"
+    visualize.plot_pop_pca(pca_scores_table, str(plot_path), n_pca=3, pop=None)
+    assert plot_path.exists()

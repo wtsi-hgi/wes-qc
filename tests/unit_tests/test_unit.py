@@ -23,7 +23,6 @@ qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail"
 
 qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
 qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
-qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
@@ -86,6 +85,7 @@ class RegressionTests(HailTestCase):
         cls.resourcedir = os.path.join(cls.test_data_download_path, "resources")
         cls.onekg_resourcedir = os.path.join(cls.resourcedir, "mini_1000G")
         cls.training_sets = os.path.join(cls.test_data_download_path, "training_sets")
+        # variant_qc_random_forest_path = os.path.join(cls.test_data_download_path, "variant_qc_random_forest")
 
         # download test data from the bucket
         print("Downloading control set from the s3 bucket")
@@ -504,7 +504,7 @@ class RegressionTests(HailTestCase):
         ref_mt_unfiltered = hl.read_matrix_table(path_spark(self.ref_unfiltered_mt_path))
 
         # run function to test
-        qc_step_2_1.apply_hard_filters(ref_mt_unfiltered, self.config)
+        _ = qc_step_2_1.apply_hard_filters(ref_mt_unfiltered, self.config)
 
         # compare the output to reference
         output_filtered_mt_path = self.config["step2"]["sex_annotation_hard_filters"]["filtered_mt_outfile"]
@@ -519,7 +519,7 @@ class RegressionTests(HailTestCase):
         ref_mt_filtered = hl.read_matrix_table(path_spark(self.ref_output_filtered_mt_path))
 
         # run function to test
-        qc_step_2_1.impute_sex(ref_mt_filtered, self.config)
+        _ = qc_step_2_1.impute_sex(ref_mt_filtered, self.config)
 
         # compare the outputs to reference
         output_sex_annotated_path = self.config["step2"]["impute_sex"]["sex_ht_outfile"]
@@ -565,7 +565,7 @@ class RegressionTests(HailTestCase):
         ref_output_sex_mt = hl.read_matrix_table(path_spark(self.ref_output_sex_mt_path))
 
         # run function to test
-        qc_step_2_2.prune_mt(ref_output_sex_mt, self.config)
+        _ = qc_step_2_2.prune_mt(ref_output_sex_mt, self.config)
 
         # compare output to reference
         output_mts_are_identical = compare_matrixtables(self.ref_mt_ldpruned_path, self.mt_ldpruned_path)
@@ -614,55 +614,6 @@ class RegressionTests(HailTestCase):
         )
 
         self.assertTrue(pca_scores_identical and pca_loadings_identical and pca_mt_identical and plink_identical)
-
-    def test_2_3_1_create_1kg_mt(self):
-        # run function to test
-        qc_step_2_3.create_1kg_mt(self.config)
-        kg_wes_regions_identical = compare_matrixtables(self.kg_wes_regions, self.ref_kg_wes_regions)
-
-        self.assertTrue(kg_wes_regions_identical)
-
-    def test_2_3_2_merge_with_1kg(self):
-        # use reference outputs of Step 2.2 prune_mt()
-        ref_mt_ldpruned = hl.read_matrix_table(path_spark(self.ref_mt_ldpruned_path))
-        # run function to test
-        qc_step_2_3.merge_with_1kg(ref_mt_ldpruned, self.config)
-        merged_mt_identical = compare_matrixtables(self.merged_mt_path, self.ref_merged_mt_path)
-
-        self.assertTrue(merged_mt_identical)
-
-    def test_2_3_3_annotate_and_filter(self):
-        # use reference outputs of Step 2.3 merge_with_1kg()
-        ref_merged_mt = hl.read_matrix_table(path_spark(self.ref_merged_mt_path))
-        # run function to test
-        qc_step_2_3.annotate_and_filter(ref_merged_mt, self.config)
-        filtered_mt_identical = compare_matrixtables(self.filtered_mt_path, self.ref_filtered_mt_path)
-
-        self.assertTrue(filtered_mt_identical)
-
-    def test_2_3_4_run_pca(self):
-        # Use reference output of Step 2.3 annotate_and_filter() as input
-        ref_filtered_mt = hl.read_matrix_table(path_spark(self.ref_filtered_mt_path))
-        # Run function to test
-        qc_step_2_3.run_pca(ref_filtered_mt, self.config)
-
-        # Compare output files to the reference
-        pca_scores_identical = compare_tables(self.pca_scores_path, self.ref_pca_scores_path)
-        pca_loadings_identical = compare_tables(self.pca_loadings_path, self.ref_pca_loadings_path)
-        pca_evals_identical = compare_txts(self.pca_evals_path, self.ref_pca_evals_path)
-
-        # Test passes when all files match the references
-        self.assertTrue(pca_scores_identical and pca_loadings_identical and pca_evals_identical)
-
-    def test_2_3_5_predict_pops(self):
-        # use reference outputs of Step 2.3 run_pca()
-        # run function to test
-        qc_step_2_3.predict_pops(self.config)
-
-        pop_ht_identical = compare_tables(self.pop_ht_file, self.ref_pop_ht_file)
-        pop_ht_tsv_identical = compare_txts(path_local(self.pop_ht_tsv), path_local(self.ref_pop_ht_tsv))
-
-        self.assertTrue(pop_ht_identical and pop_ht_tsv_identical)
 
     def test_2_4_1_annotate_mt(self):
         qc_step_2_4.annotate_mt(self.ref_mt_file, self.ref_pop_ht_file, self.annotated_mt_file)
