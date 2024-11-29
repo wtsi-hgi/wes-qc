@@ -10,13 +10,15 @@ test-ut-one-step:
 	cd tests/unit_tests && pytest -vv -s $(test)
 
 test-it-one-step:
-	cd tests/integration_tests && pytest -vv -s test_integration.py::IntegrationTests::$(test)
+	cd tests/integration_tests && pytest -vv -s -k $(test)
 
 integration-test: clear-ht clear-logs
 	cd tests/integration_tests && pytest
 
+
 integration-test-coverage: clear-ht clear-logs
 	cd tests/integration_tests && pytest --cov=../..
+
 
 unit-test:
 	cd tests/unit_tests && pytest

@@ -105,9 +105,9 @@ def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Tab
     print(f"\nTransmitted singletons:{Total_transmitted_singletons}\n")
     print(f"\nUntransmitted singletons:{Total_untransmitted_singletons}")
 
-    Ratio_transmitted_untransmitted = Total_transmitted_singletons / Total_untransmitted_singletons
-    print(Ratio_transmitted_untransmitted)
-    print(f"\nRatio:{Ratio_transmitted_untransmitted}\n")
+    if Total_untransmitted_singletons > 0:
+        Ratio_transmitted_untransmitted = Total_transmitted_singletons / Total_untransmitted_singletons
+        print(f"\nRatio:{Ratio_transmitted_untransmitted}\n")
     mt2 = mt_trans_count.annotate_rows(
         variant_transmitted_singletons=hl.agg.count_where(mt_trans_count.transmitted_singletons_count == 1)
     )
