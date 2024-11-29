@@ -79,13 +79,13 @@ qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
-qc_step_3_1 = importlib.import_module("3-variant_qc.variant_qc_non_trios.1-generate_truth_sets_non_trios")
-qc_step_3_2 = importlib.import_module("3-variant_qc.variant_qc_non_trios.2-create_rf_ht_non_trios")
+qc_step_3_1 = importlib.import_module("3-variant_qc.1-generate_truth_sets")
+qc_step_3_2 = importlib.import_module("3-variant_qc.2-create_rf_ht")
 qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
 qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
-qc_step_3_5 = importlib.import_module("3-variant_qc.variant_qc_non_trios.5-annotate_ht_after_rf_no_trios")
-qc_step_3_6 = importlib.import_module("3-variant_qc.variant_qc_non_trios.6-rank_and_bin_no_trios")
-qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_rf_output_no_trios")
+qc_step_3_5 = importlib.import_module("3-variant_qc.5-annotate_ht_after_rf")
+qc_step_3_6 = importlib.import_module("3-variant_qc.6-rank_and_bin")
+qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
 qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
 qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
@@ -214,8 +214,7 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.3 failed with an exception: {e}")
 
     # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_3_4_variant_qc(self, mock_args):
+    def test_3_4_variant_qc(self):
         # set up correct PYSPARK_PYTHON env variable
         try:
             qc_step_3_4.main()
@@ -223,24 +222,21 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.4 failed with an exception: {e}")
 
     # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_3_5_variant_qc(self, mock_args):
+    def test_3_5_variant_qc(self):
         try:
             qc_step_3_5.main()
         except Exception as e:
             self.fail(f"Step 3.5 failed with an exception: {e}")
 
     # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_3_6_variant_qc(self, mock_args):
+    def test_3_6_variant_qc(self):
         try:
             qc_step_3_6.main()
         except Exception as e:
             self.fail(f"Step 3.6 failed with an exception: {e}")
 
     # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_3_7_variant_qc(self, mock_args):
+    def test_3_7_variant_qc(self):
         try:
             qc_step_3_7.main()
         except Exception as e:
@@ -249,7 +245,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH, snv=92, indel=68),
+        return_value=argparse.Namespace(snv=92, indel=68),
     )
     def test_3_8_variant_qc(self, mock_args):
         try:
@@ -260,7 +256,7 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH, snv=84, indel=60),
+        return_value=argparse.Namespace(snv=84, indel=60),
     )
     def test_3_9_variant_qc(self, mock_args):
         try:

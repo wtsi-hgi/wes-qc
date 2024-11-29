@@ -1,7 +1,8 @@
 .PHONY: test
 
 export PYTHONPATH:=$PYTHONPATH:$(shell pwd )
-export PYSPARK_DRIVER_PYTHON:="/home/ubuntu/venv/bin/python"
+export PYSPARK_PYTHON:=/home/ubuntu/venv/bin/python
+export PYSPARK_DRIVER_PYTHON:=/home/ubuntu/venv/bin/python
 
 test: unit-test integration-test
 
@@ -11,10 +12,10 @@ test-ut-one-step:
 test-it-one-step:
 	cd tests/integration_tests && pytest -vv -s test_integration.py::IntegrationTests::$(test)
 
-integration-test:
+integration-test: clear-ht clear-logs
 	cd tests/integration_tests && pytest
 
-integration-test-coverage:
+integration-test-coverage: clear-ht clear-logs
 	cd tests/integration_tests && pytest --cov=../..
 
 unit-test:
@@ -24,7 +25,10 @@ unit-test-coverage:
 	cd tests/unit_tests && pytest --cov=../..
 
 clear-logs:
-	rm hail*.log
-	rm hlrun_local_*
-	rm tests/unit_tests/hail*.log
-	rm tests/integration_tests/hail*.log
+	rm hail*.log || true
+	rm hlrun_local_* || true
+	rm tests/unit_tests/hail*.log || true
+	rm tests/integration_tests/hail*.log || true
+
+clear-ht:
+	rm -rf tests/integration_tests/matrixtables/* || true
