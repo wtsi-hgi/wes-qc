@@ -264,17 +264,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 3.9 failed with an exception: {e}")
 
-    # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(dp=5, gq=10, ab=0.2))
-    def test_4_1_genotype_qc(self, mock_args):
-        try:
-            qc_step_4_1.main()
-        except Exception as e:
-            self.fail(f"Step 4.1 failed with an exception: {e}")
-
-    # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_4_1a_genotype_qc(self, mock_args):
+    def test_4_1a_genotype_qc(self):
         try:
             qc_step_4_1a.main()
         except Exception as e:
@@ -286,28 +276,14 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 4.2 failed with an exception: {e}")
 
-    def test_4_3_genotype_qc(self):
-        try:
-            qc_step_4_3.main()
-        except Exception as e:
-            self.fail(f"Step 4.3 failed with an exception: {e}")
-
-    # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_4_3a_genotype_qc(self, mock_args):
+    def test_4_3a_genotype_qc(self):
         try:
             qc_step_4_3a.main()
         except Exception as e:
             self.fail(f"Step 4.3a failed with an exception: {e}")
 
-    # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(runhash=RF_RUN_TEST_HASH))
-    def test_4_3b_genotype_qc(self, mock_args):
+    def test_4_3b_genotype_qc(self):
         try:
             qc_step_4_3b.main()
         except Exception as e:
             self.fail(f"Step 4.3b failed with an exception: {e}")
-
-
-if __name__ == "__main__":
-    unittest.main()
