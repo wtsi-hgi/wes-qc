@@ -89,10 +89,8 @@ qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
 qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
 qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
-qc_step_4_1 = importlib.import_module("4-genotype_qc.1-apply_hard_filters")
 qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
 qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
-qc_step_4_3 = importlib.import_module("4-genotype_qc.3-export_vcfs")
 qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
 qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
 

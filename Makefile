@@ -7,7 +7,7 @@ export PYSPARK_DRIVER_PYTHON:=/home/ubuntu/venv/bin/python
 test: unit-test integration-test
 
 test-ut-one-step:
-	cd tests/unit_tests && pytest -vv -s $(test)
+	cd tests/unit_tests && pytest -vv -s -k $(test)
 
 test-it-one-step:
 	cd tests/integration_tests && pytest -vv -s -k $(test)
