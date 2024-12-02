@@ -1,6 +1,41 @@
 ---
 
+#############################################################################################
+# This is a config file example to process public 1000 Genomes dataset.
+# All data files and resources are here: s3://wes-qc-data/test_data_from_1000_genomes_v2
+# To download it to sanger farm, use s3cmd command.
+#############################################################################################
+
+# - You can insert a variable in the string value via '{}'. For example,
+#   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'.
+#
+# - If a config field ends with 'dir' or 'file', then parser will consider
+#   this field as a path and normalize it, thus removing double slashes (foo//bar -> foo/bar)
+#   and redundand dots (foo/./bar -> foo/bar).
+#
+# - Note that string quotes are MANDATORY if using cvars.
+#   That is, variable should be used only inside an explicit string.
+#   Curly braces outside a string will break the YAML parser.
+#
+# - You can use dot-separated name of any config field as a variable name like this:
+#   a:
+#     a1: bar
+#     a2: baz
+#   b: 'foo {a.a1} {a.a2}' (will render to 'foo bar baz')
+#
+# - Special variables from 'cvars' list will be replaced with field
+#   they are referring to. For example, '{mtdir}/gatk_unprocessed.mt' is
+#   equivalent to '{general.matrixtables_dir}/gatk_unprocessed.mt'
+#
+# - Parser can only insert variables that were already defined.
+#   You can't use a variable that will be defined further down the config.
+
+# TODO: custom yaml type for paths
+# TODO: ensure strict variable substitution, from top to bottom of the config
+# TODO: add testcases for cvars, for order of variables, for nested variables
 cvars:
+  dataset: general.dataset_name
+  dataroot: general.data_root
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir
   mtdir: general.matrixtables_dir
@@ -9,32 +44,29 @@ cvars:
   pltdir: general.plots_dir
   traindir: general.training_sets_dir
   rfdir: general.var_qc_rf_dir
+  vcf_export_dir: general.vcf_export_dir
 
 general:
-  # CVAR tmpdir
+  # Dataset name - the root folder for all analysis files
+  # Also used for the naming of tables, plots, etc
+  dataset_name: 'public-dataset'
+
+  # Dataset root directory - to use in folder paths
+  data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
+
   tmp_dir: "{INTEGRATION_TESTS_DIR}/tmp/" # output
-
-  # CVAR anndir
+  #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
+  # To use local temp dir you need to specify it with 'file://' prefix
+  # For data_root file prefix is added automatically
+  # tmp_dir: '{general.data_root}/tmp'
   annotation_dir: "{INTEGRATION_TESTS_DIR}/annotations/" # output
-
-  # CVAR mtdir
   matrixtables_dir: "{INTEGRATION_TESTS_DIR}/matrixtables/" # output
-
-  # CVAR resdir
   resource_dir: "{RESOURCES_DIR}" # input and output
-
-  # CVAR 1kg resource dir
   onekg_resource_dir: "{RESOURCES_DIR}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
-
-  # CVAR pltdir
   plots_dir: "{INTEGRATION_TESTS_DIR}/plots/" # output
-
-  # CVAR traindir
   training_sets_dir: "{TRAINING_SETS_DIR}" # input
-
-  # CVAR rfdir
   var_qc_rf_dir: "{VARIANT_QC_RANDOM_FOREST_DIR}" # output
-
+  #vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
   # random forest model is geneated during step3.3, catch the parameter `runhash` and place it here
   rf_model_id: "testhash"
 
@@ -99,7 +131,6 @@ step2:
       # keep_higher_maf:
       # block_size:
 
-  # for function `pc_relate()`
   prune_pc_relate:
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
@@ -115,7 +146,6 @@ step2:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
 
-  # for function `population_pca()`
   prune_plot_pca:
     plink_outfile: '{anndir}/mt_unrelated.plink'
     pca_components: 4
@@ -125,16 +155,15 @@ step2:
     plot_outfile: '{pltdir}/pca.html' # output
 
 
-  annotate_and_filter:
-    pops_file: '{resdir}/igsr_samples.tsv'
-    call_rate: 0.99
-    AF: 0.05
-    p_value_hwe: 0.00005
-    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
-    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+#  annotate_and_filter:
+#    pops_file: '{resdir}/igsr_samples.tsv'
+#    call_rate: 0.99
+#    AF: 0.05
+#    p_value_hwe: 0.00005
+#    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
+#    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
 
   # --- Step 2.3 --- #
-
   merge_1kg_and_ldprune:
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'

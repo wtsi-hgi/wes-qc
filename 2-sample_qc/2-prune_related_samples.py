@@ -76,21 +76,13 @@ def run_population_pca(
     pruned_mt: hl.MatrixTable,
     samples_to_remove: hl.Table,
     plink_outfile,
-    pca_scores_file,
-    pca_loadings_file,
-    pca_mt_file,
     pca_components,
     plot_outfile,
     **kwargs,
-) -> hl.MatrixTable:
+) -> (hl.MatrixTable, hl.Table, hl.Table):
     """
     Runs PCA and creates a matrix table of non-related individuals with PCA scores
     Remove related samples from PC relate from pruned MT and run PCA
-    :param hl.MatrixTable pruned_mt: ld pruned MT
-    :param hl.Table samples_to_remove_file: a HT with a single column of related samples to remove
-    :param dict config:
-    :param str pca_mt_file: PCA output MT file path
-    :return: Hail matrixtables containing PCA for non-related samples only
     """
 
     print("=== Running population PCA")
@@ -100,23 +92,16 @@ def run_population_pca(
     print(f"=== Survived {samples} samples after relatedness step.")
 
     plink_mt = pca_mt.annotate_cols(uid=pca_mt.s).key_cols_by("uid")
-    hl.export_plink(
-        dataset=plink_mt, output=path_spark(plink_outfile), fam_id=plink_mt.uid, ind_id=plink_mt.uid
-    )  # output
+    hl.export_plink(dataset=plink_mt, output=path_spark(plink_outfile), fam_id=plink_mt.uid, ind_id=plink_mt.uid)
 
     print("=== Running PCA")
-
     pca_evals, pca_scores, pca_loadings = hl.hwe_normalized_pca(pca_mt.GT, k=pca_components, compute_loadings=True)
     pca_af_ht = pca_mt.annotate_rows(pca_af=hl.agg.mean(pca_mt.GT.n_alt_alleles()) / 2).rows()
     pca_loadings = pca_loadings.annotate(pca_af=pca_af_ht[pca_loadings.key].pca_af)
-    pca_scores.write(path_spark(pca_scores_file), overwrite=True)  # output
-    pca_loadings.write(path_spark(pca_loadings_file), overwrite=True)  # output
     pca_mt = pca_mt.annotate_cols(scores=pca_scores[pca_mt.col_key].scores)
-    pca_mt.write(path_spark(pca_mt_file), overwrite=True)  # output
 
-    print("Plotting PC1 vs PC2")
+    print("=== Plotting PC1 vs PC2")
     os.makedirs(os.path.dirname(plot_outfile), exist_ok=True)
-
     p = hl.plot.scatter(pca_mt.scores[0], pca_mt.scores[1], title="PCA", xlabel="PC1", ylabel="PC2")
     print(f"=== Saving Relatedness PCA plot to {plot_outfile}")
     bkplt.output_file(plot_outfile)
@@ -161,12 +146,15 @@ def main():
     related_samples_to_remove_ht.write(
         path_spark(config["step2"]["prune_pc_relate"]["samples_to_remove_file"]), overwrite=True
     )
-    related_samples_to_remove_ht.export(
-        path_spark(config["step2"]["prune_pc_relate"]["samples_to_remove_tsv"]), overwrite=True
-    )
+    related_samples_to_remove_ht.export(path_spark(config["step2"]["prune_pc_relate"]["samples_to_remove_tsv"]))
 
     # run PCA
-    _ = run_population_pca(pruned_mt, related_samples_to_remove_ht, **config["step2"]["prune_plot_pca"])
+    pca_mt, pca_scores, pca_loadings = run_population_pca(
+        pruned_mt, related_samples_to_remove_ht, **config["step2"]["prune_plot_pca"]
+    )
+    pca_mt.write(path_spark(config["step2"]["prune_plot_pca"]["pca_mt_file"]), overwrite=True)
+    pca_scores.write(path_spark(config["step2"]["prune_plot_pca"]["pca_scores_file"]), overwrite=True)
+    pca_loadings.write(path_spark(config["step2"]["prune_plot_pca"]["pca_loadings_file"]), overwrite=True)  # output
 
 
 if __name__ == "__main__":

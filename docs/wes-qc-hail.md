@@ -20,7 +20,7 @@ git clone https://github.com/wtsi-hgi/wes-qc.git
 
 Create a new branch and switch to your branch:
 
-``` shell
+```shell
 cd wes_qc
 git checkout -b my_project
 ```
@@ -29,7 +29,7 @@ Edit `config/inputs.yaml` to include the correct paths for your datasets and wor
 
 Start a new tmux session, and edit the PYTHONPATH to include the directory you originally cloned the git repo into.
 
-``` shell
+```shell
 export PYTHONPATH=/path/to/wes-qc
 ```
 
@@ -56,7 +56,7 @@ spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 
 1. Apply hard filters and annotate with imputed sex
 
-``` shell
+```shell
 spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
 ```
 
@@ -65,38 +65,38 @@ spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
 ```shell
 spark-submit 2-sample_qc/2-prune_related_samples.py
 ```
-
-The following four steps deal with prediction of superpopulation by PCA and projection on to 1000 genomes data of known population. If a matrixtable of 1000 genomes data is available the first step can be omitted.
+This step doesn't affect any other steps, because on the step 2/3 we're using the clustering approach with PCA scores projection,
+However, this formation can be useful to compare with pedigree data and identify mislabeled samples.
 
 3. Population prediction with PCA
 
 Create MatrixTable from 1kg WES VCFs.
 
-``` shell
+```shell
 spark-submit 2-sample_qc/3-population_pca_prediction.py --kg_to_mt
 ```
 
 Merge 1kg MatrixTable with WES MatrixTable.
 
-``` shell
+```shell
 spark-submit 2-sample_qc/3-population_pca_prediction.py --merge
 ```
 
 Annotate with known populations for 1kg samples and filter to remove low quality variants, variants in long range linkage disequilibrium regions and palindromic SNPs
 
-``` shell
+```shell
 spark-submit 2-sample_qc/3-population_pca_prediction.py --filter
 ```
 
 Run PCA.
 
-``` shell
+```shell
 spark-submit 2-sample_qc/3-population_pca_prediction.py --pca
 ```
 
 Run population prediction.
 
-``` shell
+```shell
 spark-submit 2-sample_qc/3-population_pca_prediction.py --assign_pops
 ```
 
@@ -110,7 +110,7 @@ Now that we have the predicted populations that each sample belongs to we can ru
 - heterozygosity rate, heterozygous/homozygous ratio
 - number of transitions and transversions, transition/transversion ratio.
 
-``` shell
+```shell
 spark-submit 2-sample_qc/4-find_population_outliers.py
 ```
 
@@ -118,7 +118,7 @@ spark-submit 2-sample_qc/4-find_population_outliers.py
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script. <!At this stage samples failing on FREEMIX score and on identity checks are also removed. This samples should be in files in the annotations directory: `verify_bam_id_result_concat.selfSM` lists sample ID and FREEMIX score and `sanger_samples_excluded_after_gtcheck.txt` lists samples failing identity checks. If no samples fail identify checks the latter file could be empty.> These samples are saved in `samples_failing_qc.tsv.bgz` in the annotation directory.
 
-``` shell
+```shell
 spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
 ```
 
@@ -135,19 +135,19 @@ Variant QC requires a ped file detailing any trios. This is an unheaded, tab-del
 
 The first step of variant QC produces a truth set of known true positive variants and generates annotation.
 
-``` shell
+```shell
 spark-submit 3-variant_qc/1-generate_truth_sets.py --all
 ```
 
 Next an input table is generated to run the random forest on.
 
-``` shell
+```shell
 spark-submit 3-variant_qc/2-create_rf_ht.py
 ```
 
 Next train the random forest model, note the use of --master local[*] here which is needed to ensure that the worker nodes pick up the correct python modules.
 
-``` shell
+```shell
 spark-submit  3-variant_qc/3-train_rf.py
 ```
 
@@ -167,7 +167,7 @@ to the `spark-submit` parameters.
 
 Now apply the random forest to the entire dataset.
 
-``` shell
+```shell
 spark-submit 3-variant_qc/4-apply_rf.py
 ```
 
@@ -180,31 +180,31 @@ chr10   100204528   rs374991603 G   A   synonymous_variant
 chr10   100204555   rs17880383  G   A   synonymous_variant
 ```
 
-``` shell
+```shell
 spark-submit 3-variant_qc/5-annotate_ht_after_rf.py
 ```
 
 Add ranks to variants based on random forest score, and bin the variants based on this.
 
-``` shell
+```shell
 spark-submit 3-variant_qc/6-rank_and_bin.py
 ```
 
 Create plots of the binned random forest output to use in the selection of thresholds. Separate thresholds are used for SNPs and indels.
 
-``` shell
+```shell
 spark-submit 3-variant_qc/7-plot_rf_output.py
 ```
 
 After examining the plots and selecting suitable thresholds for SNPs and indels you can calculate the number of true positive and false positive variants remaining at your chosen thresholds and at the bins surrounding it using the following (where snp_bin and indel_bin are the thresholds selected for SNPs and indels respectively).
 
-``` shell
+```shell
 spark-submit 3-variant_qc/8-select_thresholds.py --snv snp_bin --indel indel_bin
 ```
 
 Filter the variants in the Hail MatrixTable based on the selected threshold for SNPs and indels
 
-``` shell
+```shell
 spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snp_bin --indel indel_bin
 ```
 
@@ -212,7 +212,7 @@ spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snp_bin --indel 
 
 Genotype QC may be performed using a range of filters defined in *config/inputs.yaml* or it may be performed using a single set of filters for DP, GQ, VAF and bins. Here we apply a range of filters (relaxed, medium and stringent) which we have defined in the *config/inputs.yaml* file
 
-``` shell
+```shell
 spark-submit 4-genotype_qc/1a-apply_range_of_hard_filters.py
 ```
 
@@ -226,18 +226,18 @@ chr10   100200012   rs144642900 C   T   missense_variant
 chr1    100200019   .  C    A   stop_gained&splice_region_variant
 ```
 
-``` shell
+```shell
 spark-submit 4-genotype_qc/2-counts_per_sample.py
 ```
 
 Export the filtered variants to VCF.
 
-``` shell
+```shell
 spark-submit 4-genotype_qc/3a-export_vcfs_range_of_hard_filters.py
 ```
 
 Alternatively, to export VCFs wiht only stringent hard filter, use the 3b version of the script:
 
-``` shell
+```shell
 spark-submit 4-genotype_qc/3b-export_vcfs_stingent_filters.py
 ```

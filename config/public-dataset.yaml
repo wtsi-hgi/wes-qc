@@ -47,17 +47,18 @@ cvars:
   vcf_export_dir: general.vcf_export_dir
 
 general:
-  # Dataset name - to name plots, files, legends, etc
+  # Dataset name - the root folder for all analysis files
+  # Also used for the naming of tables, plots, etc
   dataset_name: 'public-dataset'
 
   # Dataset root directory - to use in folder paths
   data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
 
+  #tmp_dir: "{INTEGRATION_TESTS_DIR}/tmp/" # output
   tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
   # For data_root file prefix is added automatically
   # tmp_dir: '{general.data_root}/tmp'
-
   annotation_dir: '{general.data_root}/annotations/'
   matrixtables_dir: '{general.data_root}/matrixtables/'
   resource_dir: '{general.data_root}/resources/'
@@ -114,7 +115,6 @@ step2:
     aaf_threshold: 0.05
 
   sex_inconsistencies:
-    # TODO: specify structure of a sex metadata file
     sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
     conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
     fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
@@ -131,13 +131,12 @@ step2:
       # keep_higher_maf:
       # block_size:
 
-  # previously pc_relate
   prune_pc_relate:
-    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output
-    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
+    samples_to_remove_tsv: '{anndir}/related_samples_to_remove.tsv' # output in the TSV table
     pca_components: 3
-    pc_relate_args:
+    pc_relate_args: # https://hail.is/docs/0.2/methods/relatedness.html#hail.methods.pc_relate
       min_individual_maf: 0.05
       block_size: 4096
       min_kinship: 0.05
@@ -147,7 +146,6 @@ step2:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
 
-  # previously population_pca
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
     pca_components: 4
@@ -156,8 +154,16 @@ step2:
     pca_mt_file: '{mtdir}/mt_pca.mt' # output
     plot_outfile: '{pltdir}/pca.html' # output
 
-  # --- Step 2.3 --- #
 
+
+
+
+
+
+
+
+
+  # --- Step 2.3 --- #
   merge_1kg_and_ldprune:
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
