@@ -92,7 +92,7 @@ step2:
   # --- Step 2.2 --- #
   prune:
     pruned_mt_file: '{mtdir}/mt_ldpruned.mt' # output
-    ld_prune_args:
+    ld_prune_args: # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.ld_prune
       r2: 0.2
       # bp_window_size:
       # memory_per_core:
@@ -101,11 +101,11 @@ step2:
 
   # for function `pc_relate()`
   prune_pc_relate:
-    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output
-    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
+    samples_to_remove_tsv: '{anndir}/related_samples_to_remove.tsv' # output in the TSV table
     pca_components: 3
-    pc_relate_args:
+    pc_relate_args: # https://hail.is/docs/0.2/methods/relatedness.html#hail.methods.pc_relate
       min_individual_maf: 0.05
       block_size: 4096
       min_kinship: 0.05
@@ -117,7 +117,7 @@ step2:
 
   # for function `population_pca()`
   prune_plot_pca:
-    plink_outfile: '{mtdir}/mt_unrelated.plink'
+    plink_outfile: '{anndir}/mt_unrelated.plink'
     pca_components: 4
     pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
     pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output

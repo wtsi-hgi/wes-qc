@@ -116,7 +116,6 @@ class HailTestCase(unittest.TestCase):
         rendered_config_savefile = os.path.join(integration_tests_dir, INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE)
 
         # # render test config from the template
-        # render_config('inputs_test_template.yaml', test_data_path, resources_path) # TODO: make configurable
         render_config(
             INTEGRATION_TESTS_CONFIG_TEMPLATE,
             test_data_path,
