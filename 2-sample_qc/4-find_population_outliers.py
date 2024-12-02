@@ -136,7 +136,7 @@ def main():
 
     # initialise hail
     tmp_dir = config["general"]["tmp_dir"]
-    hail_utils.init_hl(tmp_dir)
+    _ = hail_utils.init_hl(tmp_dir)
 
     # annotate mt with runid and pop
     raw_mt_file = config["step1"]["gatk_mt_outfile"]

@@ -35,6 +35,9 @@ general:
   # CVAR rfdir
   var_qc_rf_dir: "{VARIANT_QC_RANDOM_FOREST_DIR}" # output
 
+  # random forest model is geneated during step3.3, catch the parameter `runhash` and place it here
+  rf_model_id: "testhash"
+
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
@@ -190,7 +193,7 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{resdir}/trios.EGAN.complete.ped'
+  pedfile: '{resdir}/control_set_small_trios.ped'
 
   # --- Step 3.1 --- #
   get_truth_ht:

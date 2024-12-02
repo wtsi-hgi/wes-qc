@@ -66,6 +66,8 @@ general:
   training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
+  rf_model_id: test-run-model
 
 step1:
   # --- Step 1.1 --- #
@@ -214,12 +216,11 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{resdir}/trios.ped'
+  pedfile: '{anndir}/1000g.ped'
 
   # TODO: implement reading runhash from config
   # The runhash of the Random Forest model. Generated at the step 3.3
   # Hashes for all trained models can be found in {dataroot}/variant_qc_random_forest
-  rf_runhash: '19327460'
 
   # --- Step 3.1 --- #
   get_truth_ht:

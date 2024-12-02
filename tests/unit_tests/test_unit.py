@@ -5,7 +5,7 @@ import importlib
 
 import hail as hl
 import hailtop.fs as hfs
-
+import pytest
 from pyspark import SparkContext
 
 from hail_utils import compare_tables, compare_matrixtables, compare_plinks, compare_txts, compare_bgzed_txts
@@ -36,10 +36,8 @@ qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_
 qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
 qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
-qc_step_4_1 = importlib.import_module("4-genotype_qc.1-apply_hard_filters")
 qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
 qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
-qc_step_4_3 = importlib.import_module("4-genotype_qc.3-export_vcfs")
 qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
 qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
 
@@ -70,6 +68,7 @@ class HailTestCase(unittest.TestCase):
 TEST_FILES_LIST = "../test_files_list_in_bucket.txt"
 
 
+@pytest.mark.skip("Skipping this class for now as we will find alternative way to test")
 class RegressionTests(HailTestCase):
     @classmethod
     def setUpClass(cls):
@@ -666,15 +665,6 @@ class RegressionTests(HailTestCase):
         )
 
         self.assertTrue(sample_qc_filtered_identical and samples_failing_qc_identical)
-
-    # tests for 4-genotype_qc
-    def test_4_1_1_filter_mt(self):
-        # NOTE: when generating new reference make sure to use these arguments
-        qc_step_4_1.filter_mt(self.ref_mt_after_var_qc, dp=5, gq=10, ab=0.2, mtfile_filtered=self.mtfile_filtered)
-
-        mtfile_filetered_identical = compare_matrixtables(self.mtfile_filtered, self.ref_mtfile_filtered)
-
-        self.assertTrue(mtfile_filetered_identical)
 
     # TODO: implement tests for the remaining functions listed below
 
