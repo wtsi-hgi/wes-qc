@@ -66,6 +66,8 @@ general:
   training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
+  rf_model_id: "48ad0fd9"
 
 step1:
   # --- Step 1.1 --- #
