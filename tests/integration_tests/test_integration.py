@@ -204,7 +204,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 3.2 failed with an exception: {e}")
 
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(manual_runhash=RF_RUN_TEST_HASH))
+    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(manual_model_id=RF_RUN_TEST_HASH))
     def test_3_3_variant_qc(self, mock_args):
         try:
             qc_step_3_3.main()
