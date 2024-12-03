@@ -3,25 +3,32 @@
 > [!WARNING]
 > This documentation is under development and may be incomplete.
 
-This guide covers WES QC using Hail. It is important to note that every dataset is different and that for best results it is not advisable to view this guide as a recipe for QC. Each dataset will require careful tailoring and evaluation of the QC for best results.
+This guide covers WES QC using Hail. It is important to note that every dataset is different and that for best results it is not advisable to view this guide as a recipe for QC.
+Each dataset will require careful tailoring and evaluation of the QC for best results.
 
 ## Before you start
 
-In order to run through this guide you will need an OpenStack cluster with Hail and Spark installed. It is recommended that you use `osdataproc` to create this. Follow the [[hail-on-spark]] guide to create such a cluster.
+In order to run through this guide you will need an OpenStack cluster with Hail and Spark installed.
+It is recommended that you use `osdataproc` to create it.
+Follow the [[hail-on-spark]] guide to create such a cluster.
+The ability to run WEQ-QC code on a local machine is under development.
 
-This guide also requires a WES dataset joint called with GATK using the cromwell pipeline. If starting with a Hail matrixtable then start at Step [[#2. Sample QC]].
+This guide also requires a WES dataset joint called with GATK and saved as a set of multi-sample VCFs.
+If starting with a Hail matrixtable, then start at Step [[#2. Sample QC]].
 
 ## Set up
 
-Clone the main branch using:
+Clone the repository using:
 ```shell
 git clone https://github.com/wtsi-hgi/wes-qc.git
 cd wes_qc
 ```
 
-Historically, each dataset has its own branch, but now the HGI team is trying to merge all functionality into the main branch
+Historically, each dataset had its own branch,
+but now the HGI team is trying to merge all functionality into the main branch
 and vary only the config file.
-This process is not finished yet, so if you have to make any dataset-specific operations, you can do it in your own branch.
+This process is not finished yet,
+so if you have to make any dataset-specific operations, you can do it in your own branch.
 
 Create a new config file for your dataset.
 By default, all scripts will use the config fine named `inputs.yaml`.
@@ -36,7 +43,7 @@ cd ..
 
 Edit `config/my_project.yaml` to include the correct paths for your datasets and working directories.
 Most probably you'll need to change only `dataset_name` and `data_root` entries.
-All other paths are specified as relatives, so you won't need top edit it.
+All other paths are specified as relatives, so you won't need to edit it.
 
 Start a new tmux session, and edit the PYTHONPATH to include the directory you originally cloned the git repo into.
 
@@ -126,7 +133,8 @@ spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
 
 4. Outliers identification
 
-Now that we have the predicted populations that each sample belongs to we can run sample QC stratified by population and identify outliers within each population for each metric tested:
+Now that we have the predicted populations that each sample belongs to,
+we can run sample QC stratified by population and identify outliers within each population for each metric tested:
 - number of SNPs
 - number of deletions and insertions, insertion/deletion ratе
 - heterozygosity rate, heterozygous/homozygous ratio
@@ -138,7 +146,12 @@ spark-submit 2-sample_qc/4-find_population_outliers.py
 
 5. Filter data to exclude samples which fail QC.
 
-The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script. <!At this stage samples failing on FREEMIX score and on identity checks are also removed. This samples should be in files in the annotations directory: `verify_bam_id_result_concat.selfSM` lists sample ID and FREEMIX score and `sanger_samples_excluded_after_gtcheck.txt` lists samples failing identity checks. If no samples fail identify checks the latter file could be empty.> These samples are saved in `samples_failing_qc.tsv.bgz` in the annotation directory.
+The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script.
+<!At this stage samples failing on FREEMIX score and on identity checks are also removed.
+This samples should be in files in the annotations directory: `verify_bam_id_result_concat.selfSM`
+lists sample ID and FREEMIX score and `sanger_samples_excluded_after_gtcheck.txt` lists samples failing identity checks.
+If no samples fail identify checks the latter file could be empty.
+> These samples are saved in `samples_failing_qc.tsv.bgz` in the annotation directory.
 
 ```shell
 spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
@@ -146,7 +159,8 @@ spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
 
 ### 3. Variant QC
 
-Variant QC requires a ped file detailing any trios. This is an unheaded, tab-delimited file that contains the following columns:
+Variant QC requires a ped file detailing any trios.
+This is an unheaded, tab-delimited file that contains the following columns:
 - Family ID
 - Proband ID
 - Paternal ID
@@ -167,19 +181,19 @@ Next an input table is generated to run the random forest on.
 spark-submit 3-variant_qc/2-create_rf_ht.py
 ```
 
-Next train the random forest model, note the use of --master local[*] here which is needed to ensure that the worker nodes pick up the correct python modules.
+Next, train the random forest model, note the use of --master local[*] here which is needed to ensure that the worker nodes pick up the correct python modules.
 
 ```shell
 spark-submit  3-variant_qc/3-train_rf.py
 ```
 
-The random forest model ID (called runhash previously, so you can find this term in the code)
+The random forest model ID (called _runhash_ previously, so you can find this term in the code)
 will be printed to STDOUT.
 It is an 8-character string consisting of letters and numbers.
 Put this ID in the config file in the `rf_model_id:` parameter under the `general` section.
 
 **Note:**
-In old gnomAD releases, some random forest related functions,
+In old _gnomAD_ releases, some random forest related functions,
 (for example `train_rf_model()`) were a bit buggy
 and could work incorrectly in the parallel SPARK environment.
 If VariantQC functions fail with some weird message
@@ -232,13 +246,17 @@ spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snp_bin --indel 
 
 ### 4. Genotype QC
 
-Genotype QC may be performed using a range of filters defined in *config/inputs.yaml* or it may be performed using a single set of filters for DP, GQ, VAF and bins. Here we apply a range of filters (relaxed, medium and stringent) which we have defined in the *config/inputs.yaml* file
+Genotype QC may be performed using a range of filters defined in `config/inputs.yaml`,
+or it may be performed using a single set of filters for DP, GQ, VAF and bins.
+Here we apply a range of filters (relaxed, medium and stringent) which we have defined in the `config/inputs.yaml` file
 
 ```shell
 spark-submit 4-genotype_qc/1a-apply_range_of_hard_filters.py
 ```
 
-In order to evaluate these filters, variant counts per consequence per sample and transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data) are calculated as follows. VEP annotation is required for this step in the following format:
+In order to evaluate these filters, variant counts per consequence per sample and
+transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data) are calculated as follows.
+VEP annotation is required for this step in the following format:
 
 ```
 chr10   100199947   rs367984062 A   C   intron_variant
@@ -258,7 +276,7 @@ Export the filtered variants to VCF.
 spark-submit 4-genotype_qc/3a-export_vcfs_range_of_hard_filters.py
 ```
 
-Alternatively, to export VCFs wiht only stringent hard filter, use the 3b version of the script:
+Alternatively, to export VCFs with only stringent hard filter, use the 3b version of the script:
 
 ```shell
 spark-submit 4-genotype_qc/3b-export_vcfs_stingent_filters.py
