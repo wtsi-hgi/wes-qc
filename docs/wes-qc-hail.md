@@ -13,19 +13,30 @@ This guide also requires a WES dataset joint called with GATK using the cromwell
 
 ## Set up
 
-Each dataset should have its own branch of the WES QC code. Clone the main branch using:
+Clone the main branch using:
 ```shell
 git clone https://github.com/wtsi-hgi/wes-qc.git
+cd wes_qc
 ```
 
-Create a new branch and switch to your branch:
+Historically, each dataset has its own branch, but now the HGI team is trying to merge all functionality into the main branch
+and vary only the config file.
+This process is not finished yet, so if you have to make any dataset-specific operations, you can do it in your own branch.
+
+Create a new config file for your dataset.
+By default, all scripts will use the config fine named `inputs.yaml`.
+You can make a symlink for it to keep the config name meaningful.
 
 ```shell
-cd wes_qc
-git checkout -b my_project
+cd config
+cp public-dataset.yaml my_project.yaml
+ln -snf my_project.yaml inputs.yaml
+cd ..
 ```
 
-Edit `config/inputs.yaml` to include the correct paths for your datasets and working directories. ==You will need to edit all directory paths in this file and commit/push your changes to git.==
+Edit `config/my_project.yaml` to include the correct paths for your datasets and working directories.
+Most probably you'll need to change only `dataset_name` and `data_root` entries.
+All other paths are specified as relatives, so you won't need top edit it.
 
 Start a new tmux session, and edit the PYTHONPATH to include the directory you originally cloned the git repo into.
 
@@ -34,7 +45,7 @@ export PYTHONPATH=/path/to/wes-qc
 ```
 
 >[!NOTE]
->To submit jobs to spark one can either:
+>To submit jobs to SPARK you can either:
 >```shell
 ># OPTION 1
 >export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
@@ -52,6 +63,17 @@ Load VCFs into Hail and save as a Hail MatrixTable
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
+Create the 1000G population prediction resource set.
+This resource set is required for the super-population prediction on the population PCA step.
+
+```shell
+spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py --all
+```
+
+You need to create this resource set only once.
+Then you can reuse it with any data cohort.
+
+
 ### 2. Sample QC
 
 1. Apply hard filters and annotate with imputed sex
@@ -65,27 +87,16 @@ spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
 ```shell
 spark-submit 2-sample_qc/2-prune_related_samples.py
 ```
-This step doesn't affect any other steps, because on the step 2/3 we're using the clustering approach with PCA scores projection,
-However, this formation can be useful to compare with pedigree data and identify mislabeled samples.
+This step doesn't affect any other steps,
+because, on the step 2/3 we're using the clustering approach with PCA scores projection,
+However, this information can be useful to compare it with pedigree data and identify mislabeled samples.
 
 3. Population prediction with PCA
 
-Create MatrixTable from 1kg WES VCFs.
+Merge 1kg MatrixTable with WES MatrixTable and make LD pruning.
 
 ```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --kg_to_mt
-```
-
-Merge 1kg MatrixTable with WES MatrixTable.
-
-```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --merge
-```
-
-Annotate with known populations for 1kg samples and filter to remove low quality variants, variants in long range linkage disequilibrium regions and palindromic SNPs
-
-```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --filter
+spark-submit 2-sample_qc/3-population_pca_prediction.py --merge-and-ldprune
 ```
 
 Run PCA.
@@ -94,13 +105,24 @@ Run PCA.
 spark-submit 2-sample_qc/3-population_pca_prediction.py --pca
 ```
 
+Plot 1KG PCA. On this step, all dataset samples should be labelled as `N/A`.
+
+```shell
+spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot
+```
+
 Run population prediction.
 
 ```shell
 spark-submit 2-sample_qc/3-population_pca_prediction.py --assign_pops
 ```
 
-Use a Jupyter Notebook on the Hail cluster to plot PC1 vs PC2 and PC1 vs PC3 for known populations (1000 genomes only) and predicted populations. An example Jupyter Notebook is in *jupyter_notebooks/sample_qc/population_inference_plots.ipynb*
+Plot PCA clustering for merged dataset (1000 genomes + the dataset), and for the dataset only.
+You can specify the number of PCA components you want in the config file.
+
+```shell
+spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
+```
 
 4. Outliers identification
 
