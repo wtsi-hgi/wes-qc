@@ -8,35 +8,25 @@ The code is written by members of **Wellcome Sanger HGI group**
 based on the **gnomAD QC** pipeline by **Broad institute**
 (https://github.com/broadinstitute/gnomad_qc/tree/main).
 
-The current codebase has several branches - one  for each dataset.
-The unification of branches and the code refactoring is in progress.
+The current codebase has several branches — one for each dataset.
+The unification of branches and the code refactoring are in progress.
 
 The howto for the code is here:
 https://hgi-projects.pages.internal.sanger.ac.uk/documentation/docs/how-to-guides/wes-qc-hail/
 
-# How to run the code
+# How to run the code and QC your data
+
+The brief howto for the QC process is available in the
+[WES-QC Hail howto](docs/wes-qc-hail.md).
 
 The code is designed to run on the SPARK cluster with the
 [Hail library](https://hail.is/) installed.
 The manual for the cluster setting up is
-[here](https://hgi-projects.pages.internal.sanger.ac.uk/documentation/docs/tutorials/hail-on-spark/#destructing-and-re-creating-cluster).
+[here](docs/hail-on-spark.md).
 
-To run the code on a Spark cluster, two scripts are used:
-* `hlrun_local` - runs the Python script via `spark-submit`. You need to run it on the spark master node on your cluster.
-* `hlrun_remote` - runs the code on the Spark cluster form your local machine.
-It performs a series of operations:
-  * Sync the codebase to the remote cluster
-  * Create tmux session on the remoter cluster
-  * Run the Python script via `hlrun_local`
-  * Attach to the tmux session to monitor the progress
+# Developer's howto
 
-**Warning**
-
-The `hlrun_remote` is designed to work with only one tmux session.
-To start a new task via `hlrun_remote`, first end the existing tmux session, if it exists.
-
-
-# How to run the tests and with coverage
+## How to run the tests and calculate coverage
 
 The tests currently require running on the SPARK cluster. There are plans to make them runnable locally.
 They can be run by commands defined in `Makefile`.
@@ -57,8 +47,6 @@ make unit-test-coverage
 make integration-test-coverage
 ```
 
-# Developer's howto
-
 ## To run pre-commit hooks on commit
 
 1. Install pre-commit
@@ -70,7 +58,7 @@ pip install pre-commit
 ```shell
 pre-commit run --files <file1> <file2>
 ```
-4. `mypy` is configured to run manually because now it produce too many errors. To run it:
+4. `mypy` is configured to run manually because now it produces too many errors. To run it:
 ```shell
 pre-commit run --hook-stage manual
 ```

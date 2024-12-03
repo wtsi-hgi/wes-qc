@@ -10,11 +10,12 @@ Each dataset will require careful tailoring and evaluation of the QC for best re
 
 In order to run through this guide you will need an OpenStack cluster with Hail and Spark installed.
 It is recommended that you use `osdataproc` to create it.
-Follow the [[hail-on-spark]] guide to create such a cluster.
+Follow the [Hail on SPARK](hail-on-spark.md) guide to create such a cluster.
+
 The ability to run WEQ-QC code on a local machine is under development.
 
 This guide also requires a WES dataset joint called with GATK and saved as a set of multi-sample VCFs.
-If starting with a Hail matrixtable, then start at Step [[#2. Sample QC]].
+If starting with a Hail matrixtable, then start at [Step 2](#2-sample-qc).
 
 ## Set up
 
@@ -45,6 +46,10 @@ Edit `config/my_project.yaml` to include the correct paths for your datasets and
 Most probably you'll need to change only `dataset_name` and `data_root` entries.
 All other paths are specified as relatives, so you won't need to edit it.
 
+## How to run the code
+
+### Manually running the code from a cluster
+
 Start a new tmux session, and edit the PYTHONPATH to include the directory you originally cloned the git repo into.
 
 ```shell
@@ -61,6 +66,27 @@ export PYTHONPATH=/path/to/wes-qc
 >
 >spark-submit /path/to/hail_script.py
 >```
+
+### Automatically sync and run the code from a local machine
+
+In the `scripts` folder you can find two scripts.
+* `hlrun_local` - runs the Python script via `spark-submit`. You need to run it on the spark master node on your cluster.
+* `hlrun_remote` - runs the code on the Spark cluster form your local machine.
+It performs a series of operations:
+  * Sync the codebase to the remote cluster, defined by the
+  * Create tmux session on the remoter cluster
+  * Run the Python script via `hlrun_local`
+  * Attach to the tmux session to monitor the progress
+
+The second script is use
+
+**Warning**
+
+The `hlrun_remote` is designed to work with only one tmux session.
+To start a new task via `hlrun_remote`, first end the existing tmux session, if it exists.
+
+
+## Analyze your data
 
 ### 1. Load data from VCFs into Hail
 
