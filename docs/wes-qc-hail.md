@@ -73,12 +73,14 @@ In the `scripts` folder you can find two scripts.
 * `hlrun_local` - runs the Python script via `spark-submit`. You need to run it on the spark master node on your cluster.
 * `hlrun_remote` - runs the code on the Spark cluster form your local machine.
 It performs a series of operations:
-  * Sync the codebase to the remote cluster, defined by the
+  * Sync the codebase to the remote cluster, defined by the environment variable `$hail_cluster`.
+    The variable can contain the full host definition (`user@hostname`) or only hostname from the SSH config file.
   * Create tmux session on the remoter cluster
   * Run the Python script via `hlrun_local`
   * Attach to the tmux session to monitor the progress
 
-The second script is use
+The second script is beneficial for development when you modify the code on your local machine,
+and then run it on the cluster.
 
 **Warning**
 
@@ -98,13 +100,12 @@ spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 
 Create the 1000G population prediction resource set.
 This resource set is required for the super-population prediction on the population PCA step.
-
-```shell
-spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py --all
-```
-
 You need to create this resource set only once.
 Then you can reuse it with any data cohort.
+
+```shell
+spark-submit 1-import_data/4-import_1kg.py --all
+```
 
 
 ### 2. Sample QC
@@ -207,7 +208,7 @@ Next an input table is generated to run the random forest on.
 spark-submit 3-variant_qc/2-create_rf_ht.py
 ```
 
-Next, train the random forest model, note the use of --master local[*] here which is needed to ensure that the worker nodes pick up the correct python modules.
+Next, train the random forest model.
 
 ```shell
 spark-submit  3-variant_qc/3-train_rf.py
@@ -219,10 +220,9 @@ It is an 8-character string consisting of letters and numbers.
 Put this ID in the config file in the `rf_model_id:` parameter under the `general` section.
 
 **Note:**
-In old _gnomAD_ releases, some random forest related functions,
-(for example `train_rf_model()`) were a bit buggy
-and could work incorrectly in the parallel SPARK environment.
-If VariantQC functions fail with some weird message
+In old _gnomAD_ releases, the function `train_rf_model()`
+could work incorrectly in the parallel SPARK environment.
+If and VariantQC step fails with some weird message
 (no space left on the device, wrong imports, etc),
 try running model training on the master node only by adding `--master local[*]`
 to the `spark-submit` parameters.
@@ -233,7 +233,9 @@ Now apply the random forest to the entire dataset.
 spark-submit 3-variant_qc/4-apply_rf.py
 ```
 
-Annotate the random forest output with metrics including synonymous variants, family annotation, transmitted/untransmitted singletons and gnomAD allele frequency. Synonymous variants are required in a file generated from VEP annotation and in the following format:
+Annotate the random forest output with metrics including synonymous variants, family annotation,
+transmitted/untransmitted singletons and gnomAD allele frequency.
+Synonymous variants are required in a file generated from VEP annotation and in the following format:
 
 ```
 chr10   100202145   rs200461553 T   G   synonymous_variant
@@ -258,16 +260,19 @@ Create plots of the binned random forest output to use in the selection of thres
 spark-submit 3-variant_qc/7-plot_rf_output.py
 ```
 
-After examining the plots and selecting suitable thresholds for SNPs and indels you can calculate the number of true positive and false positive variants remaining at your chosen thresholds and at the bins surrounding it using the following (where snp_bin and indel_bin are the thresholds selected for SNPs and indels respectively).
+After examining the plots and selecting suitable thresholds for SNPs and indels,
+you can calculate the number of true positive and false positive variants
+remaining at your chosen thresholds and at the bins surrounding it using the following
+(where snv_bin and indel_bin are the thresholds selected for SNVs and indels respectively).
 
 ```shell
-spark-submit 3-variant_qc/8-select_thresholds.py --snv snp_bin --indel indel_bin
+spark-submit 3-variant_qc/8-select_thresholds.py --snv snv_bin --indel indel_bin
 ```
 
-Filter the variants in the Hail MatrixTable based on the selected threshold for SNPs and indels
+Filter the variants in the Hail MatrixTable based on the selected threshold for SNVs and indels
 
 ```shell
-spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snp_bin --indel indel_bin
+spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel indel_bin
 ```
 
 ### 4. Genotype QC
