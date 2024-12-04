@@ -49,24 +49,24 @@ cvars:
 general:
   # Dataset name - the root folder for all analysis files
   # Also used for the naming of tables, plots, etc
-  dataset_name: 'public-dataset'
+  dataset_name: 'integration-data'
 
   # Dataset root directory - to use in folder paths
-  data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
+  data_root: '{INTEGRATION_TESTS_DIR}/{general.dataset_name}'
 
-  tmp_dir: "{INTEGRATION_TESTS_DIR}/tmp/" # output
+  tmp_dir: '{general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
   # For data_root file prefix is added automatically
   # tmp_dir: '{general.data_root}/tmp'
-  annotation_dir: "{INTEGRATION_TESTS_DIR}/annotations/" # output
-  matrixtables_dir: "{INTEGRATION_TESTS_DIR}/matrixtables/" # output
+  annotation_dir: "{general.data_root}/annotations/" # output
+  matrixtables_dir: "{general.data_root}/matrixtables/" # output
   resource_dir: "{RESOURCES_DIR}" # input and output
-  onekg_resource_dir: "{RESOURCES_DIR}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
-  plots_dir: "{INTEGRATION_TESTS_DIR}/plots/" # output
+  onekg_resource_dir: "{general.resource_dir}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
+  plots_dir: "{general.data_root}/plots/" # output
   training_sets_dir: "{TRAINING_SETS_DIR}" # input
-  var_qc_rf_dir: "{VARIANT_QC_RANDOM_FOREST_DIR}" # output
-  #vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
+  vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
   # random forest model is geneated during step3.3, catch the parameter `runhash` and place it here
   rf_model_id: "testhash"
 
@@ -277,10 +277,8 @@ step3:
     gnomad_train_rf_num_trees: 500
     gnomad_train_rf_max_depth: 5
 
-
   # --- Step 3.4 --- #
   # only var_qc_rf_dir (CVAR) is needed
-
 
   # --- Step 3.5 --- #
   add_cq_annotation:
@@ -310,6 +308,7 @@ step3:
     high_quality_p_de_novo: 0.99
     medium_quality_p_de_novo: 0.5
 
+    # TODO: merge these into a single parameter?
     n_trans_common_gnomad_af: 0.1
     n_untrans_common_gnomad_af: 0.1
 
@@ -337,14 +336,23 @@ step3:
     cqfile: '{resdir}/all_consequences.txt'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
+evaluation:
+  giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+  giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
+  giab_sample: null
+  snp_bins: []
+  indel_bins: []
+  gq_vals: [10, 15, 20]
+  dp_vals: [5, 10]
+  ab_vals: [0.2, 0.3]
+  missing_vals: [0, 0.5, 0.9, 0.95]
+  snp_json: '{anndir}/evaluation.snp.json'
+  snp_tsv_filesuffix: '_genotype_hard_filter_comparison_snv.txt'
+  indel_json: '{anndir}/evaluation.indel.json'
+  indel_tsv_filesuffix: '_genotype_hard_filter_comparison_indel.txt'
+
 step4:
-  # --- Step 4.1 --- #
-  filter_mt:
-    mtfile: '{mtdir}/mt_after_var_qc.mt'
-    mtoutfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-
   # --- Step 4.1a --- #
-
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
     cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'
@@ -403,14 +411,7 @@ step4:
   get_ca_fractions:
     cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
 
-  # --- Step 4.3 --- #
-  export_vcfs:
-    mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs/'
-
   # --- Step 4.3a --- #
-
-  # using vcf_output_dir from the previous step
   export_vcfs_a:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
     vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations/'
