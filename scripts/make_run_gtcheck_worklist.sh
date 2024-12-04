@@ -1,5 +1,5 @@
 #!/bin/bash
- 
+
 vcflist="/lustre/scratch123/hgi/projects/birth_cohort_wes/qc/gatk_vcf_list.txt"
 
 bcftools="/nfs/users/nfs_p/pd3/bcftools/dist/bin/bcftools"
