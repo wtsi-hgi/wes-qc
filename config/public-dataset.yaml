@@ -54,15 +54,15 @@ general:
   # Dataset root directory - to use in folder paths
   data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
 
-  #tmp_dir: "{INTEGRATION_TESTS_DIR}/tmp/" # output
-  tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
+  tmp_dir: '{general.data_root}/tmp/' # output
+  #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
   # For data_root file prefix is added automatically
   # tmp_dir: '{general.data_root}/tmp'
   annotation_dir: '{general.data_root}/annotations/'
   matrixtables_dir: '{general.data_root}/matrixtables/'
   resource_dir: '{general.data_root}/resources/'
-  onekg_resource_dir: '{general.data_root}/resources/mini_1000G/'
+  onekg_resource_dir: '{general.resource_dir}/mini_1000G/'
   plots_dir: '{general.data_root}/plots/'
   training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
@@ -224,10 +224,6 @@ step3:
   # Parameters used in multiple functions #
   pedfile: '{anndir}/1000g.ped'
 
-  # TODO: implement reading runhash from config
-  # The runhash of the Random Forest model. Generated at the step 3.3
-  # Hashes for all trained models can be found in {dataroot}/variant_qc_random_forest
-
   # --- Step 3.1 --- #
   get_truth_ht:
     truth_ht_outfile: '{resdir}/truthset_table.ht'
@@ -356,13 +352,7 @@ evaluation:
   indel_tsv_filesuffix: '_genotype_hard_filter_comparison_indel.txt'
 
 step4:
-  # --- Step 4.1 --- #
-  filter_mt:
-    mtfile: '{mtdir}/mt_after_var_qc.mt'
-    mtoutfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-
   # --- Step 4.1a --- #
-
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
     cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'
@@ -420,11 +410,6 @@ step4:
 
   get_ca_fractions:
     cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
-
-  # --- Step 4.3 --- #
-  export_vcfs:
-    mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    vcf_output_dir: '{vcf_export_dir}/filtered_vcfs/'
 
   # --- Step 4.3a --- #
   export_vcfs_a:

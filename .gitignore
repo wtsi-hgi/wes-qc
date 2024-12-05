@@ -140,6 +140,7 @@ tests/unit_tests/*
 tests/integration_tests/*
 # except the test_*.py files
 !tests/integration_tests/test_*.py
+!tests/integration_tests/config_test_template.yaml
 
 # ignore the pyproject.toml and poetry.lock files for now
 # TODO: add these files after implementing the local running tests
