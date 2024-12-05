@@ -12,7 +12,7 @@ from utils.utils import download_test_data_using_files_list
 TEST_FILES_LIST = "../test_files_list_in_bucket.txt"
 
 # configuration file template for the integration tests
-INTEGRATION_TESTS_CONFIG_TEMPLATE = "new_config_test_template.yaml"
+INTEGRATION_TESTS_CONFIG_TEMPLATE = "config_test_template.yaml"
 INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE = "integration_config_rendered.yaml"
 
 # set up explicit runhash parameter for reproducible RF training
