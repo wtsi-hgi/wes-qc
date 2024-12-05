@@ -7,6 +7,7 @@ from typing import Optional
 from unittest.mock import patch
 from utils.utils import download_test_data_using_files_list
 
+# /path/to/wes_qc must be in PYTHONPATH
 
 # list with the test files must be located in the test directory in the repo
 TEST_FILES_LIST = "../test_files_list_in_bucket.txt"
@@ -69,31 +70,6 @@ def render_config(
 # DEBUG: might be useful https://spark.apache.org/docs/latest/api/python/getting_started/testing_pyspark.html
 # TODO: clean up hail logs
 
-# /path/to/wes_qc must be in PYTHONPATH
-qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
-qc_step_1_4 = importlib.import_module("1-import_data.4-import_1kg")
-
-qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
-qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
-qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
-qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
-qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
-
-qc_step_3_1 = importlib.import_module("3-variant_qc.1-generate_truth_sets")
-qc_step_3_2 = importlib.import_module("3-variant_qc.2-create_rf_ht")
-qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
-qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
-qc_step_3_5 = importlib.import_module("3-variant_qc.5-annotate_ht_after_rf")
-qc_step_3_6 = importlib.import_module("3-variant_qc.6-rank_and_bin")
-qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
-qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
-qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
-
-qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
-qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
-qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
-qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
-
 
 class HailTestCase(unittest.TestCase):
     @classmethod
@@ -136,6 +112,7 @@ class HailTestCase(unittest.TestCase):
 
 class IntegrationTests(HailTestCase):
     def test_1_1_import_data(self):
+        qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
         try:
             qc_step_1_1.main()
         except Exception as e:
@@ -148,18 +125,22 @@ class IntegrationTests(HailTestCase):
         ),
     )
     def test_1_4_import_data(self, mock_args):
+        qc_step_1_4 = importlib.import_module("1-import_data.4-import_1kg")
         try:
             qc_step_1_4.main()
         except Exception as e:
             self.fail(f"Step 1.4 failed with an exception: {e}")
 
     def test_2_1_sample_qc(self):
+        qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
         try:
             qc_step_2_1.main()
         except Exception as e:
             self.fail(f"Step 2.1 failed with an exception: {e}")
 
     def test_2_2_sample_qc(self):
+        qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
+
         try:
             qc_step_2_2.main()
         except Exception as e:
@@ -172,18 +153,23 @@ class IntegrationTests(HailTestCase):
         ),
     )
     def test_2_3_sample_qc(self, mock_args):
+        qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
+
         try:
             qc_step_2_3.main()
         except Exception as e:
             self.fail(f"Step 2.3 failed with an exception: {e}")
 
     def test_2_4_sample_qc(self):
+        qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
+
         try:
             qc_step_2_4.main()
         except Exception as e:
             self.fail(f"Step 2.4 failed with an exception: {e}")
 
     def test_2_5_sample_qc(self):
+        qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
         try:
             qc_step_2_5.main()
         except Exception as e:
@@ -192,12 +178,14 @@ class IntegrationTests(HailTestCase):
     # mock cli arguments
     @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(all=True, truth=True, annotation=True))
     def test_3_1_variant_qc(self, mock_args):
+        qc_step_3_1 = importlib.import_module("3-variant_qc.1-generate_truth_sets")
         try:
             qc_step_3_1.main()
         except Exception as e:
             self.fail(f"Step 3.1 failed with an exception: {e}")
 
     def test_3_2_variant_qc(self):
+        qc_step_3_2 = importlib.import_module("3-variant_qc.2-create_rf_ht")
         try:
             qc_step_3_2.main()
         except Exception as e:
@@ -205,6 +193,7 @@ class IntegrationTests(HailTestCase):
 
     @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(manual_model_id=RF_RUN_TEST_HASH))
     def test_3_3_variant_qc(self, mock_args):
+        qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
         try:
             qc_step_3_3.main()
         except Exception as e:
@@ -212,7 +201,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     def test_3_4_variant_qc(self):
-        # set up correct PYSPARK_PYTHON env variable
+        qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
         try:
             qc_step_3_4.main()
         except Exception as e:
@@ -220,6 +209,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     def test_3_5_variant_qc(self):
+        qc_step_3_5 = importlib.import_module("3-variant_qc.5-annotate_ht_after_rf")
         try:
             qc_step_3_5.main()
         except Exception as e:
@@ -227,6 +217,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     def test_3_6_variant_qc(self):
+        qc_step_3_6 = importlib.import_module("3-variant_qc.6-rank_and_bin")
         try:
             qc_step_3_6.main()
         except Exception as e:
@@ -234,6 +225,7 @@ class IntegrationTests(HailTestCase):
 
     # mock cli arguments
     def test_3_7_variant_qc(self):
+        qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
         try:
             qc_step_3_7.main()
         except Exception as e:
@@ -245,6 +237,7 @@ class IntegrationTests(HailTestCase):
         return_value=argparse.Namespace(snv=92, indel=68),
     )
     def test_3_8_variant_qc(self, mock_args):
+        qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
         try:
             qc_step_3_8.main()
         except Exception as e:
@@ -256,30 +249,35 @@ class IntegrationTests(HailTestCase):
         return_value=argparse.Namespace(snv=84, indel=60),
     )
     def test_3_9_variant_qc(self, mock_args):
+        qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
         try:
             qc_step_3_9.main()
         except Exception as e:
             self.fail(f"Step 3.9 failed with an exception: {e}")
 
     def test_4_1a_genotype_qc(self):
+        qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
         try:
             qc_step_4_1a.main()
         except Exception as e:
             self.fail(f"Step 4.1a failed with an exception: {e}")
 
     def test_4_2_genotype_qc(self):
+        qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
         try:
             qc_step_4_2.main()
         except Exception as e:
             self.fail(f"Step 4.2 failed with an exception: {e}")
 
     def test_4_3a_genotype_qc(self):
+        qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
         try:
             qc_step_4_3a.main()
         except Exception as e:
             self.fail(f"Step 4.3a failed with an exception: {e}")
 
     def test_4_3b_genotype_qc(self):
+        qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
         try:
             qc_step_4_3b.main()
         except Exception as e:

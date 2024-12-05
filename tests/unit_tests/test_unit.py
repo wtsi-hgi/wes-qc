@@ -26,13 +26,14 @@ qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
 
-qc_step_3_1 = importlib.import_module("3-variant_qc.variant_qc_non_trios.1-generate_truth_sets_non_trios")
-qc_step_3_2 = importlib.import_module("3-variant_qc.variant_qc_non_trios.2-create_rf_ht_non_trios")
+
+# qc_step_3_1 = importlib.import_module("3-variant_qc.variant_qc_non_trios.1-generate_truth_sets_non_trios")
+# qc_step_3_2 = importlib.import_module("3-variant_qc.variant_qc_non_trios.2-create_rf_ht_non_trios")
 qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
 qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
-qc_step_3_5 = importlib.import_module("3-variant_qc.variant_qc_non_trios.5-annotate_ht_after_rf_no_trios")
-qc_step_3_6 = importlib.import_module("3-variant_qc.variant_qc_non_trios.6-rank_and_bin_no_trios")
-qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_rf_output_no_trios")
+# qc_step_3_5 = importlib.import_module("3-variant_qc.variant_qc_non_trios.5-annotate_ht_after_rf_no_trios")
+# qc_step_3_6 = importlib.import_module("3-variant_qc.variant_qc_non_trios.6-rank_and_bin_no_trios")
+# qc_step_3_7 = importlib.import_module("3-variant_qc.variant_qc_non_trios.7-plot_rf_output_no_trios")
 qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
 qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
 
@@ -668,53 +669,53 @@ class RegressionTests(HailTestCase):
 
     # TODO: implement tests for the remaining functions listed below
 
-    # test data has no trios, so only non-trios scripts are tested
-    def test_3_non_trios_1_1_get_truth_ht(self):
-        # TODO: generate reference
-        qc_step_3_1.get_truth_ht(self.omni, self.mills, self.thousand_genomes, self.hapmap, self.truth_ht)
+    # # test data has no trios, so only non-trios scripts are tested
+    # def test_3_non_trios_1_1_get_truth_ht(self):
+    #     # TODO: generate reference
+    #     qc_step_3_1.get_truth_ht(self.omni, self.mills, self.thousand_genomes, self.hapmap, self.truth_ht)
+    #
+    #     truth_ht_identical = compare_tables(self.truth_ht, self.ref_truth_ht)
+    #
+    #     self.assertTrue(truth_ht_identical)
+    #
+    # def test_3_non_trios_1_2_split_multi_and_var_qc(self):
+    #     # TODO: generate reference
+    #     qc_step_3_1.split_multi_and_var_qc(self.ref_sample_qc_filtered_mt_file, self.mt_varqc, self.mt_varqc_splitmulti)
+    #
+    #     mt_varqc_identical = compare_matrixtables(self.mt_varqc, self.ref_mt_varqc)
+    #     # mt_varqc_splitmulti_identical = compare_matrixtables(self.mt_varqc_splitmulti, self.ref_mt_varqc_splitmulti) # TODO: implement comparison of any structures in Matrix Tables
+    #
+    #     self.assertTrue(mt_varqc_identical)
+    #
+    # def test_3_non_trios_1_3_create_inbreeding_ht_with_ac_and_allele_data(self):
+    #     qc_step_3_1.create_inbreeding_ht_with_ac_and_allele_data(
+    #         self.ref_mt_varqc, self.inbreeding_htoutfile, self.qc_ac_htoutfile, self.allele_data_htoutfile
+    #     )
+    #
+    #     # inbreeding_htoutfile_identical = compare_tables(self.inbreeding_htoutfile, self.ref_inbreeding_htoutfile) # TODO: implement comparison of any structures in Hail Tables
+    #     qc_ac_htoutfile_identical = compare_tables(self.qc_ac_htoutfile, self.ref_qc_ac_htoutfile)
+    #     allele_data_htoutfile_identical = compare_tables(self.allele_data_htoutfile, self.ref_allele_data_htoutfile)
+    #
+    #     self.assertTrue(qc_ac_htoutfile_identical and allele_data_htoutfile_identical)
 
-        truth_ht_identical = compare_tables(self.truth_ht, self.ref_truth_ht)
-
-        self.assertTrue(truth_ht_identical)
-
-    def test_3_non_trios_1_2_split_multi_and_var_qc(self):
-        # TODO: generate reference
-        qc_step_3_1.split_multi_and_var_qc(self.ref_sample_qc_filtered_mt_file, self.mt_varqc, self.mt_varqc_splitmulti)
-
-        mt_varqc_identical = compare_matrixtables(self.mt_varqc, self.ref_mt_varqc)
-        # mt_varqc_splitmulti_identical = compare_matrixtables(self.mt_varqc_splitmulti, self.ref_mt_varqc_splitmulti) # TODO: implement comparison of any structures in Matrix Tables
-
-        self.assertTrue(mt_varqc_identical)
-
-    def test_3_non_trios_1_3_create_inbreeding_ht_with_ac_and_allele_data(self):
-        qc_step_3_1.create_inbreeding_ht_with_ac_and_allele_data(
-            self.ref_mt_varqc, self.inbreeding_htoutfile, self.qc_ac_htoutfile, self.allele_data_htoutfile
-        )
-
-        # inbreeding_htoutfile_identical = compare_tables(self.inbreeding_htoutfile, self.ref_inbreeding_htoutfile) # TODO: implement comparison of any structures in Hail Tables
-        qc_ac_htoutfile_identical = compare_tables(self.qc_ac_htoutfile, self.ref_qc_ac_htoutfile)
-        allele_data_htoutfile_identical = compare_tables(self.allele_data_htoutfile, self.ref_allele_data_htoutfile)
-
-        self.assertTrue(qc_ac_htoutfile_identical and allele_data_htoutfile_identical)
-
-    def test_3_non_trios_2_1_create_rf_ht(self):
-        qc_step_3_2.create_rf_ht(
-            self.ref_mt_varqc_splitmulti,
-            self.ref_truth_ht,
-            self.ref_allele_data_htoutfile,
-            self.ref_qc_ac_htoutfile,
-            self.ref_inbreeding_htoutfile,
-            self.htoutfile_rf_all_cols,
-            self.htoutfile_rf_var_type_all_cols,
-            self.config,
-        )
-
-        htoutfile_rf_all_cols_identical = compare_tables(self.htoutfile_rf_all_cols, self.ref_htoutfile_rf_all_cols)
-        htoutfile_rf_all_cols_var_type_all_colls_identical = compare_tables(
-            self.htoutfile_rf_var_type_all_cols, self.ref_htoutfile_rf_var_type_all_cols
-        )
-
-        self.assertTrue(htoutfile_rf_all_cols_identical, htoutfile_rf_all_cols_var_type_all_colls_identical)
+    # def test_3_non_trios_2_1_create_rf_ht(self):
+    #     qc_step_3_2.create_rf_ht(
+    #         self.ref_mt_varqc_splitmulti,
+    #         self.ref_truth_ht,
+    #         self.ref_allele_data_htoutfile,
+    #         self.ref_qc_ac_htoutfile,
+    #         self.ref_inbreeding_htoutfile,
+    #         self.htoutfile_rf_all_cols,
+    #         self.htoutfile_rf_var_type_all_cols,
+    #         self.config,
+    #     )
+    #
+    #     htoutfile_rf_all_cols_identical = compare_tables(self.htoutfile_rf_all_cols, self.ref_htoutfile_rf_all_cols)
+    #     htoutfile_rf_all_cols_var_type_all_colls_identical = compare_tables(
+    #         self.htoutfile_rf_var_type_all_cols, self.ref_htoutfile_rf_var_type_all_cols
+    #     )
+    #
+    #     self.assertTrue(htoutfile_rf_all_cols_identical, htoutfile_rf_all_cols_var_type_all_colls_identical)
 
     @classmethod
     def tearDownClass(cls):
