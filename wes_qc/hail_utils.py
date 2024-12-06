@@ -3,7 +3,7 @@ A service module to work with Hail and Spark - spin up, shut down, work with tem
 """
 
 import sys
-import pyspark
+
 import hail as hl  # type: ignore
 import shutil
 import os
@@ -18,21 +18,24 @@ def clear_temp_folder(tmp_dir: str) -> None:
     os.makedirs(tmp_dir, exist_ok=True)
 
 
-def init_hl(tmp_dir: str) -> pyspark.SparkContext:
+def init_hl(tmp_dir: str) -> None:
     clear_temp_folder(tmp_dir)
-    print("=== Checking for SparkContext ===")
-    sc = pyspark.SparkContext.getOrCreate()
 
+    # The latest Hail version (0.2.133) automatically catches spark both for local run and for cluster
+    # We don't need to call for SPARK context manually
+    # print("=== Probing for SparkContext ===")
+    # sc = pyspark.SparkContext.getOrCreate()
     # sc = pyspark.SparkContext()
+    # hl.init(sc=sc, tmp_dir=tmp_dir, idempotent=True)
+
     print("=== Initializing Hail ===")
-    hl.init(sc=sc, tmp_dir=tmp_dir, idempotent=True)
+    hl.init(tmp_dir=tmp_dir, idempotent=True)
     hl.default_reference("GRCh38")
-    return sc
 
 
-def stop_hl(sc: pyspark.SparkContext) -> None:
-    hl.stop()
-    sc.stop()
+# def stop_hl(sc: Optional[pyspark.SparkContext] = None) -> None:
+#     hl.stop()
+#     sc.stop()
 
 
 def currentFuncName(n: int = 0) -> str:

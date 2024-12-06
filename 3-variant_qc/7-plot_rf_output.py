@@ -11,6 +11,7 @@ from bokeh.plotting import output_file, save, figure
 # ruff: noqa: F403
 from gnomad.utils.plotting import *
 from utils.utils import parse_config, path_spark
+from wes_qc import hail_utils
 
 
 # TODO: move to utils?
@@ -577,6 +578,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
 def main():
     # = STEP SETUP =
     config = parse_config()
+    tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
     qc_plots_settings = config["step3"]["create_plots"]["qc_plots_settings"]
@@ -592,6 +594,7 @@ def main():
     plot_dir = os.path.join(root_plot_dir, "variant_qc", model_id)
 
     # = STEP LOGIC = #
+    hail_utils.init_hl(tmp_dir)
     os.makedirs(plot_dir, exist_ok=True)
     create_plots(bin_htfile, plot_dir, model_id, qc_plots_settings)
 

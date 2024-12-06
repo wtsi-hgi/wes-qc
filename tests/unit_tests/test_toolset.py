@@ -31,11 +31,8 @@ def test_clear_temp_folder_2(tmp_path):
 @m.context("When hail is initialized and then stopped")
 @m.it("should use that temp folder as the hail tmp folder, and be stopped")
 def test_hail_init(tmp_path):
-    sc = hail_utils.init_hl(str(tmp_path))
+    hail_utils.init_hl(str(tmp_path))
     assert hl.tmp_dir() == str(tmp_path)
-    assert not sc._jsc.sc().isStopped()
-    hail_utils.stop_hl(sc)
-    assert sc._jsc is None
 
 
 @m.context("When the input matrix table has variants on autosomes, SNVs, and is biallelic")
