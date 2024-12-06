@@ -34,3 +34,10 @@ clear-logs:
 
 clear-ht:
 	rm -rf tests/integration_tests/matrixtables/* || true
+
+
+sync-to-private:
+	git remote add origin-private git@github.com:wtsi-hgi/wes-qc-analysis.git || true
+	git switch main
+	git pull
+	git push origin-private
