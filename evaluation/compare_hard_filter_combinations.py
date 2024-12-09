@@ -3,7 +3,7 @@ import os.path
 import hail as hl
 import pyspark
 import datetime
-from utils.utils import parse_config
+from utils.utils import parse_config, clear_temp_folder
 from utils.utils import select_founders, collect_pedigree_samples
 
 
@@ -120,8 +120,8 @@ def filter_and_count(mt_tp: hl.MatrixTable, mt_fp: hl.MatrixTable, mt_syn: hl.Ma
     # indel_bins = list(range(58,69))
     #snp_bins = [40]
     #indel_bins = [45, 50, 55, 60, 65, 70, 75]
-    snp_bins = [68, 73, 74, 75, 76, 77, 78, 79, 80, 85]
-    indel_bins = [38, 43, 45, 47, 49, 51, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 80]
+    snp_bins = [75, 77, 79]
+    indel_bins = [40, 50, 60, 70]
     gq_vals = [10, 15, 20]
     # dp_vals = [4, 5, 6, 10]
     # ab_vals = [0.2, 0.25, 0.3]
@@ -418,7 +418,7 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str) -> tuple:
     mt_true = mt.filter_rows(mt.TP == True)#TP variants
     mt_false = mt.filter_rows(mt.FP == True)#FP variants
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')#synonymous for transmitted/unstransmitted
-    sample = 'EGAN00003332049'#GIAB12878/HG001
+    sample = 'GNH-NA12878_N72'#GIAB sample
     mt_prec_recall = mt.filter_cols(mt.s == sample)#GIAB sample for precision/recall
     mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
     mt_prec_recall = hl.variant_qc(mt_prec_recall)
@@ -487,7 +487,8 @@ def main():
     plot_dir = inputs['plots_dir_local']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -496,7 +497,7 @@ def main():
     giab_cqfile = inputs['giab_cq_file']
     giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
 
-    rf_htfile = rf_dir + "ce85819e" + "/_gnomad_score_binning_tmp.ht"
+    rf_htfile = rf_dir + "7f8b3f7a" + "/_gnomad_score_binning_tmp.ht"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"
     cqfile = inputs['all_consequences']
     pedfile = inputs['pedigree_file']
@@ -512,6 +513,7 @@ def main():
     print_results(results, outfile_snv, 'snv')
     print_results(results, outfile_indel, 'indel')
 
+    clear_temp_folder(tmp_dir)
 
 if __name__ == '__main__':
     main()

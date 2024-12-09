@@ -4,7 +4,7 @@ import hail as hl
 import pyspark
 import argparse
 from utils.utils import parse_config
-
+import re
 
 def get_options():
     '''
@@ -18,8 +18,8 @@ def get_options():
     if not args.runhash and args.snv and args.indel:
         print("--runhash, --snv and --indel must be specified")
         exit(1)
-    args.snv = int(args.snv)
-    args.indel = int(args.indel)
+    args.snv = str(args.snv)
+    args.indel = str(args.indel)
 
     return args
 
@@ -85,22 +85,31 @@ def get_vars_kept(ht: hl.Table, t_list: list):
     return results
     
 
-def get_threshold_range(threshold: int):
+def get_threshold_range(threshold: str):
     '''
     Given a single threshold value convert to a range - for each threshold also look at 3 bins on either 
     side and +/-5 (unless <1 or >101)
     :param int threshold: single threshold value
     '''
-    t_list = list(range(threshold-3, threshold+4))
+
+    if re.match(r'^\d+$', threshold):
+        threshold=int(threshold)
+        t_list = list(range(threshold-3, threshold+4))
+    elif re.match(r'^\d+-\d+$', threshold):
+        t_list = list(range(int(threshold.split("-")[0]), int(threshold.split("-")[1])+1))
     min_t = t_list[0]-5
     max_t = t_list[6]+5
+    if min_t < 1:
+        min_=1
+    if max_t > 100:
+        max_t=100
     t_list.insert(0,min_t)
     t_list.append(max_t)
     while t_list[len(t_list)-1] > 101:
         t_list.pop()
     while(t_list[0] < 1):
         t_list.pop[0]
-
+    t_list=list(range(0, 11))
     return t_list
 
 

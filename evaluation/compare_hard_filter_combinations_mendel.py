@@ -14,15 +14,24 @@ from evaluation.compare_hard_filter_combinations import count_tp_fp
 from evaluation.compare_hard_filter_combinations import get_trans_untrans
 from utils.utils import rm_mt
 
-rf_hash = 'fa8798b1'
+rf_hash = '0d975fbd'
 # snp_bins = [80, 82, 83, 84]
-snp_bins = []
-indel_bins = [44, 46, 48, 49, 50]
-gq_vals = [15]
+snp_bins = [75, 78, 79]
+indel_bins = [40, 50]
+gq_vals = [15, 20]
 dp_vals = [5, 10]
 ab_vals = [0.2, 0.3]
 missing_vals = [0.5, 0.9, 0.95]
-roh_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hail-ready.hom'
+
+
+#snp_bins = [75]
+#indel_bins = [40]
+#gq_vals = [20]
+#dp_vals = [10]
+#ab_vals = [0.3]
+#missing_vals = [0.95]
+
+roh_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/roh_GSA-51k_MAF1pc_CR99pc_HWE1e-6.hail-ready.hom'
 
 snp_label = 'snp'
 indel_label = 'indel'
@@ -51,11 +60,11 @@ def filter_mts(mt: hl.MatrixTable, roh: hl.Table, mtdir: str) -> Tuple[hl.Matrix
     mt_true = mt.filter_rows(mt.TP == True)  # TP variants
     mt_false = mt.filter_rows(mt.FP == True)  # FP variants
     mt_syn = mt.filter_rows(mt.consequence == 'synonymous_variant')  # synonymous for transmitted/unstransmitted
-
-    tmpmtt = os.path.join(mtdir, "tp.mt")
-    tmpmtf = os.path.join(mtdir, "fp.mt")
-    tmpmts = os.path.join(mtdir, "syn.mt")
-    tmpmtr = os.path.join(mtdir, "roh.mt")
+    mtdirtmp='file:///lustre/scratch126/teams/hgi/users/vo3/tmp_55K/'
+    tmpmtt = os.path.join(mtdirtmp, "tp.mt")
+    tmpmtf = os.path.join(mtdirtmp, "fp.mt")
+    tmpmts = os.path.join(mtdirtmp, "syn.mt")
+    tmpmtr = os.path.join(mtdirtmp, "roh.mt")
 
     mt_true = mt_true.checkpoint(tmpmtt, overwrite=True)
     mt_false = mt_false.checkpoint(tmpmtf, overwrite=True)
@@ -151,13 +160,15 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
 
     mt_snp = mt.filter_rows(mt.type == snp_label)
     mt_indel = mt.filter_rows(mt.type == indel_label)
-
-    mt_snp_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp.mt')
-    # mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
-
-    # snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, roh, mtdir=mtdir)
-    # results['snv_total_tp'] = snp_mt_tp.count_rows()
-    # results['snv_total_fp'] = snp_mt_fp.count_rows()
+    
+    mtdirtmp='file:///lustre/scratch126/teams/hgi/users/vo3/tmp_55K/'
+    mt_snp_path = os.path.join(mtdirtmp, 'tmp.hard_filters_combs.snp.mt')
+    mt_snp = mt_snp.checkpoint(mt_snp_path, overwrite=True)
+    #mt_snp=hl.read_matrix_table(mt_snp_path)
+    
+    snp_mt_tp, snp_mt_fp, _, _ = filter_mts(mt_snp, roh, mtdir=mtdir)
+    results['snv_total_tp'] = snp_mt_tp.count_rows()
+    results['snv_total_fp'] = snp_mt_fp.count_rows()
 
     for bin in snp_bins:
         bin_str = "bin_" + str(bin)
@@ -176,7 +187,7 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_snp_hard = apply_hard_filters(mt_snp_bin, dp=dp, gq=gq, ab=ab, call_rate=missing)
-                        mt_snp_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.snp-hard.mt')
+                        mt_snp_hard_path = os.path.join(mtdirtmp, 'tmp.hard_filters_combs.snp-hard.mt')
                         mt_snp_hard = mt_snp_hard.checkpoint(mt_snp_hard_path, overwrite=True)
 
                         mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_roh_tmp = filter_mts(mt_snp_hard, roh, mtdir=mtdir)
@@ -195,8 +206,11 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
                         with open(os.path.join(mtpath, 'results-mendel-missing-2.json'), 'w') as f:
                             json.dump(results, f)
 
-    mt_indel_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel.mt')
+    mtdirtmp='file:///lustre/scratch126/teams/hgi/users/vo3/tmp_55K/'
+    mt_indel_path = os.path.join(mtdirtmp, 'tmp.hard_filters_combs.indel.mt')
     mt_indel = mt_indel.repartition(mt.n_partitions() // 4).checkpoint(mt_indel_path, overwrite=True)
+    
+    #mt_indel=hl.read_matrix_table(mt_indel_path)
 
     indel_mt_tp, indel_mt_fp, _, _ = filter_mts(mt_indel, roh, mtdir=mtdir)
     results['indel_total_tp'] = indel_mt_tp.count_rows()
@@ -217,9 +231,9 @@ def filter_and_count(mt_path: str, roh_path: str, pedfile: str, mtdir: str) -> d
                         missing_str = f'missing_{missing}'
                         print(f'{dp_str} {gq_str} {ab_str} {missing_str}')
                         filter_name = ("_").join([bin_str, dp_str, gq_str, ab_str, missing_str])
-
+                        
                         mt_indel_hard = apply_hard_filters(mt_indel_bin, dp=dp, gq=gq, ab=ab, call_rate=missing)
-                        mt_indel_hard_path = os.path.join(mtdir, 'tmp.hard_filters_combs.indel-hard.mt')
+                        mt_indel_hard_path = os.path.join(mtdirtmp, 'tmp.hard_filters_combs.indel-hard.mt')
                         mt_indel_hard = mt_indel_hard.checkpoint(mt_indel_hard_path, overwrite=True)
 
                         mt_tp_tmp, mt_fp_tmp, mt_syn_tmp, mt_roh_tmp = filter_mts(mt_indel_hard, roh, mtdir=mtdir)
@@ -281,24 +295,24 @@ def main():
     annodir = inputs['annotation_lustre_dir_local']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     rf_htfile = os.path.join(rf_dir, rf_hash, "_gnomad_score_binning_tmp.ht")
     mtfile = os.path.join(mtdir, "mt_varqc_splitmulti.mt")
-    cqfile = os.path.join(resourcedir, "all_consequences.txt")
-    pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_668-trios_QCed.mercury.consistent.fam'
+    cqfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/pre_VEP/all_con_newM/all_consequences.txt'
+    pedfile = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/resources/pedigree_with_new_IDs.fam'
     wd = os.path.join(mtdir, rf_hash)
 
-    mt = hl.read_matrix_table(mtfile)
-    mt = clean_mt(mt)
-    mt_annot = annotate_with_rf(mt, rf_htfile)
-    mt_annot = annotate_cq(mt_annot, cqfile)
+    #mt = hl.read_matrix_table(mtfile)
+    #mt = clean_mt(mt)
+    #mt_annot = annotate_with_rf(mt, rf_htfile)
+    #mt_annot = annotate_cq(mt_annot, cqfile)
 
     mt_annot_path = os.path.join(wd, 'tmp.hard_filters_combs.mt')
-    # mt_annot.write(mt_annot_path, overwrite=True)
+    #mt_annot.write(mt_annot_path, overwrite=True)
 
     results = filter_and_count(
         mt_path=mt_annot_path,
@@ -307,10 +321,10 @@ def main():
         mtdir=wd
     )
 
-    outfile_snv = os.path.join(annodir, "genotype_hard_filter_comparison_snv.txt")
-    outfile_indel = os.path.join(annodir, "genotype_hard_filter_comparison_indel.txt")
-    # print_results(results, outfile_snv, 'snv')
-    # print_results(results, outfile_indel, 'indel')
+    outfile_snv = os.path.join(annodir, "genotype_hard_filter_comparison_snv_mendel2.txt")
+    outfile_indel = os.path.join(annodir, "genotype_hard_filter_comparison_indel_mendel2.txt")
+    print_results(results, outfile_snv, 'snv')
+    print_results(results, outfile_indel, 'indel')
 
 
 if __name__ == '__main__':

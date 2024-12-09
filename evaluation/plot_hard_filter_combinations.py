@@ -1,7 +1,7 @@
 #create interactive plots showing hard filter combinations
 import plotly.express as px
 import pandas as pd
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def make_plot(df: pd.DataFrame, x: str, y:str, outfile: str, vartype: str):
@@ -65,9 +65,11 @@ def main():
 
     # snv_results_file = plot_dir + "genotype_hard_filter_comparison_snv_v1.txt"
     # indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel_v1.txt"
-    snv_results_file = plot_dir + "genotype_hard_filter_comparison_snv.txt"
-    indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel.txt"
-    outdir = plot_dir + "hard_filter_evaluation/221027/"
+    #snv_results_file = plot_dir + "genotype_hard_filter_comparison_snv.txt"
+    #indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel.txt"
+    snv_results_file = plot_dir + "genotype_hard_filter_comparison_snv_fewer_combs_v3.test3.txt"
+    indel_results_file = plot_dir + "genotype_hard_filter_comparison_indel_fewer_combs_v3.test3.txt"
+    outdir = plot_dir + "hard_filter_evaluation/0d975fbd/"
 
     create_plots(snv_results_file, indel_results_file, outdir)
 

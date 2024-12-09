@@ -1,33 +1,35 @@
 ---
 
-matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/matrixtables/
-var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/variant_qc_random_forest/
-resource_dir: file:///lustre/scratch123/mdt2/projects/birth_cohort_wes/qc/resources/
-annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_03_54k/qc/annotations/
+matrixtables_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/matrixtables/
+var_qc_rf_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/variant_qc_random_forest/
+resource_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/resources/
+annotation_lustre_dir: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/annotations/
+
+all_consequences2: file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/pre_VEP/all_con_newM/all_consequences_with_gene_and_csq.txt
 
 #hard filter
 hard_filters:
   snp:
     medium:
-      bin: 82
+      bin: 79
       dp_male: 5
       dp_female: 10
       gq: 15
       ab: 0.2
     stringent:
-      bin: 80
+      bin: 75
       dp_male: 5
       dp_female: 10
       gq: 20
       ab: 0.2
   indel:
     medium:
-      bin: 48
+      bin: 50
       dp: 10
-      gq: 15
+      gq: 10
       ab: 0.3
     stringent:
-      bin: 44
+      bin: 40
       dp: 10
       gq: 20
       ab: 0.3

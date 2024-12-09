@@ -138,15 +138,16 @@ def run_pca(filtered_mt_file: str, pca_scores_file: str, pca_1kg_scores_file: st
     pca_af_ht = mt_kg.annotate_rows(pca_af=hl.agg.mean(mt_kg.GT.n_alt_alleles()) / 2).rows()
     pca_loadings = pca_loadings.annotate(pca_af=pca_af_ht[pca_loadings.key].pca_af)
     #saving files
-    pca_scores.write(pca_scores_file, overwrite=True)
-    pca_loadings.write(pca_loadings_file, overwrite=True)
-    with open(pca_evals_file, 'w') as f:
+    pca_scores.write(pca_1kg_scores_file, overwrite=True)
+    pca_loadings.write(pca_1kg_loadings_file, overwrite=True)
+    with open(pca_1kg_evals_file, 'w') as f:
         for val in pca_evals:
             f.write(str(val) + "\n")
+    pca_scores = pca_scores.drop(pca_scores.known_pop)
     #projection of samples on precomputed PCs and combining of two PCA_scores tables
     projection_PCA_scores=pc_project(mt_study, pca_loadings, loading_location='loadings', af_location='pca_af')
     union_PCA_scores=pca_scores.union(projection_PCA_scores)
-    union_PCA_scores = union_PCA_scores.annotate(known_pop=mt.cols()[pca_scores.s].known_pop)
+    union_PCA_scores = union_PCA_scores.annotate(known_pop=mt.cols()[union_PCA_scores.s].known_pop)
     #saving union_PCA_scores
     union_PCA_scores.write(pca_scores_file, overwrite=True)
 

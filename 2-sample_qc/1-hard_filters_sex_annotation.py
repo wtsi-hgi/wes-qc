@@ -3,6 +3,18 @@
 import hail as hl
 import pyspark
 from utils.utils import parse_config
+import argparse
+
+def get_options():
+    '''
+    Get options from the command line
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--check",
+        help="check incosistances between imputed and self-reported sex", action="store_true")
+    args = parser.parse_args()
+
+    return args
 
 
 def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> str:
@@ -97,6 +109,7 @@ def identify_inconsistencies(filename: str, mtdir: str, annotdir: str, resourced
 
 def main():
     #set up
+    args = get_options()
     inputs = parse_config()
     importmtdir = inputs['load_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
@@ -111,18 +124,19 @@ def main():
 
     mt_in_file = mtdir + "/gatk_unprocessed.mt"
     print("Reading input matrix")
-    mt_unfiiltered = hl.read_matrix_table(mt_in_file)
+    #mt_unfiiltered = hl.read_matrix_table(mt_in_file)
 
     #apply hard fitlers
     mt_filtered = apply_hard_filters(mt_unfiiltered, mtdir)
 
     #impute sex
     mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.79, female_threshold=0.55)
-
-    # annotate_ambiguous_sex(mt_sex, mtdir)
-    metadata_file = inputs['metadata_file']
-    #the file has two columns 'sample_id' and 'sex'
-    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir, metadata_file)
+    
+    if args.check:
+        # annotate_ambiguous_sex(mt_sex, mtdir)
+        metadata_file = inputs['metadata_file']
+        #the file has two columns 'sample_id' and 'sex'
+        identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir, metadata_file)
 
 
 if __name__ == '__main__':

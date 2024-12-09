@@ -163,20 +163,23 @@ def shrink_input_mt(mt_path: str, roh_path: str) -> str:
 
 
 def main():
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = 'file:///lustre/scratch126/teams/hgi/users/vo3/tmp/'
+
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hom'
-    map_path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/link_OrageneID_all-WES_GSA.txt'
-    mt_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.mt'
-    temp_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.roh-stat'
+    path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/roh_GSA-51k_MAF1pc_CR99pc_HWE1e-6.hom'
+    map_path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/K55_K51.V2.txt'
+    mt_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/matrixtables/mt_after_var_qc.mt'
+    temp_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/matrixtables/mt_after_var_qc.roh-stat'
 
-    roh_path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/GH_44k_autosome_maf0.01_geno0.01_hwe1e-6_ROH_CALLING_OUT.hail-ready.hom'
-    mt_shrinked_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/qc/matrixtables/mt_after_var_qc.50809bee-77-49.filtered.mt'
+    roh_path = '/lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/roh_GSA-51k_MAF1pc_CR99pc_HWE1e-6.hail-ready.hom'
+    mt_shrinked_path = 'file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2024_05_55k/qc/matrixtables/mt_after_var_qc.filtered.mt'
+
     roh_path = make_roh(path=path, map_path=map_path)
-    # mt_shrinked_path = shrink_input_mt(mt_path, roh_path='file://'+roh_path)
+    mt_shrinked_path = shrink_input_mt(mt_path, roh_path='file://'+roh_path)
 
     hets_ht = count_hets_in_rohs(mt_input=mt_shrinked_path, roh_path='file://' + roh_path)
     write_out(ht=hets_ht, sc=sc, out_prefix=temp_path)

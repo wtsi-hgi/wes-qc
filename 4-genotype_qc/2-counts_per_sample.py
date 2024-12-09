@@ -6,7 +6,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import os
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable:
@@ -281,18 +281,21 @@ def main():
 
     # initialise hail
     #tmp_dir = "hdfs://spark-master:9820/"
-    tmp_dir = "file:///lustre/scratch123/qc/tmp"
+    #tmp_dir = "file:///lustre/scratch123/qc/tmp"
+    tmp_dir = inputs['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
     mtfile = mtdir + "mt_after_var_qc_hard_filter_gt.mt"
-    gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+    #gnomad_htfile = resourcedir + "gnomad.exomes.r2.1.1.sites.liftover_grch38.ht"
+    gnomad_htfile =  inputs['gnomad_exomes']
     mt = hl.read_matrix_table(mtfile)
 
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    pedfile = resourcedir + "trios.ped"
+    #pedfile = resourcedir + "trios.ped"
+    pedfile = inputs['pedigree_file']
     get_trans_untrans_synon_singleton_counts(mt, pedfile)
 
     cqfile = plot_dir + "/variant_counts_per_cq_post_qc.txt"

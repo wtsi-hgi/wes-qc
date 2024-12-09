@@ -70,10 +70,10 @@ def run_population_pca(pruned_mt_file: str, pca_mt_file: str, mtdir: str, plotdi
 
     print("Running PCA")
     pca_mt = hl.variant_qc(pca_mt, name='variant_QC_Hail')
-    pca_mt = pca_mt.filter_rows(
-        (pca_mt.variant_QC_Hail.AF[1] >= 0.05) &
-        (pca_mt.variant_QC_Hail.p_value_hwe >= 1e-5)
-    )
+    #pca_mt = pca_mt.filter_rows(
+    #    (pca_mt.variant_QC_Hail.AF[1] >= 0.05) &
+    #    (pca_mt.variant_QC_Hail.p_value_hwe >= 1e-5)
+    #)
     ###moved to prune_mt
     #long_range_ld_file = "file:///lustre/scratch123/projects/gnh_industry/Genes_and_Health_2023_02_44k/long_ld_regions.hg38.bed"
     #long_range_ld_to_exclude = hl.import_bed(long_range_ld_file, reference_genome='GRCh38')
@@ -117,13 +117,13 @@ def main():
     #ld prune to get a table of variants which are not correlated
     long_range_ld_file = inputs["long_range_ld"]
     pruned_mt_file = mtdir + "mt_ldpruned.mt"
-    prune_mt(mt, pruned_mt_file)
+    #prune_mt(mt, pruned_mt_file, long_range_ld_file)
 
     #run pcrelate
     relatedness_ht_file = mtdir + "mt_relatedness.ht"
     samples_to_remove_file = mtdir + "mt_related_samples_to_remove.ht"
     scores_file = mtdir + "mt_pruned.pca_scores.ht"
-    run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
+    #run_pc_relate(pruned_mt_file, relatedness_ht_file, samples_to_remove_file, scores_file)
 
     #run PCA
     pca_mt_file = mtdir + "mt_pca.mt"

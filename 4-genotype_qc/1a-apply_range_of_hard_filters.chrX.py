@@ -221,7 +221,7 @@ def annotate_genders(mt: hl.MatrixTable, genders: hl.Table) -> hl.MatrixTable:
     return mt
 
 def get_chrom_X(mt: hl.MatrixTable) -> hl.MatrixTable:
-    mt_chrom = mt.filter_rows(mt.locus.contig == mt.X)
+    mt_chrom = mt.filter_rows(mt.locus.contig == 'chrX')
     return mt_chrom
 
 
@@ -241,7 +241,7 @@ def main():
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
 
-    exclude_file = inputs['exclude_samples']
+    #exclude_file = inputs['exclude_samples']
     rf_htfile = rf_dir + args.runhash + "/_gnomad_score_binning_tmp.ht"
     #mtfile = mtdir + "mt_varqc_splitmulti.chrX.mt"
     mtfile = mtdir + "mt_varqc_splitmulti.mt"

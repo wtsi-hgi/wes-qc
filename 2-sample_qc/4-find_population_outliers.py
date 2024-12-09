@@ -15,6 +15,7 @@ def annotate_mt(raw_mt_file: str, pop_ht_file: str, runid_file: str, annotated_m
     '''
     mt = hl.read_matrix_table(raw_mt_file)
     pop_ht = hl.read_table(pop_ht_file)
+    pop_ht = pop_ht.key_by('s')
     mt = mt.annotate_cols(assigned_pop=pop_ht[mt.s].pop)
     # mt = mt.annotate_cols(assigned_pop=mt.assigned_pop.replace('other', 'other-sas'))
     mt = mt.annotate_cols(assigned_pop=hl.if_else(hl.is_missing(mt.assigned_pop), 'non-sas', mt.assigned_pop))
@@ -85,6 +86,9 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
     output_text_file = annotdir + "sample_qc_by_pop.tsv.bgz"
     pop_ht.export(output_text_file, delimiter="\t")
 
+    output_globals_json = annotdir + "sample_qc_by_pop.globals.json"
+    pop_ht.globals.export(output_globals_json)
+
 
 def main():
     # set up
@@ -102,7 +106,7 @@ def main():
 
     # annotate mt with runid and pop
     raw_mt_file = mtdir + "gatk_unprocessed.mt"
-    pop_ht_file = mtdir + "pop_assignments.ht"
+    pop_ht_file = mtdir + "pop_assignments.new_filter_order.ht"#"pop_assignments.ht"
     runid_file = resourcesdir + "sequencing_batches.txt"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"
     annotate_mt(raw_mt_file, pop_ht_file, runid_file, annotated_mt_file)
