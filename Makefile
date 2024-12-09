@@ -1,8 +1,8 @@
 .PHONY: test
 
-export PYTHONPATH:=$PYTHONPATH:$(shell pwd )
-export PYSPARK_PYTHON:=/home/ubuntu/venv/bin/python
-export PYSPARK_DRIVER_PYTHON:=/home/ubuntu/venv/bin/python
+export PYTHONPATH:=$PYTHONPATH:$(shell pwd)
+export PYSPARK_PYTHON:=$(shell which python)
+export PYSPARK_DRIVER_PYTHON:=$(shell which python)
 
 test: unit-test integration-test
 
