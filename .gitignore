@@ -144,10 +144,9 @@ tests/integration_tests/*
 
 # ignore the pyproject.toml and poetry.lock files for now
 # TODO: add these files after implementing the local running tests
-pyproject.toml
 pyproject.old.toml
 poetry.lock
-uv.lock
+
 
 # All userprovided notebooks with temporary code
 jupyter_notebooks/*
