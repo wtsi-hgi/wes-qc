@@ -1,0 +1,11 @@
+hard_filters_combinations:
+    runhash: 2b6957fb
+    giab_sample: EGAN00004265526 # For BiB
+    # Small set to test correctness of the new code
+    snp_bins: [ 89, 91, 93 ]
+    indel_bins: [ 66, 68, 70 ]
+    dp_vals: [ 5, 10 ]
+    gq_vals: [ 10, 15, 20]
+    ab_vals: [ 0.2, 0.3 ]
+    missingness_vals: [0.0, 0.5, 0.9, 0.95 ]
+

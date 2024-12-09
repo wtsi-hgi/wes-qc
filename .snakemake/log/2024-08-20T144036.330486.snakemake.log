@@ -1,0 +1,28 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                             count
+----------------------------  -------
+annotate_mt                         1
+default                             1
+evaluate_filter_combinations        2
+filter_var_type                     2
+generate_giab                       1
+rename_snp_snv                      1
+total                               8
+
+Select jobs to execute...
+
+[Tue Aug 20 14:40:38 2024]
+rule annotate_mt:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/mt_varqc_splitmulti.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/variant_qc_random_forest/a26895bf/_gnomad_score_binning_tmp.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/all_consequences.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    jobid: 4
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_annotate_mt.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    resources: tmpdir=/tmp
+
+Terminating processes on user request, this might take some time.
+Cancelling snakemake on user request.

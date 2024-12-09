@@ -1,0 +1,12 @@
+Building DAG of jobs...
+WorkflowError:
+MissingInputException: Missing input files for rule generate_giab:
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht
+    affected files:
+        /lustre/scratch126/teams/hgi/vo3_bib/qc/resources/HG001_GRCh38_benchmark.interval.illumina.vcf.gz
+        /lustre/scratch126/teams/hgi/vo3_bib/qc/resources/all.interval.illumina.vep.info.txt
+MissingInputException: Missing input files for rule generate_giab:
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht
+    affected files:
+        /lustre/scratch126/teams/hgi/vo3_bib/qc/resources/HG001_GRCh38_benchmark.interval.illumina.vcf.gz
+        /lustre/scratch126/teams/hgi/vo3_bib/qc/resources/all.interval.illumina.vep.info.txt

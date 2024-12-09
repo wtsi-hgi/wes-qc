@@ -1,0 +1,3 @@
+ModuleNotFoundError in file /home/ubuntu/wes-qc/evaluation/wesqc.Snakefile, line 9:
+No module named 'wes_qc'
+  File "/home/ubuntu/wes-qc/evaluation/wesqc.Snakefile", line 9, in <module>

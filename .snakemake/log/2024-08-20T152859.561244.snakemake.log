@@ -1,0 +1,28 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                             count
+----------------------------  -------
+default                             1
+evaluate_filter_combinations        2
+filter_var_type                     1
+rename_snp_snv                      1
+total                               5
+
+Select jobs to execute...
+
+[Tue Aug 20 15:29:02 2024]
+rule evaluate_filter_combinations:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/BiB2_trios.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/evaluation.indel.json
+    jobid: 6
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_indel_evaluate_filter_combinations.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/evaluation.indel.json
+    wildcards: label=indel
+    resources: tmpdir=/tmp
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-08-20T152859.561244.snakemake.log

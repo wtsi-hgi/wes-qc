@@ -1,0 +1,117 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                             count
+----------------------------  -------
+annotate_mt                         1
+default                             1
+evaluate_filter_combinations        2
+filter_var_type                     2
+rename_snp_snv                      1
+total                               7
+
+Select jobs to execute...
+
+[Fri Aug 23 12:26:05 2024]
+rule annotate_mt:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/mt_varqc_splitmulti.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/variant_qc_random_forest/2b6957fb/_gnomad_score_binning_tmp.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/all_consequences.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/tmp.hard_filters_combs.mt
+    jobid: 4
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_annotate_mt.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/tmp.hard_filters_combs.mt; Updated input files: /lustre/scratch126/teams/hgi/vo3_bib/qc/variant_qc_random_forest/2b6957fb/_gnomad_score_binning_tmp.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/mt_varqc_splitmulti.mt
+    resources: tmpdir=/tmp
+
+[Fri Aug 23 12:33:02 2024]
+Finished job 4.
+1 of 7 steps (14%) done
+Select jobs to execute...
+
+[Fri Aug 23 12:33:02 2024]
+rule filter_var_type:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/tmp.hard_filters_combs.mt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt
+    jobid: 7
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_indel_filter_var_type.txt
+    reason: Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/tmp.hard_filters_combs.mt
+    wildcards: label=indel
+    resources: tmpdir=/tmp
+
+[Fri Aug 23 12:36:00 2024]
+Finished job 7.
+2 of 7 steps (29%) done
+Select jobs to execute...
+
+[Fri Aug 23 12:36:00 2024]
+rule evaluate_filter_combinations:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/BiB2_trios.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.indel.json
+    jobid: 6
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_indel_evaluate_filter_combinations.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.indel.json; Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt
+    wildcards: label=indel
+    resources: tmpdir=/tmp
+
+Write-protecting output file /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.indel.json.
+[Sat Aug 24 15:46:42 2024]
+Finished job 6.
+3 of 7 steps (43%) done
+Select jobs to execute...
+
+[Sat Aug 24 15:46:42 2024]
+rule filter_var_type:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/tmp.hard_filters_combs.mt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.snp.mt
+    jobid: 3
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_snp_filter_var_type.txt
+    reason: Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/tmp.hard_filters_combs.mt
+    wildcards: label=snp
+    resources: tmpdir=/tmp
+
+[Sat Aug 24 15:50:12 2024]
+Finished job 3.
+4 of 7 steps (57%) done
+Select jobs to execute...
+
+[Sat Aug 24 15:50:12 2024]
+rule evaluate_filter_combinations:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.snp.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/BiB2_trios.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snp.json
+    jobid: 2
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_snp_evaluate_filter_combinations.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snp.json; Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.snp.mt
+    wildcards: label=snp
+    resources: tmpdir=/tmp
+
+Write-protecting output file /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snp.json.
+[Tue Aug 27 02:56:07 2024]
+Finished job 2.
+5 of 7 steps (71%) done
+Select jobs to execute...
+
+[Tue Aug 27 02:56:07 2024]
+rule rename_snp_snv:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snp.json
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snv.json
+    jobid: 1
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snv.json; Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snp.json
+    resources: tmpdir=/tmp
+
+ln -s /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snp.json /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snv.json
+[Tue Aug 27 02:56:07 2024]
+Finished job 1.
+6 of 7 steps (86%) done
+Select jobs to execute...
+
+[Tue Aug 27 02:56:07 2024]
+localrule default:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snv.json, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.indel.json
+    jobid: 0
+    reason: Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.indel.json, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/2b6957fb/evaluation.snv.json
+    resources: tmpdir=/tmp
+
+[Tue Aug 27 02:56:07 2024]
+Finished job 0.
+7 of 7 steps (100%) done
+Complete log: .snakemake/log/2024-08-23T122602.352112.snakemake.log

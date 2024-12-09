@@ -1,0 +1,10 @@
+Building DAG of jobs...
+WorkflowError:
+MissingInputException: Missing input files for rule annotate_mt:
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    affected files:
+        /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/all_consequences.txt
+MissingInputException: Missing input files for rule annotate_mt:
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    affected files:
+        /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/all_consequences.txt

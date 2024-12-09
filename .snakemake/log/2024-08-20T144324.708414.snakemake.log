@@ -1,0 +1,73 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                             count
+----------------------------  -------
+annotate_mt                         1
+default                             1
+evaluate_filter_combinations        2
+filter_var_type                     2
+generate_giab                       1
+rename_snp_snv                      1
+total                               8
+
+Select jobs to execute...
+
+[Tue Aug 20 14:43:27 2024]
+rule annotate_mt:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/mt_varqc_splitmulti.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/variant_qc_random_forest/a26895bf/_gnomad_score_binning_tmp.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/all_consequences.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    jobid: 4
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_annotate_mt.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    resources: tmpdir=/tmp
+
+[Tue Aug 20 14:49:49 2024]
+Finished job 4.
+1 of 8 steps (12%) done
+Select jobs to execute...
+
+[Tue Aug 20 14:49:49 2024]
+rule generate_giab:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/resources/HG001_GRCh38_benchmark.interval.illumina.vcf.gz, /lustre/scratch126/teams/hgi/vo3_bib/qc/resources/all.interval.illumina.vep.info.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht
+    jobid: 5
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_generate_giab.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht
+    resources: tmpdir=/tmp
+
+[Tue Aug 20 14:50:27 2024]
+Finished job 5.
+2 of 8 steps (25%) done
+Select jobs to execute...
+
+[Tue Aug 20 14:50:27 2024]
+rule filter_var_type:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt
+    jobid: 7
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_indel_filter_var_type.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt; Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/tmp.hard_filters_combs.mt
+    wildcards: label=indel
+    resources: tmpdir=/tmp
+
+[Tue Aug 20 14:52:47 2024]
+Finished job 7.
+3 of 8 steps (38%) done
+Select jobs to execute...
+
+[Tue Aug 20 14:52:47 2024]
+rule evaluate_filter_combinations:
+    input: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht, /lustre/scratch126/teams/hgi/vo3_bib/qc/annotations/BiB2_trios.txt
+    output: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/evaluation.indel.json
+    jobid: 6
+    benchmark: /lustre/scratch126/teams/hgi/vo3_bib/qc/stats/benchmark_indel_evaluate_filter_combinations.txt
+    reason: Missing output files: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/a26895bf/evaluation.indel.json; Input files updated by another job: /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/tmp.hard_filters_combs.indel.mt, /lustre/scratch126/teams/hgi/vo3_bib/qc/matrixtables/giab_annotated.ht
+    wildcards: label=indel
+    resources: tmpdir=/tmp
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-08-20T144324.708414.snakemake.log
