@@ -166,7 +166,7 @@ def plot_metric(df: pd.DataFrame,
 
         # Compute cumulative values for each of the data columns
         for col in cols:
-            df[f'{col}_cumul'] = df.groupby('model').aggregate(np.cumsum)[col]
+            df[f'{col}_cumul'] = df.groupby('model')[col].aggregate(np.cumsum)
         df['cumul'] = df[[f'{col}_cumul' for col in cols]].apply(y_fun, axis=1)
 
         # Create data ranges that are either shared or distinct depending on the y_cumul parameter
@@ -209,8 +209,8 @@ def plot_metric(df: pd.DataFrame,
                 print('No data found for plot: {}'.format('\t'.join(titles)))
 
         if children:
-            tabs.append(Panel(child=Column(children=children), title='All'))
-
+            #tabs.append(Panel(child=Column(children=children), title='All'))
+            tabs.append(TabPanel(child=Column(children=children), title='All'))
    
     if plot_singletons:
         children = []

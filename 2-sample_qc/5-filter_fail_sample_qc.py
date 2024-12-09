@@ -36,6 +36,9 @@ def remove_sample_qc_fails(sanger_mt_file: str, qc_filter_ht_file: str, samples_
                    )
     sample_qc_ht = sample_qc_ht.annotate(filter_result=filter_expr).key_by('s')
     # save a list of samples that have failed QC
+    #modify filter_results for AFR
+    sample_qc_ht = sample_qc_ht.annotate(filter_result=hl.if_else((sample_qc_ht.assigned_pop == 'AFR') & (sample_qc_ht.fail_heterozygosity_rate == False) & (sample_qc_ht.fail_n_snp == False) & (sample_qc_ht.fail_r_ti_tv == False) & (sample_qc_ht.fail_n_transition == False) & (sample_qc_ht.fail_n_transversion == False) & (sample_qc_ht.fail_r_insertion_deletion == False) & (sample_qc_ht.fail_n_insertion == False) & (sample_qc_ht.fail_n_deletion == False) & (sample_qc_ht.fail_r_het_hom_var == True), 'Pass', sample_qc_ht.filter_result))
+    #
     fail_ht = sample_qc_ht.filter(sample_qc_ht.filter_result == 'Fail').key_by()
     fails = fail_ht.select(fail_ht.s)
     fails.export(samples_failing_qc_file)
@@ -60,8 +63,8 @@ def main():
 
     qc_filter_ht_file = mtdir + "mt_pops_QC_filters.ht"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"  # annotated but unfiltered mt
-    sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_after_sample_qc.mt"
-    samples_failing_qc_file = annotdir + "samples_failing_qc.tsv.bgz"
+    sample_qc_filtered_mt_file = mtdir + "mt_pops_QC_filters_after_sample_qc.V2.mt"
+    samples_failing_qc_file = annotdir + "samples_failing_qc.V2.tsv.bgz"
     remove_sample_qc_fails(annotated_mt_file, qc_filter_ht_file, samples_failing_qc_file, sample_qc_filtered_mt_file)
 
 

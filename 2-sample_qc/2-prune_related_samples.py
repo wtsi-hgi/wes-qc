@@ -2,7 +2,7 @@
 # use mt with hard filters and sex annotation from 2-sample_qc/1-hard_filters_sex_annotation.py
 import hail as hl
 import pyspark
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 from bokeh.plotting import save, output_file
 
 
@@ -94,7 +94,8 @@ def main():
     plotdir = inputs['plots_lustre_dir']
 
     #initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs["tmp_dir"]
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")

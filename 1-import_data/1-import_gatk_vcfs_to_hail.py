@@ -4,7 +4,7 @@ import pyspark
 import yaml
 import os
 import sys
-from wes_qc.utils.utils import parse_config
+from utils.utils import parse_config
 
 
 def load_vcfs_to_mt(indir, outdir, tmp_dir, header):

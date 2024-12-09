@@ -1,4 +1,5 @@
 # useful functions
+import datetime
 import os
 import sys
 import yaml
@@ -7,6 +8,16 @@ import pandas as pd
 from shutil import rmtree
 from typing import Optional, Union, Set
 from gnomad.resources.resource_utils import TableResource
+
+
+def str_timedelta(delta: datetime.timedelta) -> str:
+    seconds_in_hr = 60 * 60
+    seconds_in_day = seconds_in_hr * 24
+    seconds = int(delta.total_seconds())
+    days = seconds // seconds_in_day
+    hours = (seconds % seconds_in_day) / seconds_in_hr
+    return f"{days} days and {hours:4.2f} hr"
+
 
 def get_script_path():
     #returns the path of the script that is being run
@@ -87,6 +98,33 @@ def collect_pedigree_samples(ped: hl.Pedigree) -> Set[str]:
     samples.discard(None)
     return samples
 
+def clear_temp_folder(tmp_dir: str) -> None:
+    if not tmp_dir.startswith("file://"):
+        return
+    tmp_dir = tmp_dir.replace("file://", "")
+    print(f"=== Cleaning up temporary folder {tmp_dir}")
+    try:
+        shutil.rmtree(tmp_dir)
+    except FileNotFoundError:
+        print("TMP folder was cleaned up by Spark. Proceeding to the next step.")
+    os.makedirs(tmp_dir, exist_ok=True)
+
+
+def trace_analysis_step(mt: hl.MatrixTable, description: str = "") -> hl.MatrixTable:
+    """
+    The function records the name of the caller function into the global annotation of the matrixtable
+    """
+    caller_name = currentFuncName(1)
+    step_description = hl.struct(step_name=caller_name, step_description=description)
+    print(f"=== Annotating step {caller_name}")
+    if "analysis_steps" in mt.globals:
+        steps = mt.globals.analysis_steps
+        steps = steps.append(step_description)
+    else:
+        steps = hl.array([step_description])
+    print_analysis_steps(steps)
+    mt = mt.annotate_globals(analysis_steps=steps)
+    return mt
 
 def select_founders(ped: hl.Pedigree) -> Set[str]:
     samples = collect_pedigree_samples(ped)

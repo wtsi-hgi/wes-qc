@@ -3,8 +3,21 @@
 import hail as hl
 import pyspark
 from utils.utils import parse_config
+import argparse
 
-def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
+def get_options():
+    '''
+    Get options from the command line
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--check",
+        help="check incosistances between imputed and self-reported sex", action="store_true")
+    args = parser.parse_args()
+
+    return args
+
+
+def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> str:
     '''
     Applies hard filters and annotates samples in the filtered set with call rate
     :param MatrixTable mt: MT containing samples to be ascertained for sex
@@ -20,10 +33,10 @@ def apply_hard_filters(mt: hl.MatrixTable, mtdir: str) -> hl.MatrixTable:
     mt = mt.annotate_cols(callrate=hl.agg.fraction(hl.is_defined(mt.GT)))
     mt.write(filtered_mt_file, overwrite=True)
 
-    return mt
+    return filtered_mt_file
 
 
-def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: float = 0.8, female_threshold: float = 0.5) -> hl.MatrixTable:
+def impute_sex(filename: str, mtdir: str, annotdir: str, male_threshold: float = 0.8, female_threshold: float = 0.5) -> str:
     '''
     Imputes sex, exports data, and annotates mt with this data
     :param MatrixTable mt: MT containing samples to be ascertained for sex
@@ -33,8 +46,9 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     :rtype: MatrixTable
     '''
     print("Imputing sex with male_threshold = " + str(male_threshold) + " and female threshold = " + str(female_threshold))
+    mt = hl.read_matrix_table(filename)
 
-    #filter to X and select unphased diploid genotypes - no need to filter to X as impute_sex takes care of this
+    #filter to X and select unphased diploid genotypes - no need to filter to X as impute_sex will do this
     #mt1 = hl.filter_intervals(mt, [hl.parse_locus_interval('chrX')])
     mt1 = hl.split_multi_hts(mt)
     mtx_unphased = mt1.select_entries(GT=hl.unphased_diploid_gt_index_call(mt1.GT.n_alt_alleles()))
@@ -50,10 +64,10 @@ def impute_sex(mt: hl.MatrixTable, mtdir: str, annotdir: str, male_threshold: fl
     print("Writing to " + sex_mt_file)
     mt.write(sex_mt_file, overwrite=True)
 
-    return mt
+    return sex_mt_file
 
 
-def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, resourcedir: str):
+def identify_inconsistencies(filename: str, mtdir: str, annotdir: str, resourcedir: str, metadata_file: str):
     '''
     Find samples where annotated sex conflicts with the sex in our metadata
     Find samples where sex is not annotated
@@ -64,6 +78,7 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     :param str resourcedir: directory annotation files are written to
     '''
     print("Annotating samples with inconsistencies:")
+    mt = hl.read_matrix_table(filename)
     qc_ht = mt.cols()
     #convert is_female boolean to sex
     sex_expr = (hl.case()
@@ -73,18 +88,19 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
     qc_ht = qc_ht.annotate(sex=sex_expr).key_by('s')
 
     #annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-    metadata_file =  resourcedir +  '/mlwh_sample_and_sex.txt'
-    metadata_ht = hl.import_table(metadata_file, delimiter="\t").key_by('accession_number')
+    metadata_ht = hl.import_table(metadata_file, delimiter="\t", no_header=False)
+
     #we only want those from the metadata file where sex is known
-    metadata_ht = metadata_ht.filter((metadata_ht.gender == 'Male') | (metadata_ht.gender == 'Female'))
+    metadata_ht = metadata_ht.filter((metadata_ht.sex == 'Male') | (metadata_ht.sex == 'Female'))
 
     #annotate the sex-predictions with the manifest sex annotation - need to use a join here
-    ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].gender)
+    metadata_ht = metadata_ht.key_by('sample_id')
+    ht_joined = qc_ht.annotate(manifest_sex = metadata_ht[qc_ht.s].sex)
 
     #identify samples where imputed sex and manifest sex conflict
     conflicting_sex_ht = ht_joined.filter(((ht_joined.sex == 'male') & (ht_joined.manifest_sex == 'Female')) | (
         (ht_joined.sex == 'female') & (ht_joined.manifest_sex == 'Male')))
-    conflicting_sex_ht.export(annotdir + '/conflicting_sex.txt.bgz')
+    conflicting_sex_ht.export(annotdir + '/conflicting_sex.txt')
 
     #identify samples where f stat is between 0.2 and 0.8
     f_stat_ht = qc_ht.filter( (qc_ht.f_stat > 0.2) & (qc_ht.f_stat < 0.8) )
@@ -93,8 +109,9 @@ def identify_inconsistencies(mt: hl.MatrixTable, mtdir: str, annotdir: str, reso
 
 def main():
     #set up
+    args = get_options()
     inputs = parse_config()
-    #importmtdir = inputs['load_matrixtables_lustre_dir']
+    importmtdir = inputs['load_matrixtables_lustre_dir']
     mtdir = inputs['matrixtables_lustre_dir']
     annotdir = inputs['annotation_lustre_dir']
     resourcedir = inputs['resource_dir']
@@ -113,10 +130,13 @@ def main():
     mt_filtered = apply_hard_filters(mt_unfiiltered, mtdir)
 
     #impute sex
-    mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.6)
+    mt_sex = impute_sex(mt_filtered, mtdir, annotdir, male_threshold=0.79, female_threshold=0.55)
 
-    # annotate_ambiguous_sex(mt_sex, mtdir)
-    identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir)
+    if args.check:
+        # annotate_ambiguous_sex(mt_sex, mtdir)
+        metadata_file = inputs['metadata_file']
+        #the file has two columns 'sample_id' and 'sex'
+        identify_inconsistencies(mt_sex, mtdir, annotdir, resourcedir, metadata_file)
 
 
 if __name__ == '__main__':

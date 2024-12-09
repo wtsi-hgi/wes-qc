@@ -72,7 +72,7 @@ def stratified_sample_qc(annotated_mt_file: str, mt_qc_outfile: str, ht_qc_cols_
             metric: pop_ht_afr.sample_qc[metric] for metric in qc_metrics
         },
         metric_threshold={'heterozygosity_rate': (100, 4),
-                          'r_het_hom_var': (100, 5)},
+                          'r_het_hom_var': (100, 4)},
 
         strata={"qc_pop": pop_ht_afr.assigned_pop},
     )
@@ -116,7 +116,8 @@ def main():
     #mtdir2 = inputs['load_matrixtables_lustre_dir']
 
     # initialise hail
-    tmp_dir = "hdfs://spark-master:9820/"
+    #tmp_dir = "hdfs://spark-master:9820/"
+    tmp_dir = inputs['tmp_dir']
     sc = pyspark.SparkContext()
     hadoop_config = sc._jsc.hadoopConfiguration()
     hl.init(sc=sc, tmp_dir=tmp_dir, default_reference="GRCh38")
@@ -126,7 +127,7 @@ def main():
     pop_ht_file = mtdir + "pop_assignments.ht"
     annotated_mt_file = mtdir + "gatk_unprocessed_with_pop.mt"
     pop_pandas_file = mtdir + "pop_assignemtnts.tsv"
-    annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file, pop_pandas_file)
+    #annotate_mt(raw_mt_file, pop_ht_file, annotated_mt_file, pop_pandas_file)
 
     # run sample QC and stratify by population
     mt_qc_outfile = mtdir + "mt_pops_sampleqc.mt"

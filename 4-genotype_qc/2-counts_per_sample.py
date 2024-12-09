@@ -292,7 +292,7 @@ def main():
 
     mt = annotate_gnomad(mt, gnomad_htfile)
 
-    pedfile = resourcedir + "trios.ped"
+    pedfile = resourcedir + "BiB2_trios.txt"#"trios.ped"
     get_trans_untrans_synon_singleton_counts(mt, pedfile)
 
     cqfile = plot_dir + "/variant_counts_per_cq_post_qc.txt"
