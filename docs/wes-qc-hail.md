@@ -277,28 +277,14 @@ spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel 
 
 ### 4. Genotype QC
 
-Genotype QC may be performed using a range of filters defined in `config/inputs.yaml`,
-or it may be performed using a single set of filters for DP, GQ, VAF and bins.
-Here we apply a range of filters (relaxed, medium and stringent) which we have defined in the `config/inputs.yaml` file
+Genotype QC are performed using a range of filters defined in `config/inputs.yaml`, .
+
+#### TODO: hard filter combinations
+
+
 
 ```shell
-spark-submit 4-genotype_qc/1a-apply_range_of_hard_filters.py
-```
-
-In order to evaluate these filters, variant counts per consequence per sample and
-transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data) are calculated as follows.
-VEP annotation is required for this step in the following format:
-
-```
-chr10   100199947   rs367984062 A   C   intron_variant
-chr10   100199976   rs774723210 G   A   missense_variant
-chr10   100200004   .   C   A   missense_variant
-chr10   100200012   rs144642900 C   T   missense_variant
-chr1    100200019   .  C    A   stop_gained&splice_region_variant
-```
-
-```shell
-spark-submit 4-genotype_qc/2-counts_per_sample.py
+spark-submit 4-genotype_qc/2-apply_range_of_hard_filters.py
 ```
 
 Export the filtered variants to VCF.
@@ -311,4 +297,22 @@ Alternatively, to export VCFs with only stringent hard filter, use the 3b versio
 
 ```shell
 spark-submit 4-genotype_qc/3b-export_vcfs_stingent_filters.py
+```
+
+If you want to additionally evaluate the filter statistics
+(variant counts per consequence per sample and
+transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data))
+use the following script.
+VEP annotation is required for this step in the following format:
+
+```
+chr10   100199947   rs367984062 A   C   intron_variant
+chr10   100199976   rs774723210 G   A   missense_variant
+chr10   100200004   .   C   A   missense_variant
+chr10   100200012   rs144642900 C   T   missense_variant
+chr1    100200019   .  C    A   stop_gained&splice_region_variant
+```
+
+```shell
+spark-submit 4-genotype_qc/4-counts_per_sample.py
 ```

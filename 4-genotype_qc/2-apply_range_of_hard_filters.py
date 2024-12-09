@@ -219,7 +219,6 @@ def apply_missingness(
 
 
 def main():
-    # set up
     # = STEP SETUP = #
     config = parse_config()
     tmp_dir = config["general"]["tmp_dir"]
@@ -239,8 +238,9 @@ def main():
     mtfile_annot = config["step4"]["mtoutfile_annot"]
 
     # = STEP LOGIC = #
-    _ = hail_utils.init_hl(tmp_dir)
-    # exclude_file = annotdir + "to_be_excluded_exome.txt" # not used
+    hail_utils.init_hl(tmp_dir)
+    # TODO: implement this
+    # exclude_file = annotdir + "to_be_excluded_exome.txt"
     rf_htfile = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")  # move runhash to config
     mt = hl.read_matrix_table(path_spark(mtfile))
 
