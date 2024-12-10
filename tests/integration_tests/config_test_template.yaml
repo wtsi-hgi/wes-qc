@@ -70,12 +70,8 @@ general:
   # random forest model is geneated during step3.3, catch the parameter `runhash` and place it here
   rf_model_id: "testhash"
 
-step1:
-  # --- Step 1.1 --- #
-  gatk_vcf_header_infile:
-  gatk_vcf_indir: "{TEST_DATA_DIR}"
-  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
-
+step0:
+  # --- Step 0.1 --- #
   create_1kg_mt:
     indir: '{1kg_resdir}'
     vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
@@ -99,6 +95,12 @@ step1:
       statistics: "kin2"
     pca_components: 10
     kin_threshold: 0.125
+
+step1:
+  # --- Step 1.1 --- #
+  gatk_vcf_header_infile:
+  gatk_vcf_indir: "{TEST_DATA_DIR}"
+  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
 step2:
   # --- Step 2.1 --- #

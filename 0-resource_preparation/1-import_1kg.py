@@ -144,7 +144,7 @@ def main() -> None:
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
-    conf = config["step1"]["create_1kg_mt"]
+    conf = config["step0"]["create_1kg_mt"]
 
     # = STEP DEPENDENCIES = #
     vcf_indir = path_spark(conf["indir"])
