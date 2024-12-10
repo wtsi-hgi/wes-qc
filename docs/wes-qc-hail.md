@@ -27,7 +27,7 @@ set up virtual environment using `uv`.
 
 ```bash
 pip install uv # Install uv using your default Python interpreter
-uv sync #
+uv sync # install all required packages
 ```
 
 Activate your virtual environment
