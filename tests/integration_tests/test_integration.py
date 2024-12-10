@@ -111,25 +111,25 @@ class HailTestCase(unittest.TestCase):
 
 
 class IntegrationTests(HailTestCase):
-    def test_1_1_import_data(self):
-        qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
-        try:
-            qc_step_1_1.main()
-        except Exception as e:
-            self.fail(f"Step 1.1 failed with an exception: {e}")
-
     @patch(
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(
             kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=True, all=False
         ),
     )
-    def test_1_4_import_data(self, mock_args):
-        qc_step_1_4 = importlib.import_module("1-import_data.4-import_1kg")
+    def test_0_1_import_data(self, mock_args):
+        qc_step_0_1 = importlib.import_module("0-resource_preparation.1-import_1kg")
         try:
-            qc_step_1_4.main()
+            qc_step_0_1.main()
         except Exception as e:
-            self.fail(f"Step 1.4 failed with an exception: {e}")
+            self.fail(f"Step 0.1 failed with an exception: {e}")
+
+    def test_1_1_import_data(self):
+        qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
+        try:
+            qc_step_1_1.main()
+        except Exception as e:
+            self.fail(f"Step 1.1 failed with an exception: {e}")
 
     def test_2_1_sample_qc(self):
         qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")

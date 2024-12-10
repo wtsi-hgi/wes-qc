@@ -158,8 +158,8 @@ def main():
 
     # = STEP DEPENDENCIES = #
     mtfile = path_spark(config["step2"]["impute_sex"]["sex_mt_outfile"])
-    kg_mt_file = path_spark(config["step1"]["create_1kg_mt"]["kg_out_mt"])
-    kg_pop_file = path_spark(config["step1"]["create_1kg_mt"]["kg_pop_file"])
+    kg_mt_file = path_spark(config["step0"]["create_1kg_mt"]["kg_out_mt"])
+    kg_pop_file = path_spark(config["step0"]["create_1kg_mt"]["kg_pop_file"])
 
     # = STEP OUTPUTS = #
     pruned_mt_file = path_spark(config["step2"]["merge_1kg_and_ldprune"]["filtered_and_pruned_mt_outfile"])

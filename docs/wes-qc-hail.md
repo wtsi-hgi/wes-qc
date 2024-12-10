@@ -111,23 +111,24 @@ To start a new task via `hlrun_remote`, first end the existing tmux session, if 
 
 ## Analyze your data
 
+### 0. Resource Preparation
+All steps in this section need to be run only once before your first run. It prepares the reference dataset for the subsequent steps.
+
+1. Create the 1000G population prediction resource set.
+This resource set is required for the super-population prediction on the population PCA step.
+Then you can reuse it with any data cohort.
+
+```shell
+spark-submit 0-resource_preparation/1-import_1kg.py --all
+```
+
 ### 1. Load data from VCFs into Hail
 
-Load VCFs into Hail and save as a Hail MatrixTable
+1. Load VCFs into Hail and save as a Hail MatrixTable
 
 ```shell
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
-
-Create the 1000G population prediction resource set.
-This resource set is required for the super-population prediction on the population PCA step.
-You need to create this resource set only once.
-Then you can reuse it with any data cohort.
-
-```shell
-spark-submit 1-import_data/4-import_1kg.py --all
-```
-
 
 ### 2. Sample QC
 
