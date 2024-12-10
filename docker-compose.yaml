@@ -1,0 +1,6 @@
+services:
+  wes-qc:
+    build: .
+    volumes:
+      - /home/ubuntu/work/wes-qc-test-data:/wes-qc/tests/test_data
+    entrypoint: ["uv", "run", "make", "integration-test-coverage"]
