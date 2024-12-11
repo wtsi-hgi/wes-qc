@@ -38,6 +38,7 @@ cvars:
   dataroot: general.data_root
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir
+  metadir: general.metadata_dir
   mtdir: general.matrixtables_dir
   resdir: general.resource_dir
   1kg_resdir: general.onekg_resource_dir
@@ -59,6 +60,7 @@ general:
   # To use local temp dir you need to specify it with 'file://' prefix
   # For data_root file prefix is added automatically
   # tmp_dir: '{general.data_root}/tmp'
+  metadata_dir: "{METADATA_DIR}" # input
   annotation_dir: "{general.data_root}/annotations/" # output
   matrixtables_dir: "{general.data_root}/matrixtables/" # output
   resource_dir: "{RESOURCES_DIR}" # input and output
@@ -224,7 +226,7 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{resdir}/control_set_small_trios.ped'
+  pedfile: '{metadir}/control_set_small_trios.ped'
 
   # --- Step 3.1 --- #
   get_truth_ht:

@@ -253,6 +253,8 @@ def trio_family_dnm_annotation(
 
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
     trio_dataset.write(path_spark(trio_mtfile), overwrite=True)
+    print("=== Trios statistics ===")
+    print(f"Extracted {trio_dataset.count_cols()} full trios")
 
     trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=False)
     trio_stats_ht.write(path_spark(trio_stats_htfile), overwrite=True)
