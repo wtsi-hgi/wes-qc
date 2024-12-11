@@ -23,6 +23,7 @@ RF_RUN_TEST_HASH = "testhash"  # manually set rf run id
 INTEGRATION_TESTS_DIR = "{INTEGRATION_TESTS_DIR}"
 TEST_DATA_DIR = "{TEST_DATA_DIR}"
 RESOURCES_DIR = "{RESOURCES_DIR}"
+METADATA_DIR = "{METADATA_DIR}"
 TRAINING_SETS_DIR = "{TRAINING_SETS_DIR}"
 VARIANT_QC_RANDOM_FOREST_DIR = "{VARIANT_QC_RANDOM_FOREST_DIR}"
 
@@ -31,6 +32,7 @@ def render_config(
     path_to_template: str,
     test_data_dir: Optional[str],
     resources_dir: Optional[str],
+    metadata_dir: Optional[str],
     training_sets_dir: Optional[str],
     variant_qc_random_forest_dir: Optional[str],
     savefile: str = "inputs_test_rendered.yaml",
@@ -43,6 +45,7 @@ def render_config(
     # TODO agree on test and resources folder naming convention
     test_data_dir = test_data_dir if test_data_dir else os.path.join(integration_tests_dir, "control_set")
     resources_dir = resources_dir if resources_dir else os.path.join(integration_tests_dir, "resources")
+    metadata_dir = metadata_dir if metadata_dir else os.path.join(integration_tests_dir, "metadata")
     training_sets_dir = training_sets_dir if training_sets_dir else os.path.join(integration_tests_dir, "training_sets")
     variant_qc_random_forest_dir = (
         variant_qc_random_forest_dir
@@ -57,6 +60,7 @@ def render_config(
     template = template.replace(INTEGRATION_TESTS_DIR, integration_tests_dir)
     template = template.replace(TEST_DATA_DIR, test_data_dir)
     template = template.replace(RESOURCES_DIR, resources_dir)
+    template = template.replace(METADATA_DIR, metadata_dir)
     template = template.replace(TRAINING_SETS_DIR, training_sets_dir)
     template = template.replace(VARIANT_QC_RANDOM_FOREST_DIR, variant_qc_random_forest_dir)
 
@@ -82,6 +86,7 @@ class HailTestCase(unittest.TestCase):
 
         test_data_path = os.path.join(test_data_download_path, "control_set_small")
         resources_path = os.path.join(test_data_download_path, "resources")
+        metadata_path = os.path.join(test_data_download_path, "metadata")
         training_sets_path = os.path.join(test_data_download_path, "training_sets")
         variant_qc_random_forest_path = os.path.join(test_data_download_path, "variant_qc_random_forest")
 
@@ -96,6 +101,7 @@ class HailTestCase(unittest.TestCase):
             INTEGRATION_TESTS_CONFIG_TEMPLATE,
             test_data_path,
             resources_path,
+            metadata_path,
             training_sets_path,
             variant_qc_random_forest_path,
             savefile=rendered_config_savefile,
