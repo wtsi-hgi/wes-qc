@@ -37,6 +37,10 @@ clear-ht:
 
 
 sync-to-private:
+	if [ ! -f .git/config ] || ! git remote get-url origin | grep -q "wes-qc.git"; then \
+		echo "This is not the wes-qc repository"; \
+		exit 0; \
+	fi
 	git remote add origin-private git@github.com:wtsi-hgi/wes-qc-analysis.git || true
 	git switch main
 	git pull
