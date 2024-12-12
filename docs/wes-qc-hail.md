@@ -1,8 +1,5 @@
 # Getting Started With WES QC Using Hail
 
-> [!WARNING]
-> This documentation is under development and may be incomplete.
-
 This guide covers WES QC using Hail. It is important to note that every dataset is different and that for best results it is not advisable to view this guide as a recipe for QC.
 Each dataset will require careful tailoring and evaluation of the QC for best results.
 
@@ -25,11 +22,22 @@ git clone https://github.com/wtsi-hgi/wes-qc.git
 cd wes_qc
 ```
 
-Historically, each dataset had its own branch,
-but now the HGI team is trying to merge all functionality into the main branch
-and vary only the config file.
-This process is not finished yet,
-so if you have to make any dataset-specific operations, you can do it in your own branch.
+If you are running the code on a local machine (not on the Hail cluster),
+set up virtual environment using `uv`.
+
+```bash
+pip install uv # Install uv using your default Python interpreter
+uv sync # install all required packages
+```
+
+Activate your virtual environment
+```bash
+source .venv/bin/activate
+```
+
+**Note**: Alternatively, you can work without activated virtual environment.
+In this case you need to use `uv run` for each command.
+For example, to run tests: `uv run make integration-test`.
 
 Create a new config file for your dataset.
 By default, all scripts will use the config fine named `inputs.yaml`.
@@ -46,41 +54,54 @@ Edit `config/my_project.yaml` to include the correct paths for your datasets and
 Most probably you'll need to change only `dataset_name` and `data_root` entries.
 All other paths are specified as relatives, so you won't need to edit it.
 
+If you have to make any dataset-specific operations, you can create your own branch
+and add all the code you need to it.
+
 ## How to run the code
 
-### Manually running the code from a cluster
-
-Start a new tmux session, and edit the PYTHONPATH to include the directory you originally cloned the git repo into.
+Start a new tmux session and modify environment variables
+to include the directory you originally cloned the git repo into.
+To get a correct Python path, you need to have the virtual environment activated.
 
 ```shell
-export PYTHONPATH=/path/to/wes-qc
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+export PYSPARK_PYTHON=$(which python)
+export PYSPARK_DRIVER_PYTHON=$(which python)
 ```
 
->[!NOTE]
->To submit jobs to SPARK you can either:
->```shell
-># OPTION 1
->export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
-># OPTION 2
->source /home/ubuntu/venv/bin/activate
->
->spark-submit /path/to/hail_script.py
->```
+### Manually running the code on a local machine
 
-### Automatically sync and run the code from a local machine
+To manually run the code on a local machine,
+run the Python and provide the path to the pipeline script:
 
-In the `scripts` folder you can find two scripts.
+```shell
+python 1-import_data/1-import_gatk_vcfs_to_hail.py
+```
+
+### Manually run the code on a Hail cluster
+
+To submit the jobs on a Hai cluster, you need to run the pipeline script via `spark-submit`.
+For example:
+
+```shell
+spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
+```
+
+### Automatically sync and run the code on the cluster from a local machine
+
+If you want to modify the code on your local machine,
+and then run it on the cluster, you can use two scripts
+in the `scripts`
+
 * `hlrun_local` - runs the Python script via `spark-submit`. You need to run it on the spark master node on your cluster.
 * `hlrun_remote` - runs the code on the Spark cluster form your local machine.
-It performs a series of operations:
+  It performs a series of operations:
   * Sync the codebase to the remote cluster, defined by the environment variable `$hail_cluster`.
     The variable can contain the full host definition (`user@hostname`) or only hostname from the SSH config file.
   * Create tmux session on the remoter cluster
   * Run the Python script via `hlrun_local`
   * Attach to the tmux session to monitor the progress
 
-The second script is beneficial for development when you modify the code on your local machine,
-and then run it on the cluster.
 
 **Warning**
 
@@ -90,23 +111,24 @@ To start a new task via `hlrun_remote`, first end the existing tmux session, if 
 
 ## Analyze your data
 
+### 0. Resource Preparation
+All steps in this section need to be run only once before your first run. It prepares the reference dataset for the subsequent steps.
+
+1. Create the 1000G population prediction resource set.
+This resource set is required for the super-population prediction on the population PCA step.
+Then you can reuse it with any data cohort.
+
+```shell
+spark-submit 0-resource_preparation/1-import_1kg.py --all
+```
+
 ### 1. Load data from VCFs into Hail
 
-Load VCFs into Hail and save as a Hail MatrixTable
+1. Load VCFs into Hail and save as a Hail MatrixTable
 
 ```shell
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
-
-Create the 1000G population prediction resource set.
-This resource set is required for the super-population prediction on the population PCA step.
-You need to create this resource set only once.
-Then you can reuse it with any data cohort.
-
-```shell
-spark-submit 1-import_data/4-import_1kg.py --all
-```
-
 
 ### 2. Sample QC
 

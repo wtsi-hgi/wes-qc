@@ -1,8 +1,8 @@
 .PHONY: test
 
-export PYTHONPATH:=$PYTHONPATH:$(shell pwd )
-export PYSPARK_PYTHON:=/home/ubuntu/venv/bin/python
-export PYSPARK_DRIVER_PYTHON:=/home/ubuntu/venv/bin/python
+export PYTHONPATH:=$PYTHONPATH:$(shell pwd)
+export PYSPARK_PYTHON:=$(shell which python)
+export PYSPARK_DRIVER_PYTHON:=$(shell which python)
 
 test: unit-test integration-test
 
@@ -34,3 +34,10 @@ clear-logs:
 
 clear-ht:
 	rm -rf tests/integration_tests/matrixtables/* || true
+
+
+sync-to-private:
+	git remote add origin-private git@github.com:wtsi-hgi/wes-qc-analysis.git || true
+	git switch main
+	git pull
+	git push origin-private

@@ -38,6 +38,7 @@ cvars:
   dataroot: general.data_root
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir
+  metadir: general.metadata_dir
   mtdir: general.matrixtables_dir
   resdir: general.resource_dir
   1kg_resdir: general.onekg_resource_dir
@@ -59,6 +60,7 @@ general:
   # To use local temp dir you need to specify it with 'file://' prefix
   # For data_root file prefix is added automatically
   # tmp_dir: '{general.data_root}/tmp'
+  metadata_dir: '{general.data_root}/metadata/' # input
   annotation_dir: '{general.data_root}/annotations/'
   matrixtables_dir: '{general.data_root}/matrixtables/'
   resource_dir: '{general.data_root}/resources/'
@@ -70,12 +72,8 @@ general:
   # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
   rf_model_id: test-run-model
 
-step1:
-  # --- Step 1.1 --- #
-  gatk_vcf_header_infile:
-  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
-  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
-
+step0:
+  # --- Step 0.1 --- #
   create_1kg_mt:
     indir: '{1kg_resdir}'
     vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
@@ -99,6 +97,12 @@ step1:
       statistics: "kin2"
     pca_components: 10
     kin_threshold: 0.125
+
+step1:
+  # --- Step 1.1 --- #
+  gatk_vcf_header_infile:
+  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
+  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
 step2:
   # --- Step 2.1 --- #
@@ -222,7 +226,7 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{anndir}/trios.ped.txt'
+  pedfile: '{metadir}/test_1000g_v2.ped'
 
   # --- Step 3.1 --- #
   get_truth_ht:

@@ -118,7 +118,7 @@ def download_test_data_using_files_list(files_list: str, outdir: str) -> None:
     Then it can be used as an input to this function.
     """
     with open(files_list, "r") as f:
-        all_files = f.readlines()[1:]  # skip the current dir row
+        all_files = [file_path for file_path in f.readlines() if not file_path.startswith("#")]
 
     downloaded_test_dirs = [
         test_dir for test_dir in TEST_DATA_DIR_NAMES if os.path.exists(os.path.join(outdir, test_dir))

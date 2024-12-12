@@ -1,11 +1,8 @@
 # Getting Started With Hail On Openstack
 
-> [!WARNING]
-> This documentation is under development and may be incomplete.
+This tutorial describes how to initiate a cluster on **Openstack** suitable for running **Hail**.
 
-This tutorial describes how to initiate a cluster on **Openstack** suitable for running **Hail**. 
-
-The command line tool [osdataproc](https://github.com/wtsi-hgi/osdataproc/) is used to create an openstack cluster with [Apache Spark](https://spark.apache.org/)  and [Apache Hadoop](https://hadoop.apache.org/) configured. The cluster is provisioned with [Jupyterlab](https://jupyter.org/) for interactive computing, [Hail](https://hail.is/) for genomic analysis, and [Netdata](https://www.netdata.cloud/) for monitoring. 
+The command line tool [osdataproc](https://github.com/wtsi-hgi/osdataproc/) is used to create an openstack cluster with [Apache Spark](https://spark.apache.org/)  and [Apache Hadoop](https://hadoop.apache.org/) configured. The cluster is provisioned with [Jupyterlab](https://jupyter.org/) for interactive computing, [Hail](https://hail.is/) for genomic analysis, and [Netdata](https://www.netdata.cloud/) for monitoring.
 ## Install `osdataproc`
 This part of work is done on your local machine.
 
@@ -19,7 +16,7 @@ The `osdataproc` utility requires python 3.9. Before proceeding, ensure that you
 >```shell
 >conda create -n py39 python=3.9
 >conda activate py39
-> ``` 
+> ```
 >or  install the correct Python version locally:
 >``` shell
 >wget https://www.python.org/ftp/python/3.9.8/Python-3.9.8.tgz
@@ -60,7 +57,7 @@ cd ../..
 
 Clone the `osdataproc` git repository in a separate folder on your machine, and install it via `pip`.
 
-```bash 
+```bash
 git clone https://github.com/wtsi-hgi/osdataproc.git
 cd osdataproc
 pip install -e .
@@ -90,7 +87,7 @@ For naming your clusters and volumes, we recommend prefixing with your username,
 
 You will be prompted for a password, this password is used for accessing Jupyter and Spark master node. Since you may have to swap clusters or allow other people to access this password needs to be something you are happy to share with others.
 
-**Example**: To create a cluster using 50 `m2.medium` workers 
+**Example**: To create a cluster using 50 `m2.medium` workers
 and create a new volume called `gz3-hail` run the following script:
 
 ```shell
@@ -117,7 +114,7 @@ Wait until Terraform completes cluster creation. The creation of clusters can ta
 
 When the cluster completion finishes, inspect the log. There should be no failed tasks:
 ### Destructing and re-creating cluster
-There are many reasons, why the cluster creation can fail. 
+There are many reasons, why the cluster creation can fail.
 In most cases, it's easier to delete and re-create the cluster.
 
 To delete cluster, run the following command:
@@ -152,7 +149,7 @@ To check the cluster status use the SPARK web interface:
 Hail scripts are submitted to worker nodes using spark as follows:
 
 ```bash
-export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python 
+export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
 spark-submit /path/to/hail_script.py
 ```
 
@@ -173,7 +170,7 @@ Jupyter can be accessed via a web browser as follows (using the IP address creat
 You will be prompted for a password that you used to create the cluster.
 
 >[!WARNING]
-All Hail tasks (both command-line and interactive via Jupyter) occupy all working nodes. You can't run Jupyter notebook and command-lite script simultaneously. 
+All Hail tasks (both command-line and interactive via Jupyter) occupy all working nodes. You can't run Jupyter notebook and command-lite script simultaneously.
 >
 >To kill a Jupyter job, shut down all Jupyter kernels, or kill the `Hail` process via Spark master web interface.
 
@@ -205,7 +202,7 @@ sudo logrotate /etc/logrotate.d/netdata
 ### Cleaning up Netdata logs
 
 In case if you cluster reports `No space left on the device`
-the most probable source of this issue is netdata logs. 
+the most probable source of this issue is netdata logs.
 To inspect it, go to the netdata folder, and check the log files size:
 ```shell
 cd /var/log/netdata
@@ -221,12 +218,12 @@ sudo rm -rf *.log.*
 
 In case of an issue with the free space on the device (both caused by local FS overflow or by Lustre quota)
 the HDFS will switch in the safe mode. The Hail processing will throw the error message:
-`Caused by: org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.hdfs.server.namenode.SafeModeException): 
+`Caused by: org.apache.hadoop.ipc.RemoteException(org.apache.hadoop.hdfs.server.namenode.SafeModeException):
 Cannot create directory /shared/spark-logs. Name node is in safe mode.
 `
 
 To continue working with Hail, you need to manually move it bach to operational mode. To do it:
-1. Deal with the absence of free space (clean up logs, temporary folders, unused matrixtables, etc.). 
+1. Deal with the absence of free space (clean up logs, temporary folders, unused matrixtables, etc.).
 2. Turn HDFS bach to the operational mode:
 
 ```shell
@@ -235,7 +232,7 @@ hdfs dfsadmin -safemode leave
 
 ### Manual cluster cleanup
 In the case of cluster creation/destruction failure (for example, due to connection loss),
-`osdataproc` may not be able to clean up all cluster resources. 
+`osdataproc` may not be able to clean up all cluster resources.
 
 To manually clean up all requested resources via Theta, do the following, do the following:
 

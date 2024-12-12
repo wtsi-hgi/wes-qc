@@ -1,0 +1,29 @@
+name: Sync to analysis repo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Push to destination repository
+      run: |
+        git config --global user.email "mercury@sanger.ac.uk"
+        git config --global user.name "mercury"
+        git clone https://wtsi-mercury:${{ secrets.DEPLOY_TOKEN }}@github.com/${{ env.ORG_NAME }}/wes-qc-analysis.git
+        cd wes-qc-analysis
+        git remote add ${{ env.ORIGINAL_REPO_NAME }} https://${{ env.ORG_NAME }}:${{ secrets.DEPLOY_TOKEN }}@github.com/${{ env.ORG_NAME }}/${{ env.ORIGINAL_REPO_NAME }}.git
+        git remote update
+        git merge ${{ env.ORIGINAL_REPO_NAME }}/main
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        ORIGINAL_REPO_NAME: ${{ github.event.repository.name }}
+        ORG_NAME: wtsi-hgi
