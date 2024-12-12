@@ -1,43 +1,60 @@
 # Getting Started With WES QC Using Hail
 
-This guide covers WES QC using Hail. It is important to note that every dataset is different and that for best results it is not advisable to view this guide as a recipe for QC.
-Each dataset will require careful tailoring and evaluation of the QC for best results.
+This guide covers WES data QC using [Hail](https://hail.is/).
+
+It is important to note that every dataset is different and that for the best results,
+it is not advisable to view this guide as a recipe for QC.
+Each dataset will require careful tailoring and evaluation of the QC results.
 
 ## Before you start
 
-In order to run through this guide you will need an OpenStack cluster with Hail and Spark installed.
-It is recommended that you use `osdataproc` to create it.
+In order to run through this guide, you will need either a local Hail installation
+or a cluster with Hail and Spark installed.
+
+The Hail library requires Java 11 and Python>=3.9 to run.
+WES-QC pipeline also depends on the [gnomAD library](https://pypi.org/project/gnomad/),
+which requires PostgreSQL headers and C compiler.
+
+### Local installation
+
+To install it on the latest Ubuntu (24.04), use the following commands:
+
+```bash
+sudo apt update
+sudo apt install openjdk-11-jre-headless build-essential python3-dev libpq-dev clang
+```
+
+For other platforms, you can use Ubuntu from a Docker image
+or use a platform-specific software management tool.
+
+
+### Cluster installation
+
+The recommended way to create a cluster in the Sanger infrastructure
+is using `osdataproc` utility.
 Follow the [Hail on SPARK](hail-on-spark.md) guide to create such a cluster.
-
-The ability to run WEQ-QC code on a local machine is under development.
-
-This guide also requires a WES dataset joint called with GATK and saved as a set of multi-sample VCFs.
-If starting with a Hail matrixtable, then start at [Step 2](#2-sample-qc).
+`osdataproc` automatically installs all required packages and libraries.
 
 ## Set up
 
-Clone the repository using:
+Clone the repository:
 ```shell
 git clone https://github.com/wtsi-hgi/wes-qc.git
 cd wes_qc
 ```
 
 If you are running the code on a local machine (not on the Hail cluster),
-set up virtual environment using `uv`.
+set up and activate virtual environment using `uv`:
 
 ```bash
 pip install uv # Install uv using your default Python interpreter
-uv sync # install all required packages
+uv sync # Install all required packages
+source .venv/bin/activate  # Activate created environment
 ```
 
-Activate your virtual environment
-```bash
-source .venv/bin/activate
-```
+If you don't want to activate virtual environment, you can use `uv run` for each command.
+For example, run tests via: `uv run make integration-test`.
 
-**Note**: Alternatively, you can work without activated virtual environment.
-In this case you need to use `uv run` for each command.
-For example, to run tests: `uv run make integration-test`.
 
 Create a new config file for your dataset.
 By default, all scripts will use the config fine named `inputs.yaml`.
@@ -111,6 +128,9 @@ To start a new task via `hlrun_remote`, first end the existing tmux session, if 
 
 ## Analyze your data
 
+In this guide we are using commands for running scripts on a cluster.
+You can use the same scripts with the local Python.
+
 ### 0. Resource Preparation
 All steps in this section need to be run only once before your first run. It prepares the reference dataset for the subsequent steps.
 
@@ -129,6 +149,10 @@ spark-submit 0-resource_preparation/1-import_1kg.py --all
 ```shell
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
+
+This guide also requires a WES dataset joint called with [GATK](https://gatk.broadinstitute.org/hc/en-us)
+and saved as a set of multi-sample VCFs.
+The path to the folder with the pre-QC WES dataset should have been specified in the config.
 
 ### 2. Sample QC
 
