@@ -18,7 +18,7 @@ jobs:
 
     - name: Sync
       run: |
-        git remote add origin-private https://wtsi-hgi:${{ secrets.DEPLOY_TOKEN }}@github.com/wtsi-hgi/wes-qc-analysis.git || true
+        git remote add origin-private https://wtsi-hgi:${{ secrets.DEPLOY_TOKENS }}@github.com/wtsi-hgi/wes-qc-analysis.git || true
         make sync-to-private
       env:
         GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
