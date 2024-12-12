@@ -17,4 +17,8 @@ jobs:
       run: sudo apt-get install -y make
 
     - name: Sync
-      run: make sync-to-private
+      run: |
+        git remote add origin-private https://wtsi-hgi:${{ secrets.DEPLOY_TOKEN }}@github.com/wtsi-hgi/wes-qc-analysis.git || true
+        make sync-to-private
+      env:
+        GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
