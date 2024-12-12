@@ -15,7 +15,9 @@ jobs:
 
     - name: Push to destination repository
       run: |
-        git clone https://${{ env.ORG_NAME }}:${{ secrets.PAT }}@github.com/${{ env.ORG_NAME }}/wes-qc-analysis.git
+        git config --global user.email "mercury@sanger.ac.uk"
+        git config --global user.name "mercury"
+        git clone https://wtsi-mercury:${{ secrets.DEPLOY_TOKEN }}@github.com/${{ env.ORG_NAME }}/wes-qc-analysis.git
         cd wes-qc-analysis
         git remote add ${{ env.ORIGINAL_REPO_NAME }} https://${{ env.ORG_NAME }}:${{ secrets.DEPLOY_TOKEN }}@github.com/${{ env.ORG_NAME }}/${{ env.ORIGINAL_REPO_NAME }}.git
         git remote update
