@@ -256,7 +256,7 @@ spark-submit 3-variant_qc/4-apply_rf.py
 ```
 
 Annotate the random forest output with metrics including synonymous variants, family annotation,
-transmitted/untransmitted singletons and gnomAD allele frequency.
+transmitted/untransmitted singletons, and gnomAD allele frequency.
 Synonymous variants are required in a file generated from VEP annotation and in the following format:
 
 ```
@@ -299,23 +299,76 @@ spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel 
 
 ### 4. Genotype QC
 
-Genotype QC are performed using a range of filters defined in `config/inputs.yaml`, .
+Genotype QC are performed using a range of filters defined in `config/inputs.yaml`.
 
-#### TODO: hard filter combinations
+To perform genotype QC, you need to determine the best combination of hard filters,
+to save "good" variations as much as possible,
+and get rid of all "bad" variants and genotypes at the same time.
 
+The first script of the genotype QC helps you to analyze different combinations of hard filters
+and choose optimal values.
 
+Based on the results of the VariantQC step populate the provisional values
+for the SNP and indel random forest bins in the `evaluation` part of the config file.
+For example:
+
+```yaml
+    snp_bins: [ 60, 75, 90 ]
+    indel_bins: [ 25,50,75 ]
+    gq_vals: [ 10, 15 ]
+    dp_vals: [ 5, 10 ]
+    ab_vals: [ 0.2, 0.3 ]
+    missing_vals: [0.0, 0.5]
+```
+
+The values for the Genotype quality (gq), read depth (dp), allele balance (ab),
+and missingness (minimal percentage of genotypes where this variation is defined)
+are typical, so you can start with the provided values.
+
+If your dataset contains a control sample with known high-confident variations
+(usually one of the [GIAB](https://www.nist.gov/programs-projects/genome-bottle) samples),
+you can use it to calculate precision/recall values.
+Add the sample control name, the corresponding VCF file, and the VEP annotation to the config:
+
+```yaml
+    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
+    giab_sample: 'NA12878.alt_bwamem_GRCh38DH.20120826.exome'
+```
+
+Run the hard-filter evaluation step:
+
+```shell
+spark-submit 4-genotype_qc/1-compare_hard_filter_combinations.py --all
+```
+
+The script calculates all possible combinations of hard filters, and collects
+results in the subfolder in `annotation` folder, named by the RF model ID.
+
+Review, plot, and analyze the results.
+Based on the desired balance of true positives vs. false positives
+and the desired precision/recall balance, choose the three combinations of filters:
+relaxed, medium, and stringent.
+
+If needed, add more values to evaluate in the config and rerun the hard filter evaluation.
+
+Fill in the values in the `apply_hard_filters` part of the config.
+
+Run the Genotype QC with the chosen set of filters:
 
 ```shell
 spark-submit 4-genotype_qc/2-apply_range_of_hard_filters.py
 ```
 
 Export the filtered variants to VCF.
+Script 3a tags all variations with the corresponding filter (relaxed, medium, stringent)
+removes all variants not passing the relaxed filter, and saves the resulting data to VCF files.
 
 ```shell
 spark-submit 4-genotype_qc/3a-export_vcfs_range_of_hard_filters.py
 ```
 
-Alternatively, to export VCFs with only stringent hard filter, use the 3b version of the script:
+Alternatively, to export VCFs with only passing stringent hard filter, use the 3b version of the script:
 
 ```shell
 spark-submit 4-genotype_qc/3b-export_vcfs_stingent_filters.py
