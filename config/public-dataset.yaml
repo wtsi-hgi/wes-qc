@@ -344,23 +344,24 @@ step3:
     cqfile: '{resdir}/all_consequences.txt'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
-evaluation:
-  giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
-  giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
-  giab_sample: null
-  snp_bins: [40, 60, 80]
-  indel_bins: [25,50,75]
-  gq_vals: [10]
-  dp_vals: [5]
-  ab_vals: [0.2]
-  missing_vals: [0.5]
-  snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
-  snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
-  indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
-  indel_tsv:  '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
-
 step4:
-  # --- Step 4.1a --- #
+  # --- Step 4.1 --- #
+  evaluation:
+    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
+    giab_sample: null
+    snp_bins: [ 40, 60, 80 ]
+    indel_bins: [ 25,50,75 ]
+    gq_vals: [ 10 ]
+    dp_vals: [ 5 ]
+    ab_vals: [ 0.2 ]
+    missing_vals: [ 0.5 ]
+    snp_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
+    snp_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
+    indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
+    indel_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
+
+  # --- Step 4.2 --- #
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
     cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'

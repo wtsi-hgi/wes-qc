@@ -106,7 +106,7 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, mtdir: str) -> hl.Table:
     return giab_vars
 
 
-def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, config: dict) -> dict:
+def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, conf: dict) -> dict:
     """
     Filter MT by various bins followed by genotype GQ and calculate % of FP and TP remaining for each bin
     :param hl.Table ht_giab: GIAB variants
@@ -117,7 +117,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
     :return: dict
     """
     results = {"snv": {}, "indel": {}}
-    giab_sample = config["evaluation"]["giab_sample"]
+    giab_sample = conf["giab_sample"]
 
     mt = hl.read_matrix_table(mt_path)
     pedigree = hl.Pedigree.read(pedfile)
@@ -131,12 +131,12 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
     results["snv_total_tp"] = snv_mt_tp.count_rows()
     results["snv_total_fp"] = snv_mt_fp.count_rows()
 
-    snp_bins = config["evaluation"]["snp_bins"]
-    indel_bins = config["evaluation"]["indel_bins"]
-    gq_vals = config["evaluation"]["gq_vals"]
-    dp_vals = config["evaluation"]["dp_vals"]
-    ab_vals = config["evaluation"]["ab_vals"]
-    missing_vals = config["evaluation"]["missing_vals"]
+    snp_bins = conf["snp_bins"]
+    indel_bins = conf["indel_bins"]
+    gq_vals = conf["gq_vals"]
+    dp_vals = conf["dp_vals"]
+    ab_vals = conf["ab_vals"]
+    missing_vals = conf["missing_vals"]
 
     for bin in snp_bins:
         bin_str = f"bin_{bin}"
@@ -169,7 +169,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
                         )
                         results["snv"][filter_name] = snp_counts
 
-                        with open(config["evaluation"]["snp_json"], "w") as f:
+                        with open(conf["snp_json"], "w") as f:
                             json.dump(results, f)
 
     mt_indel = mt.filter_rows(mt.type == indel_label)
@@ -210,7 +210,7 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
                         )
                         results["indel"][filter_name] = indel_counts
 
-                        with open(config["evaluation"]["indel_json"], "w") as f:
+                        with open(conf["indel_json"], "w") as f:
                             json.dump(results, f)
 
     return results
@@ -530,8 +530,8 @@ def main():
 
     # = STEP DEPENDENCIES = #
     # GIAB sample to compare
-    giab_vcf = path_spark(config["evaluation"]["giab_vcf"])
-    giab_cqfile = path_spark(config["evaluation"]["giab_cqfile"])
+    giab_vcf = path_spark(config["step4"]["evaluation"]["giab_vcf"])
+    giab_cqfile = path_spark(config["step4"]["evaluation"]["giab_cqfile"])
 
     # Files from VariantQC
     mtfile = path_spark(config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"])
@@ -540,6 +540,8 @@ def main():
 
     # = STEP OUTPUTS = #
     mt_annot_path = path_spark(os.path.join(wd, "tmp.hard_filters_combs.mt"))
+    outfile_snv = config["step4"]["evaluation"]["snp_tsv"]
+    outfile_indel = config["step4"]["evaluation"]["indel_tsv"]
 
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
@@ -554,15 +556,13 @@ def main():
         mt_annot.write(mt_annot_path, overwrite=True)
 
     if args.evaluate:
-        outfile_snv = config["evaluation"]["snp_tsv"]
-        outfile_indel = config["evaluation"]["indel_tsv"]
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
         print("=== Preparing Hail table for GIAB sample ===")
-
         giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile, mtdir)
         print("=== Calculating hard filter evaluation ===")
-        results = filter_and_count(mt_path=mt_annot_path, ht_giab=giab_ht, pedfile=pedfile, mtdir=wd, config=config)
-
+        results = filter_and_count(
+            mt_path=mt_annot_path, ht_giab=giab_ht, pedfile=pedfile, mtdir=wd, conf=config["step4"]["evaluation"]
+        )
         print_results(results, outfile_snv, "snv")
         print_results(results, outfile_indel, "indel")
 
