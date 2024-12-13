@@ -264,7 +264,11 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.9 failed with an exception: {e}")
 
     ### === Genotype QC === ###
-    def test_4_1_genotype_qc(self):
+    @patch(
+        "argparse.ArgumentParser.parse_args",
+        return_value=argparse.Namespace(prepare=True, evaluate=True, all=False),
+    )
+    def test_4_1_genotype_qc(self, mock_args):
         qc_step_4_1 = importlib.import_module("4-genotype_qc.1-compare_hard_filter_combinations")
         try:
             qc_step_4_1.main()

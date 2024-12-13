@@ -211,10 +211,14 @@ step2:
     mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
     ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
     qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
-
-    min_depth: 20
-    min_genotype_quality: 20
-    min_vaf: 0.25
+    min_depth: 5
+    min_genotype_quality: 10
+    min_vaf: 0.2
+    # Additional parameters to pass to gnomAD sampleQC function:
+    # https://broadinstitute.github.io/gnomad_methods/api_reference/sample_qc/filtering.html#gnomad.sample_qc.filtering.compute_stratified_metrics_filter
+    compute_stratified_metrics_filter_args:
+      lower_threshold: 12.0 # Using a broad interval to make all samples pass QC
+      upper_threshold: 12.0
     output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
     output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
 
@@ -340,22 +344,20 @@ step3:
     cqfile: '{resdir}/all_consequences.txt'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
-
-
 evaluation:
   giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
   giab_cqfile: '{resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
   giab_sample: 'EGAN00003332049' # The ID of GIAB HG001 (NA12878) sample
-  snp_bins: [70, 80]
-  indel_bins: [60, 70]
-  gq_vals: [10, 15]
-  dp_vals: [5, 10]
-  ab_vals: [0.2, 0.3]
-  missing_vals: [0, 0.5]
-  snp_json: '{anndir}/evaluation.snp.json'
-  snp_tsv_filesuffix: '_genotype_hard_filter_comparison_snv.txt'
-  indel_json: '{anndir}/evaluation.indel.json'
-  indel_tsv_filesuffix: '_genotype_hard_filter_comparison_indel.txt'
+  snp_bins: [70, 80, 90]
+  indel_bins: [40, 60, 80]
+  gq_vals: [10]
+  dp_vals: [5]
+  ab_vals: [0.2]
+  missing_vals: [0.01]
+  snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
+  snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
+  indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
+  indel_tsv:  '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
 
 step4:
   # --- Step 4.1a --- #

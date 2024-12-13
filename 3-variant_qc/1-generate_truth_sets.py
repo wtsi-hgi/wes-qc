@@ -242,19 +242,21 @@ def trio_family_dnm_annotation(
     :param str gnomad_htfile: Gnomad AF hail table
     :param str dnm_htfile: De novo hail table file
     """
+    print(f"=== Reading pedifree: {pedfile}")
     pedigree = hl.Pedigree.read(path_spark(pedfile))
+
     mt = hl.read_matrix_table(path_spark(varqc_mtfile))
 
     # filter mt to samples that are in trios only and re-run varqc
     trio_sample_ht = hl.import_fam(path_spark(pedfile))
+    print("=== Total pedigree records: ", trio_sample_ht.count())
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
     mt2 = mt.filter_cols(hl.set(sample_list).contains(mt.s))
     mt2 = hl.variant_qc(mt2, name="varqc_trios")
 
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
     trio_dataset.write(path_spark(trio_mtfile), overwrite=True)
-    print("=== Trios statistics ===")
-    print(f"Extracted {trio_dataset.count_cols()} full trios")
+    print(f"=== Extracted {trio_dataset.count_cols()} full trios")
 
     trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=False)
     trio_stats_ht.write(path_spark(trio_stats_htfile), overwrite=True)
