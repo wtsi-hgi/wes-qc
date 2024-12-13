@@ -423,9 +423,9 @@ step4:
   # --- Step 4.3a --- #
   export_vcfs_a:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    vcf_output_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations/'
+    vcf_output_dir: '{vcf_export_dir}/filtered_vcfs_combinations/'
 
   # --- Ster 4.3b --- #
   export_vcfs_b:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    filtered_vcf_dir: '{INTEGRATION_TESTS_DIR}/filtered_vcfs_combinations_stringent/'
+    filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'
