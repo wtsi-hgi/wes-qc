@@ -5,7 +5,7 @@ import importlib
 
 from typing import Optional
 from unittest.mock import patch
-from utils.utils import download_test_data_using_files_list
+from wes_qc import teszt
 
 # /path/to/wes_qc must be in PYTHONPATH
 
@@ -91,7 +91,7 @@ class HailTestCase(unittest.TestCase):
         variant_qc_random_forest_path = os.path.join(test_data_download_path, "variant_qc_random_forest")
 
         print(f"Downloading data from the bucket using files list {os.path.abspath(TEST_FILES_LIST)}")
-        download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
+        teszt.download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
 
         integration_tests_dir = os.path.dirname(os.path.realpath(__file__))
         rendered_config_savefile = os.path.join(integration_tests_dir, INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE)

@@ -13,7 +13,7 @@ from hail_utils import compare_tables, compare_matrixtables, compare_plinks, com
 # ensure that PYTHONPATH includes the wes-qc directory
 from utils.config import path_local, path_spark, _process_cvars_in_config
 
-from utils.utils import download_test_data_using_files_list
+from wes_qc import teszt
 
 # might be useful https://spark.apache.org/docs/latest/api/python/getting_started/testing_pyspark.html
 # TODO: clean up hail logs
@@ -90,7 +90,7 @@ class RegressionTests(HailTestCase):
 
         # download test data from the bucket
         print("Downloading control set from the s3 bucket")
-        download_test_data_using_files_list(TEST_FILES_LIST, cls.test_data_download_path)
+        teszt.download_test_data_using_files_list(TEST_FILES_LIST, cls.test_data_download_path)
 
         # define parameters needed for functions to be tested
 
