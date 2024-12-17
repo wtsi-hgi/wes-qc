@@ -309,7 +309,7 @@ The first script of the genotype QC helps you to analyze different combinations 
 and choose optimal values.
 
 Based on the results of the VariantQC step populate the provisional values
-for the SNP and indel random forest bins in the `evaluation` part of the config file.
+for the SNV and indel random forest bins in the `evaluation` part of the config file.
 For example:
 
 ```yaml

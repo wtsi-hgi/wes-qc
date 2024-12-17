@@ -1,5 +1,6 @@
 # useful functions
 import os
+from pathlib import Path
 import hail as hl
 from gnomad.resources.resource_utils import TableResource
 import pandas as pd
@@ -105,7 +106,7 @@ def select_founders(ped: hl.Pedigree) -> Set[str]:
 TEST_DATA_FILENAME = "all_test_data.zip"
 TEST_DATA_ARCHIVE_URL = f"https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}"
 TEST_DATA_PARENT_DIR_URL = "https://wes-qc-data.cog.sanger.ac.uk"
-TEST_DATA_DIR_NAMES = ["control_set_small", "unit_tests", "resources", "training_sets"]
+TEST_DATA_DIR_NAMES = ["control_set_small", "unit_tests", "training_sets", "resources"]
 
 
 # TODO: download using a .txt file with the list of all files instead of archiving
@@ -123,23 +124,31 @@ def download_test_data_using_files_list(files_list: str, outdir: str) -> None:
     downloaded_test_dirs = [
         test_dir for test_dir in TEST_DATA_DIR_NAMES if os.path.exists(os.path.join(outdir, test_dir))
     ]
-    print(f"Test folders {', '.join(downloaded_test_dirs)} already downloaded")
-
+    print(f"DEBUG: Test folders {', '.join(downloaded_test_dirs)} already downloaded")
+    print(f"DEBUG: Checking for file presence in {outdir}")
     for file_path in all_files:
         file_path = file_path.rstrip()
-        file_path_relative_to_current_dir = file_path.replace("./", "", 1)
-        data_folder = file_path_relative_to_current_dir.split("/")[0]  # TODO: optimise
+        file_path_relative_to_download_dir = file_path.replace("./", "", 1)
+        data_folder = file_path_relative_to_download_dir.split("/")[0]  # TODO: optimise
 
         # naive approach - if parent dir of the file already exists, don't download the file
         if data_folder in downloaded_test_dirs:
             continue
 
         file_url = file_path.replace(".", TEST_DATA_PARENT_DIR_URL, 1)  # create download urls for each file
-        file_destination = os.path.dirname(
-            os.path.normpath(os.path.join(outdir, file_path_relative_to_current_dir))
-        )  # remove possible double slashes
 
-        subprocess.run(["wget", "-nv", "-nc", file_url, "-P", file_destination])  # downlaod the file into destination
+        file_destination_path = os.path.normpath(os.path.join(outdir, file_path_relative_to_download_dir))
+        file_destination_dir = os.path.dirname(file_destination_path)
+        # remove possible double slashes
+
+        # Checking that the file exists
+        if Path(file_destination_path).is_file():
+            continue
+
+        print(f"DEBUG: Downloading file: {file_url}")
+        subprocess.run(
+            ["wget", "-nv", "-nc", file_url, "-P", file_destination_dir]
+        )  # downlaod the file into destination
 
 
 def move_dirs(move_dirs: dict) -> None:

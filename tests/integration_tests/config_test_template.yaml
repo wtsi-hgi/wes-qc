@@ -349,7 +349,10 @@ step4:
   evaluation:
     giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
     giab_cqfile: '{resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
-    giab_sample: 'EGAN00003332049' # The ID of GIAB HG001 (NA12878) sample
+    # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
+    # If you don't have it, use null value instead
+    # (the precision/recall calculations will be skipped in this case)
+    giab_sample: 'EGAN00003332049'
     snp_bins: [70, 80, 90]
     indel_bins: [40, 60, 80]
     gq_vals: [10]

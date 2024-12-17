@@ -283,7 +283,9 @@ def count_tp_fp_t_u(
             results["prec_frameshift"] = prec_frameshift
             results["recall_frameshift"] = recall_frameshift
         else:
-            raise ValueError(f"Variant type {var_type} not supported for TP/FP and prec/recall calculations.")
+            raise ValueError(
+                f"An incorrect function call: variant type {var_type} not supported for TP/FP and prec/recall calculations."
+            )
     else:
         results["prec"] = -1
         results["recall"] = -1
