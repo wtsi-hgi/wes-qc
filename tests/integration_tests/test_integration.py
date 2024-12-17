@@ -137,6 +137,13 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 1.1 failed with an exception: {e}")
 
+    def test_1_2_import_data(self):
+        qc_step_1_2 = importlib.import_module("1-import_data.2-import_annotations")
+        try:
+            qc_step_1_2.main()
+        except Exception as e:
+            self.fail(f"Step 1.2 failed with an exception: {e}")
+
     ### === Sample QC === ###
     def test_2_1_sample_qc(self):
         qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")

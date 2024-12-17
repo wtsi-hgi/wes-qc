@@ -104,6 +104,14 @@ step1:
   gatk_vcf_indir: "{TEST_DATA_DIR}"
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
+  # --- Step 1.2 --- #
+  validate_verifybamid:
+    verifybamid_selfsm: '{metadir}/control_set_small.verify_bam_id_result.selfSM.tsv'
+    mt_with_freemix: '{mtdir}/mt_hard_filters_annotated.mt'
+    verifybamid_plot: '{pltdir}/freemix_validation.html'
+    samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
+    freemix_treshold: 0.05
+
 step2:
   # --- Step 2.1 --- #
   sex_annotation_hard_filters:
