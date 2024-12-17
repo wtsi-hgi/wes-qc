@@ -107,10 +107,12 @@ def stratified_sample_qc(
         "r_het_hom_var",
     ]
 
+    # Using gnomAD function to calculate stratified metrics
     pop_filter_ht = compute_stratified_metrics_filter(
         pop_ht,
         qc_metrics={metric: pop_ht.sample_qc[metric] for metric in qc_metrics},
         strata={"qc_pop": pop_ht.assigned_pop},
+        **conf["compute_stratified_metrics_filter_args"],
     )
 
     globals = hl.eval(pop_filter_ht.globals.qc_metrics_stats)
@@ -118,7 +120,7 @@ def stratified_sample_qc(
     pop_ht = pop_ht.annotate_globals(qc_metrics_stats=globals)
     pop_ht = pop_ht.annotate(**pop_filter_ht[pop_ht.key]).persist()
     checkpoint = pop_ht.aggregate(hl.agg.count_where(hl.len(pop_ht.qc_metrics_filters) == 0))
-    print(f"{checkpoint} exome samples found passing pop filtering")
+    print(f"=== Samples passing pop filtering: {checkpoint}")
     pop_ht.write(path_spark(qc_filter_file), overwrite=True)  # output
 
     # output_text_file = os.path.join(annotdir, "sample_qc_by_pop.tsv.bgz")

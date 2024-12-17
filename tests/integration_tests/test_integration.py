@@ -5,7 +5,7 @@ import importlib
 
 from typing import Optional
 from unittest.mock import patch
-from utils.utils import download_test_data_using_files_list
+from wes_qc import teszt
 
 # /path/to/wes_qc must be in PYTHONPATH
 
@@ -91,7 +91,7 @@ class HailTestCase(unittest.TestCase):
         variant_qc_random_forest_path = os.path.join(test_data_download_path, "variant_qc_random_forest")
 
         print(f"Downloading data from the bucket using files list {os.path.abspath(TEST_FILES_LIST)}")
-        download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
+        teszt.download_test_data_using_files_list(TEST_FILES_LIST, test_data_download_path)
 
         integration_tests_dir = os.path.dirname(os.path.realpath(__file__))
         rendered_config_savefile = os.path.join(integration_tests_dir, INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE)
@@ -137,6 +137,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 1.1 failed with an exception: {e}")
 
+    ### === Sample QC === ###
     def test_2_1_sample_qc(self):
         qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
         try:
@@ -181,6 +182,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 2.5 failed with an exception: {e}")
 
+    ### === Variant QC === ###
     # mock cli arguments
     @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(all=True, truth=True, annotation=True))
     def test_3_1_variant_qc(self, mock_args):
@@ -261,15 +263,20 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 3.9 failed with an exception: {e}")
 
-    def test_4_1a_genotype_qc(self):
-        qc_step_4_1a = importlib.import_module("4-genotype_qc.1a-apply_range_of_hard_filters")
+    ### === Genotype QC === ###
+    @patch(
+        "argparse.ArgumentParser.parse_args",
+        return_value=argparse.Namespace(prepare=True, evaluate=True, all=False),
+    )
+    def test_4_1_genotype_qc(self, mock_args):
+        qc_step_4_1 = importlib.import_module("4-genotype_qc.1-compare_hard_filter_combinations")
         try:
-            qc_step_4_1a.main()
+            qc_step_4_1.main()
         except Exception as e:
-            self.fail(f"Step 4.1a failed with an exception: {e}")
+            self.fail(f"Step 4.1 failed with an exception: {e}")
 
     def test_4_2_genotype_qc(self):
-        qc_step_4_2 = importlib.import_module("4-genotype_qc.2-counts_per_sample")
+        qc_step_4_2 = importlib.import_module("4-genotype_qc.2-apply_range_of_hard_filters")
         try:
             qc_step_4_2.main()
         except Exception as e:
@@ -288,3 +295,10 @@ class IntegrationTests(HailTestCase):
             qc_step_4_3b.main()
         except Exception as e:
             self.fail(f"Step 4.3b failed with an exception: {e}")
+
+    def test_4_4_genotype_qc(self):
+        qc_step_4_4 = importlib.import_module("4-genotype_qc.4-counts_per_sample")
+        try:
+            qc_step_4_4.main()
+        except Exception as e:
+            self.fail(f"Step 4.4 failed with an exception: {e}")
