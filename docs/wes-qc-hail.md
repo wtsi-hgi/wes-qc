@@ -114,7 +114,8 @@ To start a new task via `hlrun_remote`, first end the existing tmux session, if 
 ### 0. Resource Preparation
 All steps in this section need to be run only once before your first run. It prepares the reference dataset for the subsequent steps.
 
-1. Create the 1000G population prediction resource set.
+1. **Create the 1000G population prediction resource set**.
+
 This resource set is required for the super-population prediction on the population PCA step.
 Then you can reuse it with any data cohort.
 
@@ -122,23 +123,47 @@ Then you can reuse it with any data cohort.
 spark-submit 0-resource_preparation/1-import_1kg.py --all
 ```
 
-### 1. Load data from VCFs into Hail
+### 1. Load data
 
-1. Load VCFs into Hail and save as a Hail MatrixTable
+1. **Load VCFs into Hail and save as a Hail MatrixTable**
 
 ```shell
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
+2. **Annotate metadata**
+
+This script annotates samples with all provided metadata:
+VerifyBamId Freemix score, self-reported sex, self-reported ethnicity, etc.
+
+If you don't have some (or even any) of these annotations,
+put `null` instead of the corresponding filename in the config file:
+* `verifybamid_selfsm` - for the VerifyBamID freemix data
+
+
+For each available annotation, the script prints out the list of samples that don't have annotations.
+For the Freemix score it performs validation and saves the Freemix plot.
+
+```shell
+spark-submit 1-import_data/2-import_annotations.py
+```
+
+**Note:** Now, only Freemix annotation is supported. Work on other annotations is in progress.
+
+**Note:** The output of this step is not used in further steps yet.
+You can use it to run Freemix validation and get plots and sample statistics.
+Using annotated data in further steps will be implemented after implementing GtCheck validation.
+
+
 ### 2. Sample QC
 
-1. Apply hard filters and annotate with imputed sex
+1. **Run sex imputation**
 
 ```shell
 spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
 ```
 
-2. Prune by linkage disequilibrium, and identify samples from related individuals with PCrelate
+2. **Identify samples from related individuals with PCRelate**
 
 ```shell
 spark-submit 2-sample_qc/2-prune_related_samples.py
@@ -147,7 +172,7 @@ This step doesn't affect any other steps,
 because, on the step 2/3 we're using the clustering approach with PCA scores projection,
 However, this information can be useful to compare it with pedigree data and identify mislabeled samples.
 
-3. Population prediction with PCA
+3. **Predict populations**
 
 Merge 1kg MatrixTable with WES MatrixTable and make LD pruning.
 
@@ -180,7 +205,7 @@ You can specify the number of PCA components you want in the config file.
 spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
 ```
 
-4. Outliers identification
+4. Identify outliers
 
 Now that we have the predicted populations that each sample belongs to,
 we can run sample QC stratified by population and identify outliers within each population for each metric tested:
@@ -193,7 +218,7 @@ we can run sample QC stratified by population and identify outliers within each 
 spark-submit 2-sample_qc/4-find_population_outliers.py
 ```
 
-5. Filter data to exclude samples which fail QC.
+5. **Filter out samples which fail QC**
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script.
 <!At this stage samples failing on FREEMIX score and on identity checks are also removed.

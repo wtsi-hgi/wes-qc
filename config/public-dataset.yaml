@@ -58,8 +58,7 @@ general:
   tmp_dir: '{general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
-  # For data_root file prefix is added automatically
-  # tmp_dir: '{general.data_root}/tmp'
+  # tmp_dir: 'file://{general.data_root}/tmp'
   metadata_dir: '{general.data_root}/metadata/' # input
   annotation_dir: '{general.data_root}/annotations/'
   matrixtables_dir: '{general.data_root}/matrixtables/'
@@ -103,6 +102,15 @@ step1:
   gatk_vcf_header_infile:
   gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
+
+  # --- Step 1.2 --- #
+  validate_verifybamid:
+    verifybamid_selfsm: '{metadir}/test_data_from_1000_genomes.verify_bam_id_result.selfSM.tsv'  # Set to null if you don't have freemix data
+    verifybamid_plot: '{pltdir}/freemix_validation.html'
+    samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
+    freemix_treshold: 0.05
+
+    mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
 step2:
   # --- Step 2.1 --- #
