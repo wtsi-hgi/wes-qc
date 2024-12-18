@@ -46,8 +46,17 @@ def validate_verifybamid(
 
     # Exporting the list of samples failing Freemix
     samples_failing_freemix = samples.filter(samples.freemix > freemix_treshold)
-    samples_failing_freemix.export(path_spark(samples_failing_freemix_tsv))
     n_samples_failed_freemix = samples_failing_freemix.count()
+    if n_samples_failed_freemix > 0:
+        samples_failing_freemix.export(path_spark(samples_failing_freemix_tsv))
+        print(f"=== {n_samples_failed_freemix} samples failed freemix")
+        print(f"=== Failing samples exported to {samples_failing_freemix_tsv}")
+
+    samples_without_freemix = samples.filter(~hl.is_defined(samples.freemix))
+    n_samples_without_freemix = samples_without_freemix.count()
+    if n_samples_without_freemix > 0:
+        print(f"=== Detected {n_samples_without_freemix} samples without freemix: ", end="")
+        print(" ".join(samples_without_freemix.s.collect()))
 
     # Plottign freemix score
     p = hail.plot.scatter(
