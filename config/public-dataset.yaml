@@ -106,10 +106,11 @@ step1:
   # --- Step 1.2 --- #
   validate_verifybamid:
     verifybamid_selfsm: '{metadir}/test_data_from_1000_genomes.verify_bam_id_result.selfSM.tsv'
-    mt_with_freemix: '{mtdir}/mt_freemix_annotated.mt'
     verifybamid_plot: '{pltdir}/freemix_validation.html'
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
+
+    mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
 step2:
   # --- Step 2.1 --- #

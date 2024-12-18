@@ -102,14 +102,20 @@ def main() -> None:
     verifybamid_selfsm = config["step1"]["validate_verifybamid"]["verifybamid_selfsm"]
 
     # = STEP OUTPUTS = #
-    mtoutpath = config["step1"]["validate_verifybamid"]["mt_with_freemix"]
+    mtoutpath = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
 
     mt = hl.read_matrix_table(path_spark(mtpath))
-    verifybamid = hl.import_table(path_spark(verifybamid_selfsm), types=verifybamid_types)
-    mt = validate_verifybamid(mt, verifybamid, **config["step1"]["validate_verifybamid"])
+
+    if verifybamid_selfsm is not None:
+        print("=== Running verifyBamID validation ")
+        verifybamid = hl.import_table(path_spark(verifybamid_selfsm), types=verifybamid_types)
+        mt = validate_verifybamid(mt, verifybamid, **config["step1"]["validate_verifybamid"])
+    else:
+        print("=== Skipping verifyBamID validation")
+
     mt.write(path_spark(mtoutpath), overwrite=True)
 
 
