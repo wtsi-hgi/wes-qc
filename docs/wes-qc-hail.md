@@ -137,16 +137,18 @@ This script annotates samples with all provided metadata:
 VerifyBamId Freemix score, self-reported sex, self-reported ethnicity, etc.
 
 If you don't have some (or even any) of these annotations,
-put `null` instead of the corresponding filename in the config file.
+put `null` instead of the corresponding filename in the config file:
+* `verifybamid_selfsm` - for the VerifyBamID freemix data
 
-For each available annotation, the script outputs the list of samples that don't have annotations.
+
+For each available annotation, the script prints out the list of samples that don't have annotations.
 For the Freemix score it performs validation and saves the Freemix plot.
 
 ```shell
 spark-submit 1-import_data/2-import_annotations.py
 ```
 
-**Note:** Now, only Freemix annotation is supported. Working on other annotations is in progress.
+**Note:** Now, only Freemix annotation is supported. Work on other annotations is in progress.
 
 **Note:** The output of this step is not used in further steps yet.
 You can use it to run Freemix validation and get plots and sample statistics.
