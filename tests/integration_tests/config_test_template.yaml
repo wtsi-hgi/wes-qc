@@ -157,6 +157,8 @@ step2:
       # include_self_kinship:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
+    relatedness_outfile: '{anndir}/relatedness.tsv.gz'
+    relatedness_plotfile: '{pltdir}/relatedness_plot.html'
 
   prune_plot_pca:
     plink_outfile: '{anndir}/mt_unrelated.plink'

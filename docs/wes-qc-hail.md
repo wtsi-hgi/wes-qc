@@ -164,13 +164,15 @@ spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
 ```
 
 2. **Identify samples from related individuals with PCRelate**
+This step outputs a relatedness graph, a table of total statistics of relatedness and a list of related samples.
+Please see config files "prune_pc_relate" for more details.
 
 ```shell
 spark-submit 2-sample_qc/2-prune_related_samples.py
 ```
-This step doesn't affect any other steps,
-because, on the step 2/3 we're using the clustering approach with PCA scores projection,
-However, this information can be useful to compare it with pedigree data and identify mislabeled samples.
+
+While this step identifies related samples, we keep them in the dataset since step 2.3 uses PCA score projection for population clustering. The relatedness information can be used to validate pedigree data and detect sample mislabeling.
+
 
 3. **Predict populations**
 
