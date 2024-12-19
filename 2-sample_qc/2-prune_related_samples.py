@@ -4,6 +4,7 @@ import hail as hl
 import os
 from utils.utils import parse_config, path_local, path_spark
 import bokeh.plotting as bkplt
+import bokeh.layouts as bklayouts
 from wes_qc import hail_utils
 
 
@@ -34,7 +35,7 @@ def prune_mt(mt: hl.MatrixTable, ld_prune_args, **kwargs) -> hl.MatrixTable:
 
 def prune_pc_relate(
     pruned_mt: hl.MatrixTable, pca_components, pc_relate_args, relatedness_column, relatedness_threshold, **kwargs
-) -> (hl.Table, hl.Table):
+) -> (hl.Table, hl.Table, hl.Table):
     """
     Runs PC relate on pruned MT
     :param hl.MatrixTable pruned_mt: ld pruned MT file
@@ -68,7 +69,16 @@ def prune_pc_relate(
     # prune individuals to be left with unrelated - creates a table containing one column - samples to remove
     pairs = relatedness_ht.filter(relatedness_ht[relatedness_column] > relatedness_threshold)
     related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, keep=False)
-    return related_samples_to_remove, scores
+    return related_samples_to_remove, scores, relatedness_ht
+
+
+def plot_relatedness(relatedness_ht: hl.Table, relatedness_plotfile: str, **kwargs) -> None:
+    """Plot relatedness scores."""
+    p1 = hl.plot.histogram(relatedness_ht.kin, title="Kinship distribution")
+    p2 = hl.plot.scatter(relatedness_ht.kin, relatedness_ht.ibd2, xlabel="Kinship", ylabel="IBD2")
+    layout = bklayouts.gridplot([p1, p2], ncols=2)
+    bkplt.output_file(relatedness_plotfile)
+    bkplt.save(layout)
 
 
 # TODO: How is this step different from 2-sample_qc/3-population_pca_prediction.py/run_pca()? Only PCA plotting?
@@ -140,13 +150,19 @@ def main():
     pruned_mt.write(path_spark(mtoutfile), overwrite=True)
 
     # run pcrelate
-    related_samples_to_remove_ht, scores = prune_pc_relate(pruned_mt, **config["step2"]["prune_pc_relate"])
+    related_samples_to_remove_ht, scores, relatedness_ht = prune_pc_relate(
+        pruned_mt, **config["step2"]["prune_pc_relate"]
+    )
     scores_file = config["step2"]["prune_pc_relate"]["scores_file"]
     scores.write(path_spark(scores_file), overwrite=True)  # output
     related_samples_to_remove_ht.write(
         path_spark(config["step2"]["prune_pc_relate"]["samples_to_remove_file"]), overwrite=True
     )
     related_samples_to_remove_ht.export(path_spark(config["step2"]["prune_pc_relate"]["samples_to_remove_tsv"]))
+    relatedness_ht.export(path_spark(config["step2"]["prune_pc_relate"]["relatedness_outfile"]))
+
+    # plot relatedness
+    plot_relatedness(relatedness_ht, **config["step2"]["prune_pc_relate"])
 
     # run PCA
     pca_mt, pca_scores, pca_loadings = run_population_pca(
