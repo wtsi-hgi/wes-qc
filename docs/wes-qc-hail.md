@@ -208,15 +208,33 @@ spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
 4. Identify outliers
 
 Now that we have the predicted populations that each sample belongs to,
-we can run sample QC stratified by population and identify outliers within each population for each metric tested:
-- number of SNPs
-- number of deletions and insertions, insertion/deletion ratе
-- heterozygosity rate, heterozygous/homozygous ratio
-- number of transitions and transversions, transition/transversion ratio.
+we run sample QC stratified by population and identify outliers.
+
+We test the following metrics, calculated by Hail:
+* number of SNPs
+* heterozygosity rate, heterozygous/homozygous ratio
+* number of transitions and transversions, transition/transversion ratio.
+* number of deletions and insertions, insertion/deletion ratе
+
+For metric description, see the
+[Hail sample_qc()](https://hail.is/docs/0.2/methods/genetics.html#hail.methods.sample_qc)
+function description.
 
 ```shell
 spark-submit 2-sample_qc/4-find_population_outliers.py
 ```
+
+WES-QC pipeline identifies outliers using the gnomAD function
+[`compute_stratified_metrics_filter()`](https://broadinstitute.github.io/gnomad_methods/api_reference/sample_qc/filtering.html#gnomad.sample_qc.filtering.compute_stratified_metrics_filter).
+By default, this function designates as outliers any samples
+that deviate more than 4 Median Absolute Deviations (MAD)
+from the average by any metric.
+
+If you nned to adjust this behavior,
+modify the `compute_stratified_metrics_filter_args` section in the configuration file.
+Any parameters added to this section are transferred to the `compute_stratified_metrics_filter()` function.
+For example, you can use the `metric_threshold` dictionary to specify individual thresholds for some metrics.
+
 
 5. **Filter out samples which fail QC**
 
