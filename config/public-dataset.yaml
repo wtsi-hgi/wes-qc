@@ -232,6 +232,10 @@ step2:
     output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
     output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
 
+    plot_sample_qc_metrics:
+      n_bins: 100
+      plot_outfile: '{pltdir}/sample_qc_metrics_by_pop.html' # output
+
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
     samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz' # output
