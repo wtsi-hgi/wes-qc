@@ -237,6 +237,11 @@ modify the `compute_stratified_metrics_filter_args` section in the configuration
 Any parameters added to this section are transferred to the `compute_stratified_metrics_filter()` function.
 For example, you can use the `metric_threshold` dictionary to specify individual thresholds for some metrics.
 
+The script outputs the full list of samples with calculated metrics
+(the `stratified_sample_qc`:`output_text_file` config parameter),
+statistics and outlier intervals for all metrics in JSON format
+(the `stratified_sample_qc`:`output_globals_json_file` config parameter),
+and metric distribution plots (the `plot_sample_qc_metrics`:`plot_outfile` config parameter).
 
 5. **Filter out samples which fail QC**
 
