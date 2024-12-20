@@ -230,7 +230,7 @@ By default, this function designates as outliers any samples
 that deviate more than 4 Median Absolute Deviations (MAD)
 from the average by any metric.
 
-If you nned to adjust this behavior,
+If you need to adjust this behavior,
 modify the `compute_stratified_metrics_filter_args` section in the configuration file.
 Any parameters added to this section are transferred to the `compute_stratified_metrics_filter()` function.
 For example, you can use the `metric_threshold` dictionary to specify individual thresholds for some metrics.
