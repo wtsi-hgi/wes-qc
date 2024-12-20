@@ -55,7 +55,7 @@ general:
   # Dataset root directory - to use in folder paths
   data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
 
-  tmp_dir: '{general.data_root}/tmp/' # output
+  tmp_dir: 'file://{general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
   # tmp_dir: 'file://{general.data_root}/tmp'
@@ -232,9 +232,9 @@ step2:
     output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
     output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
 
-    plot_sample_qc_metrics:
-      n_bins: 100
-      plot_outfile: '{pltdir}/sample_qc_metrics_by_pop.html' # output
+  plot_sample_qc_metrics:
+    n_bins: 20
+    plot_outfile: '{pltdir}/sample_qc_metrics_by_pop.html' # output
 
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
