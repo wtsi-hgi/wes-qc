@@ -31,7 +31,6 @@ When working on an analysis branch, you can retrieve the latest changes from mai
 make update
 ```
 This will fetch the latest changes from main and rebase the current branch onto it.
-test whether this works
 
 # Developer's howto
 
