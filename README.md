@@ -24,6 +24,13 @@ The code is designed to run on the SPARK cluster with the
 The manual for the cluster setting up is
 [here](docs/hail-on-spark.md).
 
+# How to get the latest changes from main
+
+When working on an analysis branch, you can retrieve the latest changes from main by running:
+```bash
+make update
+```
+This will fetch the latest changes from main and rebase the current branch onto it.
 # Developer's howto
 
 ## How to run the tests and calculate coverage

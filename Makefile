@@ -41,3 +41,7 @@ sync-to-private:
 	git switch main
 	git pull
 	git push origin-private
+
+update:
+	git fetch origin main:main
+	git rebase main
