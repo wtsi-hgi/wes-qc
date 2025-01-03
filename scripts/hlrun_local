@@ -6,12 +6,27 @@
 source /etc/profile
 
 date=$( date '+%Y%m%d_%H%M%S' )
-log="hlrun_local_${date}"
+
+log="hlrun_${date}.log"
+log_prefix=""
+
+# Get log prefix from command line args if specified
+for arg in "$@"; do
+    if [[ $arg == --prefix=* ]]; then
+        log_prefix="${arg#*=}"
+        log="hlrun_${log_prefix}_${date}.log"
+        break
+    fi
+done
+
+# Remove prefix from args
+args="${@//--prefix=$log_prefix/}"
+args="${args## }"
 
 # FIXME: # A hack to make all imports in wes-qc utils correct
 export PYTHONPATH=$( pwd ):$PYTHONPATH
 
 echo "Running the job with spark-submit"
-echo "$@"
+echo "$args"
 export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
-spark-submit "$@" 2>&1 | tee "${log}"
+spark-submit "$args" 2>&1 | tee "${log}"
