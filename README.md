@@ -31,6 +31,7 @@ When working on an analysis branch, you can retrieve the latest changes from mai
 make update
 ```
 This will fetch the latest changes from main and rebase the current branch onto it.
+If there are any unstaged changes in the branch, you will be asked to commit or stash them first.
 
 # Developer's howto
 

@@ -28,7 +28,7 @@ unit-test-coverage:
 
 clear-logs:
 	rm hail*.log || true
-	rm hlrun_local_* || true
+	rm hlrun_* || true
 	rm tests/unit_tests/hail*.log || true
 	rm tests/integration_tests/hail*.log || true
 
