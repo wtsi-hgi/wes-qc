@@ -27,6 +27,6 @@ args="${args## }"
 export PYTHONPATH=$( pwd ):$PYTHONPATH
 
 echo "Running the job with spark-submit"
-echo "$args"
+echo spark-submit "$args"
 export PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python
-spark-submit "$args" 2>&1 | tee "${log}"
+spark-submit $args 2>&1 | tee "${log}"
