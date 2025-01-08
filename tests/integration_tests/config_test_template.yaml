@@ -105,12 +105,21 @@ step1:
 
   # --- Step 1.2 --- #
   validate_verifybamid:
-    verifybamid_selfsm: '{metadir}/control_set_small.verify_bam_id_result.selfSM.tsv' # Set to null if you don't have freemix data
+    verifybamid_selfsm: '{metadir}/control_set_small.verify_bam_id_result.selfSM.tsv' #e Set to null if you don't have freemix data
     verifybamid_plot: '{pltdir}/freemix_validation.html'
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
     mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
+
+  validate_gtcheck:
+    wes_microarray_mapping: '{metadir}/control_set_small.microarray_mapping.tsv' # Set to null if you don't have microarray data
+    microarray_ids: '{metadir}/control_set_small.microarray_samples.txt'
+    gtcheck_report: '{metadir}/control_set_small.combined.gtcheck.txt'
+    gtcheck_results_folder: '{anndir}/gtcheck'
+
+    wes_id_col: 'WES_ID'
+    microarray_id_col: 'Microarray_ID'
 
 step2:
   # --- Step 2.1 --- #
