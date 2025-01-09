@@ -117,9 +117,11 @@ step1:
     microarray_ids: '{metadir}/control_set_small.microarray_samples.txt'
     gtcheck_report: '{metadir}/control_set_small.combined.gtcheck.txt'
     gtcheck_results_folder: '{anndir}/gtcheck'
+    mt_gtcheck_validated: '{mtdir}/mt_gtcheck_validated.mt'
 
     wes_id_col: 'WES_ID'
     microarray_id_col: 'Microarray_ID'
+    gtcheck_score_threshold: 0.2
 
 step2:
   # --- Step 2.1 --- #

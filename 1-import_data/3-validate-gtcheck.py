@@ -27,6 +27,7 @@ If you have mapping information in any other form, you need to manually convert 
 """
 
 import os
+from typing import Optional
 
 import pandas as pd
 from collections import Counter
@@ -184,25 +185,239 @@ def mapping_clean_missing(
 # ======== The second part - validation of the gtcheck data consistency =======
 
 
+def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
+    gtcheck_column_names = {
+        i: s
+        for i, s in enumerate(
+            "DCv2 data_sample array_sample discordance average_logP n_sites N_matching_genotypes".split()
+        )
+    }
+    gtcheck = gtcheck.rename(columns=gtcheck_column_names)
+    gtcheck = gtcheck.drop("DCv2", axis=1)
+
+    print("Checking mapping ID pairs uniqiness")
+
+    if gtcheck.duplicated(subset=["data_sample", "array_sample"]).any():
+        print("WARNING: Non-unique ID combinations found in the index. Duplicated items are dropped.")
+        gtcheck.drop_duplicates(subset=["data_sample", "array_sample"], keep="first")
+    else:
+        print("ALL WES-microarray pairs are unique.")
+    # Calculation score
+    # Lowest score corresponds to the best match
+    gtcheck["score"] = gtcheck.discordance / gtcheck.n_sites
+    # Filling all non-calculated values with the "bad" score
+    gtcheck.fillna({"score": 1}, inplace=True)
+    return gtcheck
+
+
+def prepare_mapping(mapping: pd.DataFrame, wes_id_col: str, microarray_id_col: str) -> pd.DataFrame:
+    # Preparing mapping
+    mapping = mapping.rename(columns={wes_id_col: "data_sample", microarray_id_col: "array_sample"})
+    mapping = mapping[["data_sample", "array_sample"]]
+    mapping = mapping_mark_duplicates(mapping, "data_sample", "array_sample")
+    if mapping.duplicated_id_both.any():
+        print(
+            "WARNING - the mapping is double-way non unique!. Please double-check results of the mapping validation steps"
+        )
+    return mapping
+
+
+def make_best_match(gtcheck: pd.DataFrame) -> pd.DataFrame:
+    # Constructing table with the best score
+    gtcheck_min_by_group_loc = gtcheck.groupby("data_sample").score.idxmin()
+    gtcheck_best_match = gtcheck.loc[gtcheck_min_by_group_loc]
+    gtcheck_best_match.set_index(keys=("data_sample"), inplace=True, drop=False)
+    gtcheck_best_match.rename(
+        columns={"array_sample": "best_match_array_sample", "score": "best_match_array_score"}, inplace=True
+    )
+    gtcheck_best_match.drop(["average_logP", "N_matching_genotypes"], axis=1, inplace=True)
+    return gtcheck_best_match
+
+    # The following set of functions separates the initial gtchech map to separate tables,
+    # Each function returns the processed subtable with the marked validation result, and main table to process
+
+
+def add_validation_result(df: pd.DataFrame, result: str, result_column_name: str = "validation_result"):
+    """
+    Adds a string result, to dataframe column result_column_name
+    """
+    df.loc[:, result_column_name] = df.loc[:, result_column_name] + result + ","
+
+
+def set_validation_status(df: pd.DataFrame, status: bool, column_name="is_validation_passed") -> None:
+    df.loc[:, column_name] = status
+
+
+def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Split gtcheck results to samples existing in map and not existing in map
+    """
+    mask_not_exist_in_map = gtcheck_map.array_sample.isnull()
+    gtcheck_not_exist_in_map = gtcheck_map.loc[mask_not_exist_in_map]
+    add_validation_result(gtcheck_not_exist_in_map, "best_match_not_exist_in_mapfile")
+    gtcheck_exist_in_map = gtcheck_map.loc[~mask_not_exist_in_map]
+    add_validation_result(gtcheck_exist_in_map, "best_match_exist_in_mapfile")
+    return gtcheck_not_exist_in_map, gtcheck_exist_in_map
+
+
+def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Splits gtcheck results to matching map and not matching mapping file
+    """
+    mask_no_pair_in_map = gtcheck_map.apply(lambda row: row.best_match_array_sample in row.array_sample, axis=1)
+
+    gtcheck_matched_map = gtcheck_map.loc[mask_no_pair_in_map, :]
+    add_validation_result(gtcheck_matched_map, "best_match_matched_mapfile")
+    gtcheck_not_matched_map = gtcheck_map.loc[~mask_no_pair_in_map, :]
+    add_validation_result(gtcheck_not_matched_map, "best_match_not_matched_mapfile")
+
+    return gtcheck_matched_map, gtcheck_not_matched_map
+
+
+def filter_by_score(
+    df: pd.DataFrame, score_treshold: float, score_column_name: str = "score"
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """ """
+    df_pass_score = df[df[score_column_name] <= score_treshold]
+    add_validation_result(df_pass_score, "score_passed")
+    df_fail_score = df[df[score_column_name] > score_treshold]
+    add_validation_result(df_fail_score, "score_failed")
+    return df_pass_score, df_fail_score
+
+
+def mark_non_unique_matches(gtcheck_map: pd.DataFrame) -> pd.DataFrame:
+    gtcheck_map_non_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any, :]
+    add_validation_result(gtcheck_map_non_unique, "mapfile_non_unique")
+    gtcheck_map_unique = gtcheck_map.loc[not gtcheck_map.duplicated_id_any, :]
+    add_validation_result(gtcheck_map_unique, "mapfile_unique")
+    return pd.concat([gtcheck_map_unique, gtcheck_map_non_unique])
+
+
+def validate_map_by_score(
+    gtcheck_not_matched_map: pd.DataFrame, gtcheck: pd.DataFrame, mapping: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Analyses set of samples where best scores not found in mapping
+    Finds the best score from all pairs existing in the mapping
+    gtcheck - the original bcftools gtcheck results, containing all scores
+    mapping - original mapping containing all pairs
+    gtcheck_not_matched_map - samples that we're analysing
+    """
+    # Restoring the corresponding array sample by the mapping best match
+    grouped_mapping = mapping.groupby(by="array_sample")["data_sample"].apply(list)
+    mapping_dict = grouped_mapping.to_dict()
+    wes_by_best_match = gtcheck_not_matched_map["best_match_array_sample"].map(mapping_dict)
+    gtcheck_not_matched_map.loc[:, "wes_restored_by_best_match"] = wes_by_best_match.apply(
+        lambda x: x if isinstance(x, list) else []
+    )
+
+    # Collecting for each WES possible mapping samples with their score
+    gtcheck_not_matched_map_expanded = gtcheck_not_matched_map.explode("array_sample")
+
+    gtcheck_score_dict = gtcheck.groupby(["data_sample", "array_sample"])["score"].first().to_dict()
+
+    gtcheck_not_matched_map_expanded["score_from_mapped_array_sample"] = gtcheck_not_matched_map_expanded.apply(
+        lambda row: gtcheck_score_dict.get((row.data_sample, row.array_sample), pd.NA), axis=1
+    )
+
+    have_no_gtscore = gtcheck_not_matched_map_expanded.score_from_mapped_array_sample.isnull()
+    gtcheck_no_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore, :]
+    add_validation_result(gtcheck_no_mapping_pairs, "no_mapfile_pairs_have_gtcheck")
+    gtcheck_has_mapping_pairs = gtcheck_not_matched_map_expanded.loc[~have_no_gtscore, :]
+    add_validation_result(gtcheck_has_mapping_pairs, "mapfile_pairs_have_gtcheck")
+    return gtcheck_has_mapping_pairs, gtcheck_no_mapping_pairs
+
+
+def gtcheck_validate(
+    gtcheck: pd.DataFrame,
+    mapping: pd.DataFrame,
+    score_threshold: float = 0.2,
+    wes_id_col: str = "data_sample",
+    microarray_id_col: str = "array_sample",
+) -> pd.DataFrame:
+    gtcheck = prepare_gtcheck(gtcheck)
+    gtcheck_best_match = make_best_match(gtcheck)
+
+    mapping = prepare_mapping(mapping, wes_id_col, microarray_id_col)
+    mapping_by_wes = mapping.groupby(by="data_sample").agg(
+        {
+            "array_sample": list,
+            "duplicated_id_any": "any",
+        }
+    )
+    print("Checkin for duplicated ids: ", mapping_by_wes.duplicated_id_any.value_counts())
+
+    # Validation set of samples by mapping
+    gtcheck_map = gtcheck_best_match.join(mapping_by_wes)
+    with pd.option_context("future.no_silent_downcasting", True):
+        gtcheck_map["duplicated_id_any"] = gtcheck_map.duplicated_id_any.fillna(False)
+
+    # This column will contain the list of tags - text messages associated with each validation check
+    gtcheck_map["validation_result"] = ""
+    gtcheck_map["is_validation_passed"] = False
+
+    # 1. WES IDs are not present in the map file - we can't do anything with it
+    gtcheck_not_in_map, gtcheck_in_map = filter_not_in_map(gtcheck_map)
+    set_validation_status(gtcheck_not_in_map, True)
+
+    # 2. Wes-array pair exists in the map
+    gtcheck_matched_map, gtcheck_not_matched_map = filter_matched_map(gtcheck_in_map)
+    gtcheck_matched_map = mark_non_unique_matches(gtcheck_matched_map)
+
+    # Filtering matched samples by score
+    gtcheck_matched_map_pass_score, gtcheck_matched_map_fail_score = filter_by_score(
+        gtcheck_matched_map, score_threshold, score_column_name="best_match_array_score"
+    )
+    set_validation_status(gtcheck_matched_map_pass_score, True)
+
+    # 3. Recovering possible scores from map
+    gtcheck_has_mapping_pairs, gtcheck_no_mapping_pairs = validate_map_by_score(
+        gtcheck_not_matched_map, gtcheck, mapping
+    )
+    gtcheck_not_matched_pass_score, gtcheck_not_matched_fail_score = filter_by_score(
+        gtcheck_has_mapping_pairs, score_threshold, score_column_name="score_from_mapped_array_sample"
+    )
+    set_validation_status(gtcheck_not_matched_pass_score, True)
+
+    return pd.concat(
+        [
+            gtcheck_not_in_map,
+            gtcheck_matched_map_pass_score,
+            gtcheck_matched_map_fail_score,
+            gtcheck_no_mapping_pairs,
+            gtcheck_not_matched_pass_score,
+            gtcheck_not_matched_fail_score,
+        ]
+    )
+
+
+def print_validation_sumary(df: pd.DataFrame) -> None:
+    validation_result = df.validation_result.value_counts()
+    print(validation_result)
+
+
 def main() -> None:
     # = STEP SETUP = #
     config = parse_config()
 
-    tmp_dir = config["general"]["tmp_dir"]
+    tmp_dir: str = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
-    dataset = config["general"]["dataset_name"]
-    wes_id_col = config["step1"]["validate_gtcheck"]["wes_id_col"]
-    microarray_id_col = config["step1"]["validate_gtcheck"]["microarray_id_col"]
+    dataset: str = config["general"]["dataset_name"]
+    wes_id_col: str = config["step1"]["validate_gtcheck"]["wes_id_col"]
+    microarray_id_col: str = config["step1"]["validate_gtcheck"]["microarray_id_col"]
+    gtcheck_score_threshold: float = config["step1"]["validate_gtcheck"]["gtcheck_score_threshold"]
 
     # = STEP DEPENDENCIES = #
-    mtpath = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
-    wes_microarray_mapping = config["step1"]["validate_gtcheck"]["wes_microarray_mapping"]
-    microarray_ids = config["step1"]["validate_gtcheck"]["microarray_ids"]
+    mtpath: str = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
+    wes_microarray_mapping: Optional[str] = config["step1"]["validate_gtcheck"]["wes_microarray_mapping"]
+    microarray_ids: str = config["step1"]["validate_gtcheck"]["microarray_ids"]
+    gtcheck_report: str = config["step1"]["validate_gtcheck"]["gtcheck_report"]
 
     # = STEP OUTPUTS = #
-    gtcheck_results_folder = config["step1"]["validate_gtcheck"]["gtcheck_results_folder"]
+    gtcheck_results_folder: str = config["step1"]["validate_gtcheck"]["gtcheck_results_folder"]
     gtcheck_results_prefix = os.path.join(gtcheck_results_folder, dataset)
+    mt_gtcheck_validated: str = config["step1"]["validate_gtcheck"]["mt_gtcheck_validated"]
 
     # = STEP LOGIC = #
     if wes_microarray_mapping is None:
@@ -219,13 +434,8 @@ def main() -> None:
     # Loading the list of WES samples from Hial matrixtable
     mt = hl.read_matrix_table(path_spark(mtpath))
     ids_wes_data = mt.s.collect()
-    """
-    with open(
-        "/lustre/scratch126/teams/hgi/gz3/wes_qc_pycharm/tests/test_data/metadata/control_set_small.wes_samples.txt"
-    ) as warray:
-        ids_wes_data = [s.strip() for s in warray.readlines()]
-    """
-    # Loading the list of microarray samples form an external file
+
+    # Loading the list of microarray samples from an external file
     with open(microarray_ids) as farray:
         ids_microarray_data = [s.strip() for s in farray.readlines()]
 
@@ -247,6 +457,43 @@ def main() -> None:
 
     # - Correcting the mapping file - Removing microarray IDs not present in the real microarray data
     wes2array = mapping_clean_missing(wes2array, ids_microarray_data, microarray_id_col)
+
+    # === The second part - validation of the gtcheck results ===
+    gtcheck = pd.read_csv(gtcheck_report, sep="\t", header=None)
+
+    validated = gtcheck_validate(
+        gtcheck, wes2array, gtcheck_score_threshold, wes_id_col=wes_id_col, microarray_id_col=microarray_id_col
+    )
+    validated.to_csv(gtcheck_results_prefix + ".gtcheck_validation.all_samples.csv", index=False)
+
+    # Printing summary for passed and failed validation file
+    is_passed = validated.is_validation_passed
+    validated_passed = validated.loc[is_passed, :]
+    validated_failed = validated.loc[~is_passed, :]
+
+    print(f"=== Passed validation: {len(validated_passed)} samples")
+    print_validation_sumary(validated_passed)
+    print("")
+    print(f"=== Failed validation: {len(validated_failed)} samples")
+    if len(validated_failed) > 0:
+        print_validation_sumary(validated_failed)
+        validated_failed.to_csv(gtcheck_results_prefix + ".gtcheck_validation.failed_samples.csv", index=False)
+
+    # - Putting validation data in the main hail matrixtable
+    # print(validated.dtypes) # TODO: the resulting pandas df containd many 'object' type fields instead of strings. Need to investigare and fix this.
+    # Keeping only columns where Hail can correctly impute type
+    validated = validated[
+        [
+            "data_sample",
+            "best_match_array_sample",
+            "best_match_array_score",
+            "validation_result",
+            "is_validation_passed",
+        ]
+    ]
+    validated_table = hl.Table.from_pandas(validated, key="data_sample")
+    mt = mt.annotate_cols(gtcheck_validation=validated_table[mt.s])
+    mt.write(path_spark(mt_gtcheck_validated), overwrite=True)
 
 
 if __name__ == "__main__":
