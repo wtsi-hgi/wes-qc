@@ -4,23 +4,23 @@ whole-exome sequencing (WES) and microarray genotyping data.
 
 **Definitions**
 * WES - whole-exome or whole-genome sequencing
-* Array - data from array-based genotyping
+* Microarray - data from microarray-based genotyping
 * Mapping file - the table contains pairs between WES ID and MicroARRAY ID
 
 The issue: Very often, the mapping file quality is bad.
-It contains non-unique IDs (for example, one WES IDs pairing with multiple ARRAY IDs,
+It contains non-unique IDs (for example, one WES IDs pairing with multiple MicroARRAY IDs,
 and multiple mismatches (for example, IDs present in the real data but not covered by mapping)
 
 **Definition of ID sources**
-* Data IDs - IDs, present in the real data: VCFs for WES, VCFs or FAM for ARRAY
+* Data IDs - IDs, present in the real data: VCFs for WES, VCFs or FAM for MicroARRAY
 * Mapping IDs -- IDs, exiting in the mapping file
 
 **Required input data**
 * List of WES IDs from the data - extracted from the input Hail matrixtable
-* List of ARRAY IDs from data
+* List of MicroARRAY IDs from data
 * Mapping file
 
-The mapping file should contain at least two columns - one for WES ID, and one for ARRAY ID
+The mapping file should contain at least two columns - one for WES ID, and one for MicroARRAY ID
 If you have mapping information in any other form, you need to manually convert it.
 
 
@@ -105,13 +105,14 @@ def check_ids_consistency(data_ids: IdList, map_ids: IdList, caption: str, dump_
     return data_no_map, map_no_data
 
 
-# TODO: make unit test
-def mapping_mark_duplicates(mapping: pd.DataFrame, wes_id_col: str = "wes_id", microarray_id_col: str = "array_id"):
+def mapping_mark_duplicates(
+    mapping: pd.DataFrame, wes_id_col: str = "wes_id", microarray_id_col: str = "microarray_id"
+):
     mapping = mapping.copy()
     mapping["duplicated_wes"] = mapping[wes_id_col].duplicated(keep=False)
-    mapping["duplicated_array"] = mapping[microarray_id_col].duplicated(keep=False)
-    mapping["duplicated_id_any"] = mapping.duplicated_wes | mapping.duplicated_array
-    mapping["duplicated_id_both"] = mapping.duplicated_wes & mapping.duplicated_array
+    mapping["duplicated_microarray"] = mapping[microarray_id_col].duplicated(keep=False)
+    mapping["duplicated_id_any"] = mapping.duplicated_wes | mapping.duplicated_microarray
+    mapping["duplicated_id_both"] = mapping.duplicated_wes & mapping.duplicated_microarray
     return mapping
 
 
@@ -127,13 +128,15 @@ def report_mapping_duplicated_stats(mapping: pd.DataFrame, duplicated_samples_na
     print("\n=== Marking duplicates in ID mapping ===")
     if mapping.duplicated_id_any.any():
         mapping_dubl = mapping[mapping.duplicated_id_any]
-        print(f"Identified {len(mapping_dubl)} samples with non-unique WES<->array mapping: {duplicated_samples_name}")
+        print(
+            f"Identified {len(mapping_dubl)} samples with non-unique WES<->microarray mapping: {duplicated_samples_name}"
+        )
         mapping_dubl.to_csv(duplicated_samples_name)
     else:
-        print("WES<->array mapping is unique")
+        print("WES<->microarray mapping is unique")
 
 
-def verify_wes2array_mapping(
+def verify_wes2microarray_mapping(
     ids_wes_data,
     ids_microarray_data,
     mapping,
@@ -159,13 +162,15 @@ def verify_wes2array_mapping(
     report_id_uniquness(
         ids_microarray_mapping_unique,
         ids_microarray_mapping_non_unique,
-        "ARAY mapping",
-        results_file_prefix + ".ARRAY_mapping_non-unique.txt",
+        "MicroARRAY mapping",
+        results_file_prefix + ".MicroARRAY_mapping_non-unique.txt",
     )
 
     print("\n=== Mapping consistency checking ===")
     check_ids_consistency(ids_wes_data, ids_wes_mapping, "WES", results_file_prefix + ".WES")
-    check_ids_consistency(ids_microarray_data, ids_microarray_mapping, "ARRAY", results_file_prefix + ".ARRAY")
+    check_ids_consistency(
+        ids_microarray_data, ids_microarray_mapping, "MicroARRAY", results_file_prefix + ".MicroARRAY"
+    )
 
     mapping_marked_duplicated = mapping_mark_duplicates(mapping, wes_id_col, microarray_id_col)
     report_mapping_duplicated_stats(mapping_marked_duplicated, results_file_prefix + ".non-unique-pairs.csv")
@@ -173,15 +178,15 @@ def verify_wes2array_mapping(
 
 # TODO: make unit test
 def mapping_clean_missing(
-    wes2array_mapping: pd.DataFrame,
+    wes2microarray_mapping: pd.DataFrame,
     ids_microarray_data: IdList,
     microarray_id_col="microarray_id",
 ) -> pd.DataFrame:
     print("Removing from the mapping all microarray IDs not present in the real microarray data")
-    ids_to_keep = wes2array_mapping[microarray_id_col].isin(ids_microarray_data)
-    wes2array_clean_missing = wes2array_mapping.loc[ids_to_keep, :]
-    ids_array_mapping_corrected_clean_missing = set(wes2array_clean_missing[microarray_id_col])
-    print("Survived unique Array IDs: ", len(ids_array_mapping_corrected_clean_missing))
+    ids_to_keep = wes2microarray_mapping[microarray_id_col].isin(ids_microarray_data)
+    wes2array_clean_missing = wes2microarray_mapping.loc[ids_to_keep, :]
+    ids_microarray_mapping_corrected_clean_missing = set(wes2array_clean_missing[microarray_id_col])
+    print("Survived unique Array IDs: ", len(ids_microarray_mapping_corrected_clean_missing))
     return wes2array_clean_missing
 
 
@@ -191,7 +196,7 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
     gtcheck_column_names = {
         i: s
         for i, s in enumerate(
-            "DCv2 data_sample array_sample discordance average_logP n_sites N_matching_genotypes".split()
+            "DCv2 data_sample microarray_sample discordance average_logP n_sites N_matching_genotypes".split()
         )
     }
     gtcheck = gtcheck.rename(columns=gtcheck_column_names)
@@ -199,9 +204,9 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
 
     print("Checking mapping ID pairs uniqiness")
 
-    if gtcheck.duplicated(subset=["data_sample", "array_sample"]).any():
+    if gtcheck.duplicated(subset=["data_sample", "microarray_sample"]).any():
         print("WARNING: Non-unique ID combinations found in the index. Duplicated items are dropped.")
-        gtcheck.drop_duplicates(subset=["data_sample", "array_sample"], keep="first")
+        gtcheck.drop_duplicates(subset=["data_sample", "microarray_sample"], keep="first")
     else:
         print("ALL WES-microarray pairs are unique.")
     # Calculation score
@@ -215,9 +220,9 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
 # TODO: make unit test
 def prepare_mapping(mapping: pd.DataFrame, wes_id_col: str, microarray_id_col: str) -> pd.DataFrame:
     # Preparing mapping
-    mapping = mapping.rename(columns={wes_id_col: "data_sample", microarray_id_col: "array_sample"})
-    mapping = mapping[["data_sample", "array_sample"]]
-    mapping = mapping_mark_duplicates(mapping, "data_sample", "array_sample")
+    mapping = mapping.rename(columns={wes_id_col: "data_sample", microarray_id_col: "microarray_sample"})
+    mapping = mapping[["data_sample", "microarray_sample"]]
+    mapping = mapping_mark_duplicates(mapping, "data_sample", "microarray_sample")
     if mapping.duplicated_id_both.any():
         print(
             "WARNING - the mapping is double-way non unique!. Please double-check results of the mapping validation steps"
@@ -232,7 +237,8 @@ def make_best_match(gtcheck: pd.DataFrame) -> pd.DataFrame:
     gtcheck_best_match = gtcheck.loc[gtcheck_min_by_group_loc]
     gtcheck_best_match.set_index(keys=("data_sample"), inplace=True, drop=False)
     gtcheck_best_match.rename(
-        columns={"array_sample": "best_match_array_sample", "score": "best_match_array_score"}, inplace=True
+        columns={"microarray_sample": "best_match_microarray_sample", "score": "best_match_microarray_score"},
+        inplace=True,
     )
     gtcheck_best_match.drop(["average_logP", "N_matching_genotypes"], axis=1, inplace=True)
     return gtcheck_best_match
@@ -257,7 +263,7 @@ def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataF
     """
     Split gtcheck results to samples existing in map and not existing in map
     """
-    mask_not_exist_in_map = gtcheck_map.array_sample.isnull()
+    mask_not_exist_in_map = gtcheck_map.microarray_sample.isnull()
     gtcheck_not_exist_in_map = gtcheck_map.loc[mask_not_exist_in_map]
     add_validation_result(gtcheck_not_exist_in_map, "best_match_not_exist_in_mapfile")
     gtcheck_exist_in_map = gtcheck_map.loc[~mask_not_exist_in_map]
@@ -270,7 +276,9 @@ def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     """
     Splits gtcheck results to matching map and not matching mapping file
     """
-    mask_no_pair_in_map = gtcheck_map.apply(lambda row: row.best_match_array_sample in row.array_sample, axis=1)
+    mask_no_pair_in_map = gtcheck_map.apply(
+        lambda row: row.best_match_microarray_sample in row.microarray_sample, axis=1
+    )
 
     gtcheck_matched_map = gtcheck_map.loc[mask_no_pair_in_map, :]
     add_validation_result(gtcheck_matched_map, "best_match_matched_mapfile")
@@ -314,24 +322,24 @@ def validate_map_by_score(
     mapping - original mapping containing all pairs
     gtcheck_not_matched_map - samples that we're analysing
     """
-    # Restoring the corresponding array sample by the mapping best match
-    grouped_mapping = mapping.groupby(by="array_sample")["data_sample"].apply(list)
+    # Restoring the corresponding microarray sample by the mapping best match
+    grouped_mapping = mapping.groupby(by="microarray_sample")["data_sample"].apply(list)
     mapping_dict = grouped_mapping.to_dict()
-    wes_by_best_match = gtcheck_not_matched_map["best_match_array_sample"].map(mapping_dict)
+    wes_by_best_match = gtcheck_not_matched_map["best_match_microarray_sample"].map(mapping_dict)
     gtcheck_not_matched_map.loc[:, "wes_restored_by_best_match"] = wes_by_best_match.apply(
         lambda x: x if isinstance(x, list) else []
     )
 
     # Collecting for each WES possible mapping samples with their score
-    gtcheck_not_matched_map_expanded = gtcheck_not_matched_map.explode("array_sample")
+    gtcheck_not_matched_map_expanded = gtcheck_not_matched_map.explode("microarray_sample")
 
-    gtcheck_score_dict = gtcheck.groupby(["data_sample", "array_sample"])["score"].first().to_dict()
+    gtcheck_score_dict = gtcheck.groupby(["data_sample", "microarray_sample"])["score"].first().to_dict()
 
-    gtcheck_not_matched_map_expanded["score_from_mapped_array_sample"] = gtcheck_not_matched_map_expanded.apply(
-        lambda row: gtcheck_score_dict.get((row.data_sample, row.array_sample), pd.NA), axis=1
+    gtcheck_not_matched_map_expanded["score_from_mapped_microarray_sample"] = gtcheck_not_matched_map_expanded.apply(
+        lambda row: gtcheck_score_dict.get((row.data_sample, row.microarray_sample), pd.NA), axis=1
     )
 
-    have_no_gtscore = gtcheck_not_matched_map_expanded.score_from_mapped_array_sample.isnull()
+    have_no_gtscore = gtcheck_not_matched_map_expanded.score_from_mapped_microarray_sample.isnull()
     gtcheck_no_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore, :]
     add_validation_result(gtcheck_no_mapping_pairs, "no_mapfile_pairs_have_gtcheck")
     gtcheck_has_mapping_pairs = gtcheck_not_matched_map_expanded.loc[~have_no_gtscore, :]
@@ -344,7 +352,7 @@ def gtcheck_validate(
     mapping: pd.DataFrame,
     score_threshold: float = 0.2,
     wes_id_col: str = "data_sample",
-    microarray_id_col: str = "array_sample",
+    microarray_id_col: str = "microarray_sample",
 ) -> pd.DataFrame:
     gtcheck = prepare_gtcheck(gtcheck)
     gtcheck_best_match = make_best_match(gtcheck)
@@ -352,7 +360,7 @@ def gtcheck_validate(
     mapping = prepare_mapping(mapping, wes_id_col, microarray_id_col)
     mapping_by_wes = mapping.groupby(by="data_sample").agg(
         {
-            "array_sample": list,
+            "microarray_sample": list,
             "duplicated_id_any": "any",
         }
     )
@@ -371,13 +379,13 @@ def gtcheck_validate(
     gtcheck_not_in_map, gtcheck_in_map = filter_not_in_map(gtcheck_map)
     set_validation_status(gtcheck_not_in_map, True)
 
-    # 2. Wes-array pair exists in the map
+    # 2. Wes-microarray pair exists in the map
     gtcheck_matched_map, gtcheck_not_matched_map = filter_matched_map(gtcheck_in_map)
     gtcheck_matched_map = mark_non_unique_matches(gtcheck_matched_map)
 
     # Filtering matched samples by score
     gtcheck_matched_map_pass_score, gtcheck_matched_map_fail_score = filter_by_score(
-        gtcheck_matched_map, score_threshold, score_column_name="best_match_array_score"
+        gtcheck_matched_map, score_threshold, score_column_name="best_match_microarray_score"
     )
     set_validation_status(gtcheck_matched_map_pass_score, True)
 
@@ -386,7 +394,7 @@ def gtcheck_validate(
         gtcheck_not_matched_map, gtcheck, mapping
     )
     gtcheck_not_matched_pass_score, gtcheck_not_matched_fail_score = filter_by_score(
-        gtcheck_has_mapping_pairs, score_threshold, score_column_name="score_from_mapped_array_sample"
+        gtcheck_has_mapping_pairs, score_threshold, score_column_name="score_from_mapped_microarray_sample"
     )
     set_validation_status(gtcheck_not_matched_pass_score, True)
 
@@ -437,51 +445,44 @@ def main() -> None:
     mt = hl.read_matrix_table(path_spark(mtpath))
 
     if wes_microarray_mapping is None:
-        mt = mt.annotate_cols(
-            gtcheck_validation=hl.struct(
-                best_match_array_sample=hl.missing(hl.tstr),
-                best_match_array_score=hl.missing(hl.tfloat64),
-                validation_result=hl.missing(hl.tstr),
-                is_validation_passed=hl.missing(hl.tbool),
-            )
-        )
+        # No mapping file - nothing to check
         mt.write(path_spark(mt_gtcheck_validated), overwrite=True)
         return
 
-    # === The first part - validation if the  WES-micro array mapping consistency ===
+    # === The first part - validation if the  WES-micro microarray mapping consistency ===
 
     Path(gtcheck_results_folder).mkdir(parents=True, exist_ok=True)
 
     ids_wes_data = mt.s.collect()
 
     # Loading the list of microarray samples from an external file
-    with open(microarray_ids) as farray:
-        ids_microarray_data = [s.strip() for s in farray.readlines()]
+    with open(microarray_ids) as fmicroarray:
+        ids_microarray_data = [s.strip() for s in fmicroarray.readlines()]
 
     report_id_stats(ids_wes_data, "WES data", f"{gtcheck_results_folder}/{dataset}.non-unique-ids.data.WES.txt")
     report_id_stats(
-        ids_microarray_data, "ARRAY data", f"{gtcheck_results_folder}/{dataset}.non-unique-ids.data.microarray.txt"
+        ids_microarray_data, "MicroARRAY data", f"{gtcheck_results_folder}/{dataset}.non-unique-ids.data.microarray.txt"
     )
 
     # - Validating mapping table
-    wes2array = pd.read_csv(wes_microarray_mapping, sep="\t")
-    verify_wes2array_mapping(
+    wes2microarray = pd.read_csv(wes_microarray_mapping, sep="\t")
+    verify_wes2microarray_mapping(
         ids_wes_data,
         ids_microarray_data,
-        wes2array,
+        wes2microarray,
         wes_id_col,
         microarray_id_col,
         results_file_prefix=gtcheck_results_prefix,
     )
 
     # - Correcting the mapping file - Removing microarray IDs not present in the real microarray data
-    wes2array = mapping_clean_missing(wes2array, ids_microarray_data, microarray_id_col)
+    wes2microarray = mapping_clean_missing(wes2microarray, ids_microarray_data, microarray_id_col)
 
     # === The second part - validation of the gtcheck results ===
     gtcheck = pd.read_csv(gtcheck_report, sep="\t", header=None)
 
     validated = gtcheck_validate(
-        gtcheck, wes2array, gtcheck_score_threshold, wes_id_col=wes_id_col, microarray_id_col=microarray_id_col
+        gtcheck, wes2microarray, gtcheck_score_threshold, wes_id_col=wes_id_col, microarray_id_col=microarray_id_col
     )
     validated.to_csv(gtcheck_results_prefix + ".gtcheck_validation.all_samples.csv", index=False)
 
@@ -504,8 +505,8 @@ def main() -> None:
     validated = validated[
         [
             "data_sample",
-            "best_match_array_sample",
-            "best_match_array_score",
+            "best_match_microarray_sample",
+            "best_match_microarray_score",
             "validation_result",
             "is_validation_passed",
         ]
