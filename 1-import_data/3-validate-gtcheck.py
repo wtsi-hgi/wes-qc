@@ -49,7 +49,6 @@ def check_id_uniquness(ids: IdList) -> tuple[IdSet, IdSet]:
     """
     Returns unique and non-unique IDs from the list of IDs
     """
-
     counts = Counter(ids)
     unique = set((key for key, count in counts.items() if count == 1))
     non_unique = set((key for key, count in counts.items() if count > 1))
@@ -64,7 +63,7 @@ def dump_ids(ids_list: IdList, filename: Path):
         f.write("\n".join(ids_list))
 
 
-def report_id_uniquness(unique, non_unique, data_type, dump_file_name=None):
+def report_id_uniquness(unique: IdSet, non_unique: IdSet, data_type: str, dump_file_name: Optional[str] = None) -> None:
     print(f"{len(unique)} unique IDs in {data_type}")
     if len(non_unique) > 0:
         print(f"{len(non_unique)} non-unique IDs in {data_type}")
@@ -75,7 +74,8 @@ def report_id_uniquness(unique, non_unique, data_type, dump_file_name=None):
         print(f"All IDs in {data_type} are unique")
 
 
-def check_ids_consistency(data_ids, map_ids, caption: str, dump_prefix: Path):
+# TODO: make unit test
+def check_ids_consistency(data_ids: IdList, map_ids: IdList, caption: str, dump_prefix: Path) -> tuple[IdSet, IdSet]:
     data_ids_unique, data_ids_non_unique = check_id_uniquness(data_ids)
     map_ids_unique, map_ids_non_unique = check_id_uniquness(map_ids)
 
@@ -105,6 +105,7 @@ def check_ids_consistency(data_ids, map_ids, caption: str, dump_prefix: Path):
     return data_no_map, map_no_data
 
 
+# TODO: make unit test
 def mapping_mark_duplicates(mapping: pd.DataFrame, wes_id_col: str = "wes_id", microarray_id_col: str = "array_id"):
     mapping = mapping.copy()
     mapping["duplicated_wes"] = mapping[wes_id_col].duplicated(keep=False)
@@ -114,6 +115,7 @@ def mapping_mark_duplicates(mapping: pd.DataFrame, wes_id_col: str = "wes_id", m
     return mapping
 
 
+# TODO: make unit tests
 def report_id_stats(ids: IdList, caption: str, stats_non_unique_file: Path) -> None:
     print(f"\n=== {caption} samples validation ===")
     print(f"Total {len(ids)} IDs in {caption} data")
@@ -121,7 +123,7 @@ def report_id_stats(ids: IdList, caption: str, stats_non_unique_file: Path) -> N
     report_id_uniquness(ids_unique, ids_non_unique, caption, stats_non_unique_file)
 
 
-def report_mapping_duplicated_stats(mapping, duplicated_samples_name) -> None:
+def report_mapping_duplicated_stats(mapping: pd.DataFrame, duplicated_samples_name: str) -> None:
     print("\n=== Marking duplicates in ID mapping ===")
     if mapping.duplicated_id_any.any():
         mapping_dubl = mapping[mapping.duplicated_id_any]
@@ -169,6 +171,7 @@ def verify_wes2array_mapping(
     report_mapping_duplicated_stats(mapping_marked_duplicated, results_file_prefix + ".non-unique-pairs.csv")
 
 
+# TODO: make unit test
 def mapping_clean_missing(
     wes2array_mapping: pd.DataFrame,
     ids_microarray_data: IdList,
@@ -183,8 +186,7 @@ def mapping_clean_missing(
 
 
 # ======== The second part - validation of the gtcheck data consistency =======
-
-
+# TODO: make unit test
 def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
     gtcheck_column_names = {
         i: s
@@ -210,6 +212,7 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
     return gtcheck
 
 
+# TODO: make unit test
 def prepare_mapping(mapping: pd.DataFrame, wes_id_col: str, microarray_id_col: str) -> pd.DataFrame:
     # Preparing mapping
     mapping = mapping.rename(columns={wes_id_col: "data_sample", microarray_id_col: "array_sample"})
@@ -222,6 +225,7 @@ def prepare_mapping(mapping: pd.DataFrame, wes_id_col: str, microarray_id_col: s
     return mapping
 
 
+# TODO: make unit test
 def make_best_match(gtcheck: pd.DataFrame) -> pd.DataFrame:
     # Constructing table with the best score
     gtcheck_min_by_group_loc = gtcheck.groupby("data_sample").score.idxmin()
@@ -248,6 +252,7 @@ def set_validation_status(df: pd.DataFrame, status: bool, column_name="is_valida
     df.loc[:, column_name] = status
 
 
+# TODO: make unit test
 def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split gtcheck results to samples existing in map and not existing in map
@@ -260,6 +265,7 @@ def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataF
     return gtcheck_not_exist_in_map, gtcheck_exist_in_map
 
 
+# TODO: make unit test
 def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Splits gtcheck results to matching map and not matching mapping file
@@ -274,6 +280,7 @@ def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     return gtcheck_matched_map, gtcheck_not_matched_map
 
 
+# TODO: make unit test
 def filter_by_score(
     df: pd.DataFrame, score_treshold: float, score_column_name: str = "score"
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -285,14 +292,18 @@ def filter_by_score(
     return df_pass_score, df_fail_score
 
 
+# TODO: make unit test
 def mark_non_unique_matches(gtcheck_map: pd.DataFrame) -> pd.DataFrame:
-    gtcheck_map_non_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any, :]
+    # The simple inverting of the boolena index not works on the next lined for some reason
+    # Suppressing Ruff E712 checking
+    gtcheck_map_non_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any == True, :]  # noqa: E712
     add_validation_result(gtcheck_map_non_unique, "mapfile_non_unique")
-    gtcheck_map_unique = gtcheck_map.loc[not gtcheck_map.duplicated_id_any, :]
+    gtcheck_map_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any == False, :]  # noqa: E712
     add_validation_result(gtcheck_map_unique, "mapfile_unique")
     return pd.concat([gtcheck_map_unique, gtcheck_map_non_unique])
 
 
+# TODO: make unit test
 def validate_map_by_score(
     gtcheck_not_matched_map: pd.DataFrame, gtcheck: pd.DataFrame, mapping: pd.DataFrame
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -391,7 +402,7 @@ def gtcheck_validate(
     )
 
 
-def print_validation_sumary(df: pd.DataFrame) -> None:
+def print_validation_summary(df: pd.DataFrame) -> None:
     validation_result = df.validation_result.value_counts()
     print(validation_result)
 
@@ -420,19 +431,27 @@ def main() -> None:
     mt_gtcheck_validated: str = config["step1"]["validate_gtcheck"]["mt_gtcheck_validated"]
 
     # = STEP LOGIC = #
+    _ = hail_utils.init_hl(tmp_dir)
+
+    # Loading the list of WES samples from Hial matrixtable
+    mt = hl.read_matrix_table(path_spark(mtpath))
+
     if wes_microarray_mapping is None:
-        exit()  # TODO: mock_output matrixtable
+        mt = mt.annotate_cols(
+            gtcheck_validation=hl.struct(
+                best_match_array_sample=hl.missing(hl.tstr),
+                best_match_array_score=hl.missing(hl.tfloat64),
+                validation_result=hl.missing(hl.tstr),
+                is_validation_passed=hl.missing(hl.tbool),
+            )
+        )
+        mt.write(path_spark(mt_gtcheck_validated), overwrite=True)
+        return
 
     # === The first part - validation if the  WES-micro array mapping consistency ===
 
     Path(gtcheck_results_folder).mkdir(parents=True, exist_ok=True)
 
-    # TODO: changed to local data loading for debug purposes. Uncomment before running on cluster.
-
-    _ = hail_utils.init_hl(tmp_dir)
-
-    # Loading the list of WES samples from Hial matrixtable
-    mt = hl.read_matrix_table(path_spark(mtpath))
     ids_wes_data = mt.s.collect()
 
     # Loading the list of microarray samples from an external file
@@ -472,11 +491,11 @@ def main() -> None:
     validated_failed = validated.loc[~is_passed, :]
 
     print(f"=== Passed validation: {len(validated_passed)} samples")
-    print_validation_sumary(validated_passed)
+    print_validation_summary(validated_passed)
     print("")
     print(f"=== Failed validation: {len(validated_failed)} samples")
     if len(validated_failed) > 0:
-        print_validation_sumary(validated_failed)
+        print_validation_summary(validated_failed)
         validated_failed.to_csv(gtcheck_results_prefix + ".gtcheck_validation.failed_samples.csv", index=False)
 
     # - Putting validation data in the main hail matrixtable
@@ -493,6 +512,7 @@ def main() -> None:
     ]
     validated_table = hl.Table.from_pandas(validated, key="data_sample")
     mt = mt.annotate_cols(gtcheck_validation=validated_table[mt.s])
+
     mt.write(path_spark(mt_gtcheck_validated), overwrite=True)
 
 
