@@ -147,7 +147,7 @@ def main():
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP DEPENDENCIES = #
-    mt_infile = config["step1"]["gatk_mt_outfile"]  # input from 1.1
+    mt_infile = config["step1"]["validate_gtcheck"]["mt_gtcheck_validated"]  # input from 1.3
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
