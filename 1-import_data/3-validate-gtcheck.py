@@ -33,7 +33,7 @@ import pandas as pd
 from collections import Counter
 from pathlib import Path
 import hail as hl
-
+import numpy as np
 from utils.config import path_spark
 from utils.utils import parse_config
 from wes_qc import hail_utils
@@ -74,8 +74,7 @@ def report_id_uniquness(unique: IdSet, non_unique: IdSet, data_type: str, dump_f
         print(f"All IDs in {data_type} are unique")
 
 
-# TODO: make unit test
-def check_ids_consistency(data_ids: IdList, map_ids: IdList, caption: str, dump_prefix: Path) -> tuple[IdSet, IdSet]:
+def check_ids_consistency(data_ids: IdList, map_ids: IdList, caption: str, dump_prefix: str) -> tuple[IdSet, IdSet]:
     data_ids_unique, data_ids_non_unique = check_id_uniquness(data_ids)
     map_ids_unique, map_ids_non_unique = check_id_uniquness(map_ids)
 
@@ -116,7 +115,6 @@ def mapping_mark_duplicates(
     return mapping
 
 
-# TODO: make unit tests
 def report_id_stats(ids: IdList, caption: str, stats_non_unique_file: Path) -> None:
     print(f"\n=== {caption} samples validation ===")
     print(f"Total {len(ids)} IDs in {caption} data")
@@ -176,7 +174,6 @@ def verify_wes2microarray_mapping(
     report_mapping_duplicated_stats(mapping_marked_duplicated, results_file_prefix + ".non-unique-pairs.csv")
 
 
-# TODO: make unit test
 def mapping_clean_missing(
     wes2microarray_mapping: pd.DataFrame,
     ids_microarray_data: IdList,
@@ -191,7 +188,6 @@ def mapping_clean_missing(
 
 
 # ======== The second part - validation of the gtcheck data consistency =======
-# TODO: make unit test
 def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
     gtcheck_column_names = {
         i: s
@@ -206,18 +202,17 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
 
     if gtcheck.duplicated(subset=["data_sample", "microarray_sample"]).any():
         print("WARNING: Non-unique ID combinations found in the index. Duplicated items are dropped.")
-        gtcheck.drop_duplicates(subset=["data_sample", "microarray_sample"], keep="first")
+        gtcheck = gtcheck.drop_duplicates(subset=["data_sample", "microarray_sample"], keep="first")
     else:
         print("ALL WES-microarray pairs are unique.")
     # Calculation score
     # Lowest score corresponds to the best match
     gtcheck["score"] = gtcheck.discordance / gtcheck.n_sites
     # Filling all non-calculated values with the "bad" score
-    gtcheck.fillna({"score": 1}, inplace=True)
+    gtcheck["score"] = gtcheck["score"].replace({np.inf: 1000.0})
     return gtcheck
 
 
-# TODO: make unit test
 def prepare_mapping(mapping: pd.DataFrame, wes_id_col: str, microarray_id_col: str) -> pd.DataFrame:
     # Preparing mapping
     mapping = mapping.rename(columns={wes_id_col: "data_sample", microarray_id_col: "microarray_sample"})
@@ -230,7 +225,6 @@ def prepare_mapping(mapping: pd.DataFrame, wes_id_col: str, microarray_id_col: s
     return mapping
 
 
-# TODO: make unit test
 def make_best_match(gtcheck: pd.DataFrame) -> pd.DataFrame:
     # Constructing table with the best score
     gtcheck_min_by_group_loc = gtcheck.groupby("data_sample").score.idxmin()
@@ -258,7 +252,6 @@ def set_validation_status(df: pd.DataFrame, status: bool, column_name="is_valida
     df.loc[:, column_name] = status
 
 
-# TODO: make unit test
 def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split gtcheck results to samples existing in map and not existing in map
@@ -271,7 +264,6 @@ def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataF
     return gtcheck_not_exist_in_map, gtcheck_exist_in_map
 
 
-# TODO: make unit test
 def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Splits gtcheck results to matching map and not matching mapping file
@@ -288,7 +280,6 @@ def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     return gtcheck_matched_map, gtcheck_not_matched_map
 
 
-# TODO: make unit test
 def filter_by_score(
     df: pd.DataFrame, score_treshold: float, score_column_name: str = "score"
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -300,13 +291,10 @@ def filter_by_score(
     return df_pass_score, df_fail_score
 
 
-# TODO: make unit test
 def mark_non_unique_matches(gtcheck_map: pd.DataFrame) -> pd.DataFrame:
-    # The simple inverting of the boolena index not works on the next lined for some reason
-    # Suppressing Ruff E712 checking
-    gtcheck_map_non_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any == True, :]  # noqa: E712
+    gtcheck_map_non_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any.eq(True), :]
     add_validation_result(gtcheck_map_non_unique, "mapfile_non_unique")
-    gtcheck_map_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any == False, :]  # noqa: E712
+    gtcheck_map_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any.eq(False), :]
     add_validation_result(gtcheck_map_unique, "mapfile_unique")
     return pd.concat([gtcheck_map_unique, gtcheck_map_non_unique])
 
