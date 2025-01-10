@@ -299,7 +299,9 @@ def mark_non_unique_matches(gtcheck_map: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([gtcheck_map_unique, gtcheck_map_non_unique])
 
 
-# TODO: make unit test
+# TODO: potentially seperate into two functions - one for the restoring samples from the mapping
+# TODO: best match, one for finding the score from all pairs existing in the mapping
+# TODO: consider making a tag for the validation result for the samples with no mapping pairs restored
 def validate_map_by_score(
     gtcheck_not_matched_map: pd.DataFrame, gtcheck: pd.DataFrame, mapping: pd.DataFrame
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -310,7 +312,7 @@ def validate_map_by_score(
     mapping - original mapping containing all pairs
     gtcheck_not_matched_map - samples that we're analysing
     """
-    # Restoring the corresponding microarray sample by the mapping best match
+    # === step 1: Restoring the corresponding microarray sample by the mapping best match ===
     grouped_mapping = mapping.groupby(by="microarray_sample")["data_sample"].apply(list)
     mapping_dict = grouped_mapping.to_dict()
     wes_by_best_match = gtcheck_not_matched_map["best_match_microarray_sample"].map(mapping_dict)
@@ -318,7 +320,7 @@ def validate_map_by_score(
         lambda x: x if isinstance(x, list) else []
     )
 
-    # Collecting for each WES possible mapping samples with their score
+    # === step 2: Collecting for each WES possible mapping samples with their score ===
     gtcheck_not_matched_map_expanded = gtcheck_not_matched_map.explode("microarray_sample")
 
     gtcheck_score_dict = gtcheck.groupby(["data_sample", "microarray_sample"])["score"].first().to_dict()
@@ -328,9 +330,9 @@ def validate_map_by_score(
     )
 
     have_no_gtscore = gtcheck_not_matched_map_expanded.score_from_mapped_microarray_sample.isnull()
-    gtcheck_no_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore, :]
+    gtcheck_no_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore.eq(True), :]
     add_validation_result(gtcheck_no_mapping_pairs, "no_mapfile_pairs_have_gtcheck")
-    gtcheck_has_mapping_pairs = gtcheck_not_matched_map_expanded.loc[~have_no_gtscore, :]
+    gtcheck_has_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore.eq(False), :]
     add_validation_result(gtcheck_has_mapping_pairs, "mapfile_pairs_have_gtcheck")
     return gtcheck_has_mapping_pairs, gtcheck_no_mapping_pairs
 

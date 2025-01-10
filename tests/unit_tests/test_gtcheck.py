@@ -548,3 +548,64 @@ def test_gtcheck_mark_non_unique_matches() -> None:
     assert set(result_all_non_unique["data_sample"]) == {"sample1", "sample2", "sample3", "sample4", "sample5"}
     assert all("mapfile_non_unique" in result for result in result_all_non_unique["validation_result"])
     assert not any("mapfile_unique" in result for result in result_all_non_unique["validation_result"])
+
+
+@m.context("Given gtcheck results with unmatched mapping")
+@m.it("Should validate samples by comparing scores from mapping pairs")
+def test_gtcheck_validate_map_by_score() -> None:
+    # Test data setup
+    gtcheck_not_matched_map = pd.DataFrame(
+        {
+            "data_sample": ["sample1", "sample2"],
+            "best_match_microarray_sample": ["array2", "array4"],
+            "microarray_sample": [["array1", "array3"], ["array3", "array5"]],
+            "validation_result": ["", ""],
+        }
+    )
+
+    # Original gtcheck results containing all scores
+    gtcheck = pd.DataFrame(
+        {
+            "data_sample": ["sample1", "sample1", "sample1", "sample2", "sample2", "sample2"],
+            "microarray_sample": ["array1", "array2", "array3", "array3", "array4", "array5"],
+            "score": [0.15, 0.1, 0.2, 0.3, 0.25, 0.4],
+        }
+    )
+
+    # Original mapping
+    mapping = pd.DataFrame(
+        {
+            "data_sample": ["sample1", "sample1", "sample2", "sample2", "sample4"],
+            "microarray_sample": ["array1", "array3", "array3", "array5", "array4"],
+        }
+    )
+
+    # Call the function
+    has_mapping_pairs, no_mapping_pairs = qc_step_1_3.validate_map_by_score(
+        gtcheck_not_matched_map=gtcheck_not_matched_map, gtcheck=gtcheck, mapping=mapping
+    )
+
+    # Check results for samples with mapping pairs
+    assert len(has_mapping_pairs) == 4  # sample1-array1, sample1-array3, sample2-array3, sample2-array5
+    # Check results for samples without mapping pairs
+    assert len(no_mapping_pairs) == 1  # All pairs had scores in this test case
+
+    assert "mapfile_pairs_have_gtcheck" in has_mapping_pairs["validation_result"].iloc[0]
+
+    # Verify scores were correctly matched
+    scores = has_mapping_pairs["score_from_mapped_microarray_sample"].dropna().tolist()
+    expected_scores = [0.15, 0.2, 0.3, 0.4]  # Scores for the mapped pairs
+    assert scores == expected_scores
+
+    # Test case with missing gtcheck scores
+    gtcheck_missing = gtcheck.copy()
+    gtcheck_missing = gtcheck_missing[gtcheck_missing.microarray_sample != "array1"]
+
+    has_mapping_pairs, no_mapping_pairs = qc_step_1_3.validate_map_by_score(
+        gtcheck_not_matched_map=gtcheck_not_matched_map, gtcheck=gtcheck_missing, mapping=mapping
+    )
+
+    # Verify handling of missing scores
+    assert len(has_mapping_pairs) == 3  # Only pairs with scores
+    assert len(no_mapping_pairs) == 1  # One pair missing score
+    assert "no_mapfile_pairs_have_gtcheck" in no_mapping_pairs["validation_result"].iloc[0]
