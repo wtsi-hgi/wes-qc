@@ -588,7 +588,7 @@ def test_gtcheck_validate_map_by_score() -> None:
     # Check results for samples with mapping pairs
     assert len(has_mapping_pairs) == 4  # sample1-array1, sample1-array3, sample2-array3, sample2-array5
     # Check results for samples without mapping pairs
-    assert len(no_mapping_pairs) == 1  # All pairs had scores in this test case
+    assert len(no_mapping_pairs) == 0  # All pairs had scores in this test case
 
     assert "mapfile_pairs_have_gtcheck" in has_mapping_pairs["validation_result"].iloc[0]
 
