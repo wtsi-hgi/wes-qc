@@ -40,8 +40,19 @@ def merge_1kg_and_ldprune(
 
     # removing and adding needed entries to replicate filtered_mt_file structure
     mt_filtered = mt_filtered.drop(
-        "AD", "DP", "GQ", "MIN_DP", "PGT", "PID", "PL", "PS", "SB", "RGQ", "callrate", "f_stat", "is_female"
-    )
+        "AD",
+        "DP",
+        "GQ",
+        "MIN_DP",
+        "PGT",
+        "PID",
+        "PL",
+        "PS",
+        "SB",
+        "RGQ",
+        "callrate",
+    )  # Dropping row fields that are not present in the 1kg matrix
+    mt_filtered = mt_filtered.select_cols()  # dropping all column fields
     mt_filtered = mt_filtered.annotate_cols(known_pop=hl.missing(hl.tstr))
     # merging matrices
     mt_merged = mt_filtered.union_cols(kg_mt)
