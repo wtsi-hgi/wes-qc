@@ -33,7 +33,7 @@ def get_options():
     return args
 
 
-def get_truth_ht(omni: str, mills: str, thousand_genomes: str, hapmap: str, truth_ht_file: str) -> None:
+def get_truth_ht(omni: str, mills: str, thousand_genomes: str, hapmap: str) -> hl.Table:
     """
     Generate truth set HT
     :param str omni: file containing kgp_omni 1000 Genomes intersection Onni 2.5M array
@@ -54,7 +54,7 @@ def get_truth_ht(omni: str, mills: str, thousand_genomes: str, hapmap: str, trut
         .join(mills_ht.select(mills=True), how="outer")
         .repartition(200, shuffle=False)
     )  # TODO: I suppose this number should not be considered as a config parameter candidate, should it?
-    truth_ht.write(truth_ht_file, overwrite=True)
+    return truth_ht
 
 
 def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str) -> None:
@@ -362,7 +362,8 @@ def main():
         mills = config["step3"]["get_truth_ht"]["mills"]
         thousand_genomes = config["step3"]["get_truth_ht"]["thousand_genomes"]
         hapmap = config["step3"]["get_truth_ht"]["hapmap"]
-        get_truth_ht(omni, mills, thousand_genomes, hapmap, truth_ht_outfile)
+        truth_ht = get_truth_ht(omni, mills, thousand_genomes, hapmap)
+        truth_ht.write(path_spark(truth_ht_outfile), overwrite=True)
 
     # add hail variant QC
     if args.annotation or args.all:
