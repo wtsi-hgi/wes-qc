@@ -241,7 +241,7 @@ def make_best_match(gtcheck: pd.DataFrame) -> pd.DataFrame:
     # Each function returns the processed subtable with the marked validation result, and main table to process
 
 
-def add_validation_result(df: pd.DataFrame, result: str, result_column_name: str = "validation_result"):
+def add_validation_tag(df: pd.DataFrame, result: str, result_column_name: str = "validation_tags"):
     """
     Adds a string result, to dataframe column result_column_name
     """
@@ -258,9 +258,9 @@ def filter_not_in_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataF
     """
     mask_not_exist_in_map = gtcheck_map.microarray_sample.isnull()
     gtcheck_not_exist_in_map = gtcheck_map.loc[mask_not_exist_in_map]
-    add_validation_result(gtcheck_not_exist_in_map, "best_match_not_exist_in_mapfile")
+    add_validation_tag(gtcheck_not_exist_in_map, "best_match_not_exist_in_mapfile")
     gtcheck_exist_in_map = gtcheck_map.loc[~mask_not_exist_in_map]
-    add_validation_result(gtcheck_exist_in_map, "best_match_exist_in_mapfile")
+    add_validation_tag(gtcheck_exist_in_map, "best_match_exist_in_mapfile")
     return gtcheck_not_exist_in_map, gtcheck_exist_in_map
 
 
@@ -273,9 +273,9 @@ def filter_matched_map(gtcheck_map: pd.DataFrame) -> tuple[pd.DataFrame, pd.Data
     )
 
     gtcheck_matched_map = gtcheck_map.loc[mask_no_pair_in_map, :]
-    add_validation_result(gtcheck_matched_map, "best_match_matched_mapfile")
+    add_validation_tag(gtcheck_matched_map, "best_match_matched_mapfile")
     gtcheck_not_matched_map = gtcheck_map.loc[~mask_no_pair_in_map, :]
-    add_validation_result(gtcheck_not_matched_map, "best_match_not_matched_mapfile")
+    add_validation_tag(gtcheck_not_matched_map, "best_match_not_matched_mapfile")
 
     return gtcheck_matched_map, gtcheck_not_matched_map
 
@@ -285,17 +285,17 @@ def filter_by_score(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """ """
     df_pass_score = df[df[score_column_name] <= score_treshold]
-    add_validation_result(df_pass_score, "score_passed")
+    add_validation_tag(df_pass_score, "score_passed")
     df_fail_score = df[df[score_column_name] > score_treshold]
-    add_validation_result(df_fail_score, "score_failed")
+    add_validation_tag(df_fail_score, "score_failed")
     return df_pass_score, df_fail_score
 
 
 def mark_non_unique_matches(gtcheck_map: pd.DataFrame) -> pd.DataFrame:
     gtcheck_map_non_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any.eq(True), :]
-    add_validation_result(gtcheck_map_non_unique, "mapfile_non_unique")
+    add_validation_tag(gtcheck_map_non_unique, "mapfile_non_unique")
     gtcheck_map_unique = gtcheck_map.loc[gtcheck_map.duplicated_id_any.eq(False), :]
-    add_validation_result(gtcheck_map_unique, "mapfile_unique")
+    add_validation_tag(gtcheck_map_unique, "mapfile_unique")
     return pd.concat([gtcheck_map_unique, gtcheck_map_non_unique])
 
 
@@ -331,9 +331,9 @@ def validate_map_by_score(
 
     have_no_gtscore = gtcheck_not_matched_map_expanded.score_from_mapped_microarray_sample.isnull()
     gtcheck_no_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore.eq(True), :]
-    add_validation_result(gtcheck_no_mapping_pairs, "no_mapfile_pairs_have_gtcheck")
+    add_validation_tag(gtcheck_no_mapping_pairs, "no_mapfile_pairs_have_gtcheck")
     gtcheck_has_mapping_pairs = gtcheck_not_matched_map_expanded.loc[have_no_gtscore.eq(False), :]
-    add_validation_result(gtcheck_has_mapping_pairs, "mapfile_pairs_have_gtcheck")
+    add_validation_tag(gtcheck_has_mapping_pairs, "mapfile_pairs_have_gtcheck")
     return gtcheck_has_mapping_pairs, gtcheck_no_mapping_pairs
 
 
@@ -362,7 +362,7 @@ def gtcheck_validate(
         gtcheck_map["duplicated_id_any"] = gtcheck_map.duplicated_id_any.fillna(False)
 
     # This column will contain the list of tags - text messages associated with each validation check
-    gtcheck_map["validation_result"] = ""
+    gtcheck_map["validation_tags"] = ""
     gtcheck_map["is_validation_passed"] = False
 
     # 1. WES IDs are not present in the map file - we can't do anything with it
@@ -401,7 +401,7 @@ def gtcheck_validate(
 
 
 def print_validation_summary(df: pd.DataFrame) -> None:
-    validation_result = df.validation_result.value_counts()
+    validation_result = df.validation_tags.value_counts()
     print(validation_result)
 
 
@@ -497,7 +497,7 @@ def main() -> None:
             "data_sample",
             "best_match_microarray_sample",
             "best_match_microarray_score",
-            "validation_result",
+            "validation_tags",
             "is_validation_passed",
         ]
     ]
