@@ -188,7 +188,7 @@ VerifyBamId Freemix score, self-reported sex, self-reported ethnicity, etc.
 
 If you don't have some (or even any) of these annotations,
 put `null` instead of the corresponding filename in the config file:
-* `verifybamid_selfsm` - for the VerifyBamID freemix data
+* `verifybamid_selfsm` - for the VerifyBamID Freemix data
 
 
 For each available annotation, the script prints out the list of samples that don't have annotations.
@@ -203,6 +203,77 @@ spark-submit 1-import_data/2-import_annotations.py
 **Note:** The output of this step is not used in further steps yet.
 You can use it to run Freemix validation and get plots and sample statistics.
 Using annotated data in further steps will be implemented after implementing GtCheck validation.
+
+3. **Annotate and validate GtCheck results**
+
+The good practice for clinical samples is to make independent microarray-based genotyping
+together with the exome/genome sequencing.
+If you have array data, you can use `bcftools gtcheck` utility to check consistency between
+sequencing and microarray genotypes.
+
+**Skipping genotype checking**: If you don't have array data, set the `wes_microarray_mapping: none`
+under the `validate_gtcheck` section of the config file.
+To generate the correct output matrixtable,
+you need to run this script in any case, even if you don't have any array data.
+
+To run genotype validation, you need to provide the following files in the config
+(open links to obtain the sample files):
+
+* [wes_microarray_mapping:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.microarray_mapping.tsv):
+  -- the two-column tab-separated file,
+  containing the expected mapping between WES and microarray samples.
+  (usually, microarray studies have separated sample-preparation protocol and separate IDS)
+* [microarray_ids:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.microarray_samples.txt)
+  -- the list (one ID per line) of IDs, actually found in your microarray data.
+  This file is expected to have the same set of IDs as in the mapping file.
+  However, sometimes array ganotyping for a particular sample fails,
+  and in this case it is not present in the results.
+* [gtcheck_report:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.combined.gtcheck.txt)
+  -- the output of the `bcftools gtcheck` command.
+  You need to remove the file header and keep only data lines.
+
+**Note:** To run `bcftools gtcheck` and generate the report,
+you most probably need to convert microarray data from FAM to VCF,
+and liftover it to the GRCh38 reference.
+This work should be done outside WES-QC pipeline,
+and is not covered by this manual.
+
+Run the validation script:
+
+```shell
+spark-submit 1-import_data/3-validate-gtcheck.py
+```
+
+**Gtcheck validation results and interpretation**:
+
+The validation script implements complicated logic to ensure correctness of all data.
+
+At first, it validates the consistency of the mapping file and samples present in the data.
+The script reports the IDs present in the mapping but not present in the real data, and opposite.
+Also, it returns all duplicated IDs in the mapping.
+After validation, the script removes from the mapping table all microarray IDs not found in the data.
+
+Next, the script loads gtcheck table and runs a decision tree to split samples into passed and failed.
+
+![genotype checking decision tree](pics/gtcheck_decision_tree.png)
+
+On each decision tree step, samples are marked by the specific tag in the `validation_tags` column.
+
+The script exports the final table for all samples, and a separate file for the samples failed validation
+under the gtcheck validation dir (specified in the config file in `gtcheck_results_folder` entry).
+The tags in the `validation_tags` column allows tracking the chain of decisions for each sample.
+The same mechanism allows developers to extend this script and add more decision steps if needed.
+
+Here are all already implemented tags:
+
+| tags                                                         | Description                                                                                                              |
+|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| best_match_exist_in_mapfile, best_match_not_exist_in_mapfile | The matching gtcheck sample with the best score exists/not exists in mapping                                             |
+| best_match_matched_mapfile, best_match_not_matched_mapfile   | The matching gtcheck sample with the best score is consistent/not consistent with the mapping file                       |
+| score_passed,  score_failed                                  | Gtcheck score for the best matched sample passed/failed threshold check                                                  |
+| mapfile_unique, mapfile_non_unique,                          | The matching array sample is unique/not unique in the mapping file                                                       |
+| mapfile_pairs_have_gtcheck, no_mapfile_pairs_have_gtcheck    | There is at least one/there are no samples form the mapping file that were reported in the Gtcheck best matching samples |
+
 
 
 ### 2. Sample QC
