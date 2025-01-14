@@ -110,10 +110,10 @@ def main() -> None:
     mtpath = config["step1"]["gatk_mt_outfile"]
     verifybamid_selfsm = config["step1"]["validate_verifybamid"]["verifybamid_selfsm"]
     # TODO: change after merging previous config changes from main
-    sex_metadata_file = config["step2"]["sex_inconsistencies"]["sex_metadata_file"]
+    sex_metadata_file = config["step1"]["sex_metadata_file"]
 
     # = STEP OUTPUTS = #
-    mtoutpath = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
+    mtoutpath = config["step1"]["mt_metadata_annotated"]
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
