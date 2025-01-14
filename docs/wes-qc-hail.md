@@ -246,7 +246,7 @@ spark-submit 1-import_data/3-validate-gtcheck.py
 
 **Gtcheck validation results and interpretation**:
 
-The validation script implements rather complicated logic to ensure correctness of all data.
+The validation script implements complicated logic to ensure correctness of all data.
 
 At first, it validates the consistency of the mapping file and samples present in the data.
 The script reports the IDs present in the mapping but not present in the real data, and opposite.
@@ -257,15 +257,24 @@ Next, the script loads gtcheck table and runs a decision tree to split samples i
 
 ![genotype checking decision tree](pics/gtcheck_decision_tree.png)
 
-The editable version of the decision tree is available
-[here](https://app.diagrams.net/#G1H0_ARE-Zr-ruSPJpirfqUpha9G6hk_n2#%7B%22pageId%22%3A%22C5RBs43oDa-KdzZeNtuy%22%7D).
-
 On each decision tree step, samples are marked by the specific tag in the `validation_tags` column.
 
 The script exports the final table for all samples, and a separate file for the samples failed validation
 under the gtcheck validation dir (specified in the config file in `gtcheck_results_folder` entry).
 The tags in the `validation_tags` column allows tracking the chain of decisions for each sample.
-The same mechanism allows developers to extend this script and add move decisions steps if needed.
+The same mechanism allows developers to extend this script and add more decision steps if needed.
+
+Here are all already implemented tags:
+
+| tags                                                         | Description                                                                                                              |
+|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| best_match_exist_in_mapfile, best_match_not_exist_in_mapfile | The matching gtcheck sample with the best score exists/not exists in mapping                                             |
+| best_match_matched_mapfile, best_match_not_matched_mapfile   | The matching gtcheck sample with the best score is consistent/not consistent with the mapping file                       |
+| score_passed,  score_failed                                  | Gtcheck score for the best matched sample passed/failed threshold check                                                  |
+| mapfile_unique, mapfile_non_unique,                          | The matching array sample is unique/not unique in the mapping file                                                       |
+| mapfile_pairs_have_gtcheck, no_mapfile_pairs_have_gtcheck    | There is at least one/there are no samples form the mapping file that were reported in the Gtcheck best matching samples |
+
+
 
 ### 2. Sample QC
 
