@@ -338,7 +338,7 @@ def test_gtcheck_filter_not_in_map() -> None:
             "best_match_microarray_sample": ["array1", None, "array3", "array4"],
             "best_match_microarray_score": [0.1, 0.2, 0.15, 0.3],
             "microarray_sample": [["array1", "array5"], None, ["array3"], ["array6"]],
-            "validation_result": ["", "", "", ""],
+            "validation_tags": ["", "", "", ""],
         }
     )
 
@@ -354,13 +354,13 @@ def test_gtcheck_filter_not_in_map() -> None:
     assert set(exist_in_map["data_sample"]) == {"sample1", "sample3", "sample4"}
 
     # Check validation results were properly added
-    assert "best_match_not_exist_in_mapfile" in not_in_map.iloc[0]["validation_result"]
-    assert all("best_match_exist_in_mapfile" in result for result in exist_in_map["validation_result"])
+    assert "best_match_not_exist_in_mapfile" in not_in_map.iloc[0]["validation_tags"]
+    assert all("best_match_exist_in_mapfile" in result for result in exist_in_map["validation_tags"])
 
     # Test case with all samples having mapping
     all_mapped = gtcheck_map.copy()
     all_mapped["microarray_sample"] = [["array1"], ["array2"], ["array3"], ["array4"]]
-    all_mapped["validation_result"] = ["", "", "", ""]
+    all_mapped["validation_tags"] = ["", "", "", ""]
 
     not_in_map, exist_in_map = qc_step_1_3.filter_not_in_map(all_mapped)
     assert len(not_in_map) == 0
@@ -369,7 +369,7 @@ def test_gtcheck_filter_not_in_map() -> None:
     # Test case with no samples having mapping
     none_mapped = gtcheck_map.copy()
     none_mapped["microarray_sample"] = [None, None, None, None]
-    none_mapped["validation_result"] = ["", "", "", ""]
+    none_mapped["validation_tags"] = ["", "", "", ""]
 
     not_in_map, exist_in_map = qc_step_1_3.filter_not_in_map(none_mapped)
     assert len(not_in_map) == 4
@@ -391,7 +391,7 @@ def test_gtcheck_filter_matched_map() -> None:
                 ["array3"],  # Matches best_match
                 ["array4"],  # Doesn't match best_match
             ],
-            "validation_result": ["", "", "", ""],
+            "validation_tags": ["", "", "", ""],
         }
     )
 
@@ -407,13 +407,13 @@ def test_gtcheck_filter_matched_map() -> None:
     assert set(not_matched_map["data_sample"]) == {"sample2", "sample4"}
 
     # Check validation results were properly added
-    assert all("best_match_matched_mapfile" in result for result in matched_map["validation_result"])
-    assert all("best_match_not_matched_mapfile" in result for result in not_matched_map["validation_result"])
+    assert all("best_match_matched_mapfile" in result for result in matched_map["validation_tags"])
+    assert all("best_match_not_matched_mapfile" in result for result in not_matched_map["validation_tags"])
 
     # Test case with all samples matching their mapping
     all_matched = gtcheck_map.copy()
     all_matched["microarray_sample"] = [["array1"], ["array2"], ["array3"], ["array5"]]
-    all_matched["validation_result"] = ["", "", "", ""]
+    all_matched["validation_tags"] = ["", "", "", ""]
 
     matched_map, not_matched_map = qc_step_1_3.filter_matched_map(all_matched)
     assert len(matched_map) == 4
@@ -422,7 +422,7 @@ def test_gtcheck_filter_matched_map() -> None:
     # Test case with no samples matching their mapping
     none_matched = gtcheck_map.copy()
     none_matched["microarray_sample"] = [["arrayX"], ["arrayY"], ["arrayZ"], ["arrayW"]]
-    none_matched["validation_result"] = ["", "", "", ""]
+    none_matched["validation_tags"] = ["", "", "", ""]
 
     matched_map, not_matched_map = qc_step_1_3.filter_matched_map(none_matched)
     assert len(matched_map) == 0
@@ -437,7 +437,7 @@ def test_gtcheck_filter_by_score() -> None:
         {
             "data_sample": ["sample1", "sample2", "sample3", "sample4", "sample5"],
             "score": [0.1, 0.2, 0.3, 0.15, 0.25],
-            "validation_result": ["", "", "", "", ""],
+            "validation_tags": ["", "", "", "", ""],
         }
     )
 
@@ -453,13 +453,13 @@ def test_gtcheck_filter_by_score() -> None:
     assert set(failed_score["data_sample"]) == {"sample3", "sample5"}
 
     # Check validation results were properly added
-    assert all("score_passed" in result for result in passed_score["validation_result"])
-    assert all("score_failed" in result for result in failed_score["validation_result"])
+    assert all("score_passed" in result for result in passed_score["validation_tags"])
+    assert all("score_failed" in result for result in failed_score["validation_tags"])
 
     # Test case with all samples passing threshold
     all_pass = df.copy()
     all_pass["score"] = [0.1, 0.1, 0.1, 0.1, 0.1]
-    all_pass["validation_result"] = ["", "", "", "", ""]
+    all_pass["validation_tags"] = ["", "", "", "", ""]
 
     passed_score, failed_score = qc_step_1_3.filter_by_score(df=all_pass, score_treshold=0.2, score_column_name="score")
     assert len(passed_score) == 5
@@ -468,7 +468,7 @@ def test_gtcheck_filter_by_score() -> None:
     # Test case with all samples failing threshold
     all_fail = df.copy()
     all_fail["score"] = [0.3, 0.3, 0.3, 0.3, 0.3]
-    all_fail["validation_result"] = ["", "", "", "", ""]
+    all_fail["validation_tags"] = ["", "", "", "", ""]
 
     passed_score, failed_score = qc_step_1_3.filter_by_score(df=all_fail, score_treshold=0.2, score_column_name="score")
     assert len(passed_score) == 0
@@ -476,7 +476,7 @@ def test_gtcheck_filter_by_score() -> None:
 
     # Test with custom score column name
     df_custom = pd.DataFrame(
-        {"data_sample": ["sample1", "sample2"], "custom_score": [0.1, 0.3], "validation_result": ["", ""]}
+        {"data_sample": ["sample1", "sample2"], "custom_score": [0.1, 0.3], "validation_tags": ["", ""]}
     )
 
     passed_score, failed_score = qc_step_1_3.filter_by_score(
@@ -497,7 +497,7 @@ def test_gtcheck_mark_non_unique_matches() -> None:
             "data_sample": ["sample1", "sample2", "sample3", "sample4", "sample5"],
             "microarray_sample": ["array1", "array2", "array3", "array1", "array5"],
             "duplicated_id_any": [True, False, False, True, False],
-            "validation_result": ["", "", "", "", ""],
+            "validation_tags": ["", "", "", "", ""],
         }
     )
 
@@ -524,30 +524,30 @@ def test_gtcheck_mark_non_unique_matches() -> None:
     assert len(unique_samples) == 3  # sample2, sample3, and sample5
 
     # Check validation results were properly added
-    assert all("mapfile_non_unique" in result for result in non_unique_samples["validation_result"])
-    assert all("mapfile_unique" in result for result in unique_samples["validation_result"])
+    assert all("mapfile_non_unique" in result for result in non_unique_samples["validation_tags"])
+    assert all("mapfile_unique" in result for result in unique_samples["validation_tags"])
 
     # Test case with all unique mappings
     all_unique = gtcheck_map.copy()
     all_unique["duplicated_id_any"] = False
-    all_unique["validation_result"] = ["", "", "", "", ""]
+    all_unique["validation_tags"] = ["", "", "", "", ""]
 
     result_all_unique = qc_step_1_3.mark_non_unique_matches(all_unique)
     # Explicit check for all sample names in unique group
     assert set(result_all_unique["data_sample"]) == {"sample1", "sample2", "sample3", "sample4", "sample5"}
-    assert all("mapfile_unique" in result for result in result_all_unique["validation_result"])
-    assert not any("mapfile_non_unique" in result for result in result_all_unique["validation_result"])
+    assert all("mapfile_unique" in result for result in result_all_unique["validation_tags"])
+    assert not any("mapfile_non_unique" in result for result in result_all_unique["validation_tags"])
 
     # Test case with all non-unique mappings
     all_non_unique = gtcheck_map.copy()
     all_non_unique["duplicated_id_any"] = True
-    all_non_unique["validation_result"] = ["", "", "", "", ""]
+    all_non_unique["validation_tags"] = ["", "", "", "", ""]
 
     result_all_non_unique = qc_step_1_3.mark_non_unique_matches(all_non_unique)
     # Explicit check for all sample names in non-unique group
     assert set(result_all_non_unique["data_sample"]) == {"sample1", "sample2", "sample3", "sample4", "sample5"}
-    assert all("mapfile_non_unique" in result for result in result_all_non_unique["validation_result"])
-    assert not any("mapfile_unique" in result for result in result_all_non_unique["validation_result"])
+    assert all("mapfile_non_unique" in result for result in result_all_non_unique["validation_tags"])
+    assert not any("mapfile_unique" in result for result in result_all_non_unique["validation_tags"])
 
 
 @m.context("Given gtcheck results with unmatched mapping")
@@ -559,7 +559,7 @@ def test_gtcheck_validate_map_by_score() -> None:
             "data_sample": ["sample1", "sample2"],
             "best_match_microarray_sample": ["array2", "array4"],
             "microarray_sample": [["array1", "array3"], ["array3", "array5"]],
-            "validation_result": ["", ""],
+            "validation_tags": ["", ""],
         }
     )
 
@@ -590,7 +590,7 @@ def test_gtcheck_validate_map_by_score() -> None:
     # Check results for samples without mapping pairs
     assert len(no_mapping_pairs) == 0  # All pairs had scores in this test case
 
-    assert "mapfile_pairs_have_gtcheck" in has_mapping_pairs["validation_result"].iloc[0]
+    assert "mapfile_pairs_have_gtcheck" in has_mapping_pairs["validation_tags"].iloc[0]
 
     # Verify scores were correctly matched
     scores = has_mapping_pairs["score_from_mapped_microarray_sample"].dropna().tolist()
@@ -608,4 +608,4 @@ def test_gtcheck_validate_map_by_score() -> None:
     # Verify handling of missing scores
     assert len(has_mapping_pairs) == 3  # Only pairs with scores
     assert len(no_mapping_pairs) == 1  # One pair missing score
-    assert "no_mapfile_pairs_have_gtcheck" in no_mapping_pairs["validation_result"].iloc[0]
+    assert "no_mapfile_pairs_have_gtcheck" in no_mapping_pairs["validation_tags"].iloc[0]
