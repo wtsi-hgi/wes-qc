@@ -89,6 +89,15 @@ def validate_verifybamid(
     return mt
 
 
+def annotate_self_reported_sex(mt: hl.MatrixTable, sex_metadata_file: str, **kwargs) -> hl.MatrixTable:
+    """
+    Annotates samples in the matrix-table with the self-reported sex
+    """
+    metadata_ht = hl.import_table(path_spark(sex_metadata_file), delimiter="\t").key_by("sample_id")
+    mt_sex_annotated = mt.annotate_cols(self_reported_sex=metadata_ht[mt.s].self_reported_sex)
+    return mt_sex_annotated
+
+
 def main() -> None:
     # = STEP SETUP = #
     config = parse_config()
@@ -100,6 +109,8 @@ def main() -> None:
     # = STEP DEPENDENCIES = #
     mtpath = config["step1"]["gatk_mt_outfile"]
     verifybamid_selfsm = config["step1"]["validate_verifybamid"]["verifybamid_selfsm"]
+    # TODO: change after merging previous config changes from main
+    sex_metadata_file = config["step2"]["sex_inconsistencies"]["sex_metadata_file"]
 
     # = STEP OUTPUTS = #
     mtoutpath = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
@@ -115,6 +126,12 @@ def main() -> None:
         mt = validate_verifybamid(mt, verifybamid, **config["step1"]["validate_verifybamid"])
     else:
         print("=== Skipping verifyBamID validation")
+
+    if sex_metadata_file is not None:
+        print("=== Annotating self-reported sex ")
+        mt = annotate_self_reported_sex(mt, path_spark(sex_metadata_file))
+    else:
+        print("=== Skipping self-reported sex annotation")
 
     mt.write(path_spark(mtoutpath), overwrite=True)
 
