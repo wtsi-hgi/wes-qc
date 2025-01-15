@@ -110,7 +110,8 @@ step1:
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
-    mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
+  sex_metadata_file: '{metadir}/mlwh_sample_and_sex.txt'
+  mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
   validate_gtcheck:
     wes_microarray_mapping: '{metadir}/testdata_1000genomes_v2.microarray_mapping.tsv' # Set to null if you don't have microarray data
@@ -126,7 +127,6 @@ step1:
 step2:
   # --- Step 2.1 --- #
   sex_annotation_hard_filters:
-    filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
     n_alt_alleles_threshold: 0.001
     defined_gt_frac_threshold: 0.99
 
@@ -138,7 +138,6 @@ step2:
     aaf_threshold: 0.05
 
   sex_inconsistencies:
-    sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
     conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
     fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
     fstat_low: 0.2

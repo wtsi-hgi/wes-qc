@@ -418,7 +418,7 @@ def main() -> None:
     gtcheck_score_threshold: float = config["step1"]["validate_gtcheck"]["gtcheck_score_threshold"]
 
     # = STEP DEPENDENCIES = #
-    mtpath: str = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
+    mtpath: str = config["step1"]["mt_metadata_annotated"]
     wes_microarray_mapping: Optional[str] = config["step1"]["validate_gtcheck"]["wes_microarray_mapping"]
     microarray_ids: str = config["step1"]["validate_gtcheck"]["microarray_ids"]
     gtcheck_report: str = config["step1"]["validate_gtcheck"]["gtcheck_report"]

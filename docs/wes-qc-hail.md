@@ -186,23 +186,25 @@ spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 This script annotates samples with all provided metadata:
 VerifyBamId Freemix score, self-reported sex, self-reported ethnicity, etc.
 
+Specify the corresponding input file in the config for each available annotation
+(follow the links to download the sample files):
+
+* [verifybamid_selfsm:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.verify_bam_id_result.selfSM.tsv) -
+  the VerifyBamID Freemix data
+* [sex_metadata_file:](https://wes-qc-data.cog.sanger.ac.uk/metadata/mlwh_sample_and_sex.txt) - self-reported sex.
+  A tab-separated TSV file, having at least two columns: `sample_id` and `self_reported_sex`.
+
 If you don't have some (or even any) of these annotations,
-put `null` instead of the corresponding filename in the config file:
-* `verifybamid_selfsm` - for the VerifyBamID Freemix data
+put `null` instead of the filename in the config file.
 
-
-For each available annotation, the script prints out the list of samples that don't have annotations.
-For the Freemix score it performs validation and saves the Freemix plot.
+Run the annotation script:
 
 ```shell
 spark-submit 1-import_data/2-import_annotations.py
 ```
 
-**Note:** Now, only Freemix annotation is supported. Work on other annotations is in progress.
-
-**Note:** The output of this step is not used in further steps yet.
-You can use it to run Freemix validation and get plots and sample statistics.
-Using annotated data in further steps will be implemented after implementing GtCheck validation.
+For each available annotation, the script prints out the list of samples that don't have annotations.
+For the Freemix score it performs validation and saves the Freemix plot.
 
 3. **Annotate and validate GtCheck results**
 
