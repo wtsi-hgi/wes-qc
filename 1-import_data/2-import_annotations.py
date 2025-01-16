@@ -55,7 +55,7 @@ def validate_verifybamid(
     samples_without_freemix = samples.filter(~hl.is_defined(samples.freemix))
     n_samples_without_freemix = samples_without_freemix.count()
     if n_samples_without_freemix > 0:
-        print(f"=== Detected {n_samples_without_freemix} samples without freemix: ", end="")
+        print(f"=== WARNING: Detected {n_samples_without_freemix} samples without freemix: ", end="")
         print(" ".join(samples_without_freemix.s.collect()))
 
     # Plottign freemix score
@@ -89,6 +89,25 @@ def validate_verifybamid(
     return mt
 
 
+def annotate_self_reported_sex(mt: hl.MatrixTable, sex_metadata_file: str, **kwargs) -> hl.MatrixTable:
+    """
+    Annotates samples in the matrix-table with the self-reported sex
+    """
+    metadata_ht = hl.import_table(path_spark(sex_metadata_file), delimiter="\t").key_by("sample_id")
+    metadata_ht = metadata_ht.transmute(self_reported_sex=metadata_ht.self_reported_sex.lower())
+    mt_sex_annotated = mt.annotate_cols(self_reported_sex=metadata_ht[mt.s].self_reported_sex)
+
+    # Checking for the samples without self-reported sex
+    samples = mt_sex_annotated.cols()
+    samples_without_self_reported_sex = samples.filter(~hl.is_defined(samples.self_reported_sex))
+    n_samples_no_self_reported_sex = samples_without_self_reported_sex.count()
+    if n_samples_no_self_reported_sex > 0:
+        print(f"=== WARNING: Detected {n_samples_no_self_reported_sex} samples without self-reported sex: ", end="")
+        print(" ".join(samples_without_self_reported_sex.s.collect()))
+
+    return mt_sex_annotated
+
+
 def main() -> None:
     # = STEP SETUP = #
     config = parse_config()
@@ -100,9 +119,11 @@ def main() -> None:
     # = STEP DEPENDENCIES = #
     mtpath = config["step1"]["gatk_mt_outfile"]
     verifybamid_selfsm = config["step1"]["validate_verifybamid"]["verifybamid_selfsm"]
+    # TODO: change after merging previous config changes from main
+    sex_metadata_file = config["step1"]["sex_metadata_file"]
 
     # = STEP OUTPUTS = #
-    mtoutpath = config["step1"]["validate_verifybamid"]["mt_metadata_annotated"]
+    mtoutpath = config["step1"]["mt_metadata_annotated"]
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
@@ -115,6 +136,12 @@ def main() -> None:
         mt = validate_verifybamid(mt, verifybamid, **config["step1"]["validate_verifybamid"])
     else:
         print("=== Skipping verifyBamID validation")
+
+    if sex_metadata_file is not None:
+        print("=== Annotating self-reported sex ")
+        mt = annotate_self_reported_sex(mt, path_spark(sex_metadata_file))
+    else:
+        print("=== Skipping self-reported sex annotation")
 
     mt.write(path_spark(mtoutpath), overwrite=True)
 

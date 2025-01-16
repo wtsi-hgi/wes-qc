@@ -110,7 +110,8 @@ step1:
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
-    mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
+  sex_metadata_file: '{metadir}/mlwh_sample_and_sex.txt'
+  mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
   validate_gtcheck:
     wes_microarray_mapping: '{metadir}/control_set_small.microarray_mapping.tsv' # Set to null if you don't have microarray data
@@ -126,23 +127,24 @@ step1:
 step2:
   # --- Step 2.1 --- #
   sex_annotation_hard_filters:
-    filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
     n_alt_alleles_threshold: 0.001
     defined_gt_frac_threshold: 0.99
 
   impute_sex:
-    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.txt.bgz'
+    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.tsv.bgz'
     sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
-    female_threshold: 0.5
-    male_threshold: 0.8
-    aaf_threshold: 0.05
+    hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
+      female_threshold: 0.5
+      male_threshold: 0.8
+      aaf_threshold: 0.05
 
-  sex_inconsistencies:
-    sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
-    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
-    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
+  f_stat_outliers:
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_low: 0.2
     fstat_high: 0.8
+
+  sex_inconsistencies:
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.tsv' # output
 
   # --- Step 2.2 --- #
   prune:
