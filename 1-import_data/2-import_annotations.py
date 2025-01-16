@@ -55,7 +55,7 @@ def validate_verifybamid(
     samples_without_freemix = samples.filter(~hl.is_defined(samples.freemix))
     n_samples_without_freemix = samples_without_freemix.count()
     if n_samples_without_freemix > 0:
-        print(f"=== Detected {n_samples_without_freemix} samples without freemix: ", end="")
+        print(f"=== WARNING: Detected {n_samples_without_freemix} samples without freemix: ", end="")
         print(" ".join(samples_without_freemix.s.collect()))
 
     # Plottign freemix score
@@ -94,7 +94,17 @@ def annotate_self_reported_sex(mt: hl.MatrixTable, sex_metadata_file: str, **kwa
     Annotates samples in the matrix-table with the self-reported sex
     """
     metadata_ht = hl.import_table(path_spark(sex_metadata_file), delimiter="\t").key_by("sample_id")
+    metadata_ht = metadata_ht.transmute(self_reported_sex=metadata_ht.self_reported_sex.lower())
     mt_sex_annotated = mt.annotate_cols(self_reported_sex=metadata_ht[mt.s].self_reported_sex)
+
+    # Checking for the samples without self-reported sex
+    samples = mt_sex_annotated.cols()
+    samples_without_self_reported_sex = samples.filter(~hl.is_defined(samples.self_reported_sex))
+    n_samples_no_self_reported_sex = samples_without_self_reported_sex.count()
+    if n_samples_no_self_reported_sex > 0:
+        print(f"=== WARNING: Detected {n_samples_no_self_reported_sex} samples without self-reported sex: ", end="")
+        print(" ".join(samples_without_self_reported_sex.s.collect()))
+
     return mt_sex_annotated
 
 

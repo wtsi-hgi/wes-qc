@@ -1,4 +1,5 @@
 # apply gnomAD's impute sex
+from typing import Any, Optional
 
 import hail as hl
 from utils.utils import parse_config, path_spark
@@ -23,85 +24,54 @@ def apply_hard_filters(
     return mt
 
 
-def impute_sex(
-    mt: hl.MatrixTable, aaf_threshold: float, female_threshold: float, male_threshold: float, sex_ht_outfile, **kwargs
-) -> hl.MatrixTable:
+def impute_sex(mt: hl.MatrixTable, hail_impute_sex_params: dict[str, Any], **kwargs) -> (hl.MatrixTable, hl.Table):
     """
     Imputes sex, exports data, and annotates mt with this data
     """
-    print(f"===Imputing sex with male_threshold = {male_threshold} and female threshold = {female_threshold}")
+    print("===Imputing sex ===")
     mt1 = hl.split_multi_hts(mt)
     mtx_unphased = mt1.select_entries(GT=hl.unphased_diploid_gt_index_call(mt1.GT.n_alt_alleles()))
 
     # Impute sex on the unphased diploid GTs
-    sex_ht = hl.impute_sex(
-        mtx_unphased.GT,
-        aaf_threshold=aaf_threshold,
-        female_threshold=female_threshold,
-        male_threshold=male_threshold,
-    )
+    sex_ht = hl.impute_sex(mtx_unphased.GT, **hail_impute_sex_params)
 
     # convert is_female boolean to sex
     sex_expr = hl.if_else(hl.is_defined(sex_ht.is_female), hl.if_else(sex_ht.is_female, "female", "male"), "undefined")
     sex_ht = sex_ht.annotate(imputed_sex=sex_expr)
 
     # export
-    sex_ht.export(path_spark(sex_ht_outfile))  # output
+    #
 
     # annotate input (all chroms) mt with imputed sex and write to file
     sex_colnames = ["f_stat", "is_female", "imputed_sex"]
-    sex_ht = sex_ht.select(*sex_colnames)
-    mt = mt.annotate_cols(**sex_ht[mt.col_key])
+    # sex_ht = sex_ht.select(*sex_colnames)
+    mt = mt.annotate_cols(**sex_ht.select(*sex_colnames)[mt.col_key])
 
-    return mt
+    return mt, sex_ht
 
 
 def identify_inconsistencies(
     mt: hl.MatrixTable,
-    conflicting_sex_report_file: str,
-    fstat_outliers_report_file,
-    fstat_low: float,
-    fstat_high: float,
-    **kwargs,
-) -> None:
+) -> Optional[hl.Table]:
     """
     Find samples where annotated sex conflicts with the sex in our metadata
-    Find samples where sex is not annotated
-    Find samples where f_stat is between fstat_low and fstat_high
-    :param MatrixTable mt: MT containing imputed sex in column 'sex_check'
-    :param dict config:
-
-    ### Config fields
-    step2.sex_inconsistencies.sex_metadata_file : input path : TODO explain metadata structure and constants
-    step2.sex_inconsistencies.conflicting_sex_report_file : output path : TODO
-    step2.sex_inconsistencies.fstat_outliers_report_file : output path : TODO
-    step2.sex_inconsistencies.fstat_low : float
-    step2.sex_inconsistencies.fstat_high : float
     """
-
     qc_ht = mt.cols()
     if "self_reported_sex" not in qc_ht.row:
-        print("=== No self-reported sex assined - skipping sex consistency checking ===")
-        return
+        print("=== No self-reported sex assigned - skipping sex consistency checking ===")
+        return None
 
     print("Annotating samples with inconsistencies:")
-
-    # annotate with manifest sex - keyed on ega to match identifiers in matrixtable
-
-    # annotate the sex-predictions with the manifest sex annotation - need to use a join here
-    ht_joined = qc_ht
-
-    # identify samples where imputed sex and manifest sex conflict
-    conflicting_sex_ht = ht_joined.filter(
-        ((ht_joined.imputed_sex == "male") & (ht_joined.self_reported_sex == "female"))
-        | ((ht_joined.imputed_sex == "female") & (ht_joined.self_reported_sex == "male"))
+    conflicting_sex_ht = qc_ht.filter(
+        ((qc_ht.imputed_sex == "male") & (qc_ht.self_reported_sex == "female"))
+        | ((qc_ht.imputed_sex == "female") & (qc_ht.self_reported_sex == "male"))
     )
+    return conflicting_sex_ht
 
-    conflicting_sex_ht.export(path_spark(conflicting_sex_report_file))  # output
 
+def select_fstat_outliers(sex_ht: hl.MatrixTable, fstat_low: float, fstat_high: float, **kwargs) -> hl.Table:
     # identify samples where f stat is between fstat_low and fstat_high
-    f_stat_ht = qc_ht.filter((qc_ht.f_stat > fstat_low) & (qc_ht.f_stat < fstat_high))
-    f_stat_ht.export(path_spark(fstat_outliers_report_file))  # output
+    return sex_ht.filter((sex_ht.f_stat > fstat_low) & (sex_ht.f_stat < fstat_high))
 
 
 def main():
@@ -114,6 +84,9 @@ def main():
 
     # = STEP OUTPUTS = #
     sex_mt_file = config["step2"]["impute_sex"]["sex_mt_outfile"]
+    sex_ht_outfile = config["step2"]["impute_sex"]["sex_ht_outfile"]
+    conflicting_sex_report_file = config["step2"]["sex_inconsistencies"]["conflicting_sex_report_file"]
+    fstat_outliers_report_file = config["step2"]["f_stat_outliers"]["fstat_outliers_report_file"]
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
@@ -121,16 +94,24 @@ def main():
     print("Reading input matrix")
     mt_unfiltered = hl.read_matrix_table(path_spark(mt_infile))
 
-    # apply hard fitlers
+    # apply hard filters
     mt_filtered = apply_hard_filters(mt_unfiltered, **config["step2"]["sex_annotation_hard_filters"])
 
     # impute sex
-    mt_sex = impute_sex(mt_filtered, **config["step2"]["impute_sex"])
+    mt_sex, sex_ht = impute_sex(mt_filtered, **config["step2"]["impute_sex"])
+    sex_ht.export(path_spark(sex_ht_outfile))
+
+    # Save f-stat outliers in the separate file
+    f_stat_ht_outliers = select_fstat_outliers(sex_ht, **config["step2"]["f_stat_outliers"])
+    f_stat_ht_outliers.export(path_spark(fstat_outliers_report_file))  # output
+
     print("--- Writing to " + sex_mt_file)
     mt_sex.write(path_spark(sex_mt_file), overwrite=True)
 
     # identify and report inconsistencies
-    identify_inconsistencies(mt_sex, **config["step2"]["sex_inconsistencies"])
+    conflicting_sex_ht = identify_inconsistencies(mt_sex)
+    if conflicting_sex_ht is not None:
+        conflicting_sex_ht.export(path_spark(conflicting_sex_report_file))  # output
 
 
 if __name__ == "__main__":

@@ -131,17 +131,20 @@ step2:
     defined_gt_frac_threshold: 0.99
 
   impute_sex:
-    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.txt.bgz'
+    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.tsv.bgz'
     sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
-    female_threshold: 0.5
-    male_threshold: 0.8
-    aaf_threshold: 0.05
+    hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
+      female_threshold: 0.5
+      male_threshold: 0.8
+      aaf_threshold: 0.05
 
-  sex_inconsistencies:
-    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
-    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
+  f_stat_outliers:
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_low: 0.2
     fstat_high: 0.8
+
+  sex_inconsistencies:
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.tsv' # output
 
   # --- Step 2.2 --- #
   prune:
