@@ -160,7 +160,9 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
                     ab_str = f"AB_{ab}"
                     for call_rate in missing_vals:
                         missing_str = f"missing_{call_rate}"
-                        print("--- Testing hardfilter combination: ")
+                        print(
+                            f"--- Testing SNV hard filter combination: bin={bin} DP={dp} GQ={gq} AB={ab} call_rate={call_rate}"
+                        )
                         logging.info(f"{dp_str} {gq_str} {ab_str} {missing_str}")
                         filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
@@ -202,7 +204,9 @@ def filter_and_count(mt_path: str, ht_giab: hl.Table, pedfile: str, mtdir: str, 
                     ab_str = f"AB_{ab}"
                     for call_rate in missing_vals:
                         missing_str = f"missing_{call_rate}"
-                        print(dp_str + " " + gq_str + " " + ab_str + " " + missing_str)
+                        print(
+                            f"--- Testing InDel hard filter combination: bin={bin} DP={dp} GQ={gq} AB={ab} call_rate={call_rate}"
+                        )
                         filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
                         mt_indel_hard = apply_hard_filters(mt_indel_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
