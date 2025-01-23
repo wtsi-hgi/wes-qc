@@ -8,6 +8,26 @@ from typing import Optional, Any
 from utils.utils import parse_config, path_spark
 from utils.utils import select_founders, collect_pedigree_samples
 from wes_qc import hail_utils
+import pandas as pd
+from bokeh.models import (
+    ColumnDataSource,
+    CustomJS,
+    HoverTool,
+    ColorBar,
+    LinearColorMapper,
+    CheckboxGroup,
+    Div,
+    Select,
+    Slider,
+    FixedTicker,
+    CustomJSTickFormatter,
+)
+from bokeh.plotting import figure, save
+from bokeh.layouts import column, row
+from bokeh.io import output_file
+from bokeh.transform import factor_mark
+from bokeh.palettes import Turbo256, TolRainbow23
+import numpy as np
 
 snv_label = "snv"
 indel_label = "indel"
@@ -456,49 +476,291 @@ def filter_mts(mt: hl.MatrixTable, mtdir: str, giab_sample: Optional[str] = None
     return mt_true, mt_false, mt_syn, mt_prec_recall
 
 
-def print_results(results: dict, outfile: str, vartype: str):
+def write_snv_filter_metrics(results: dict, outfile: str):
     """
-    Print results dict to a file
-    :param dict results: results dict
-    :param str outfile: output file path
-    :param str vartype: variant type (snv or indel)
+    Write SNV filtering metrics to a tab-delimited file, including true/false positive rates,
+    precision/recall, and transmission/untransmission ratio.
+
+    :param dict results: Dictionary containing filtering results and metrics for each SNV filter combination
+    :param str outfile: Path to output TSV file
     """
-    header = ["filter", "TP", "FP"]
-    if vartype == "snv":
-        header = header + (["t_u_ratio", "precision", "recall"])
-    elif vartype == "indel":
-        header = header + (
-            ["precision", "recall", "precision_frameshift", "recall_frameshift", "precision_inframe", "recall_inframe"]
-        )
+    header = ["filter", "bin", "DP", "GQ", "AB", "call_rate", "TP", "FP", "t_u_ratio", "precision", "recall"]
 
     with open(outfile, "w") as o:
-        o.write(("\t").join(header))
+        o.write("\t".join(header))
         o.write("\n")
 
-        for var_f in results[vartype].keys():
-            if vartype == "snv":
-                tp = str((results[vartype][var_f]["TP"] / results["snv_total_tp"]) * 100)
-                fp = str((results[vartype][var_f]["FP"] / results["snv_total_fp"]) * 100)
-            elif vartype == "indel":
-                tp = str((results[vartype][var_f]["TP"] / results["indel_total_tp"]) * 100)
-                fp = str((results[vartype][var_f]["FP"] / results["indel_total_fp"]) * 100)
-            outline = [var_f, tp, fp]
-            if vartype == "snv":
-                tu = str(results[vartype][var_f]["t_u_ratio"])
-                p = str(results[vartype][var_f].get("prec", ""))
-                r = str(results[vartype][var_f].get("recall", ""))
-                outline = outline + [tu, p, r]
-            elif vartype == "indel":
-                p = str(results[vartype][var_f].get("prec", ""))
-                r = str(results[vartype][var_f].get("recall", ""))
-                p_f = str(results[vartype][var_f].get("prec_frameshift", ""))
-                r_f = str(results[vartype][var_f].get("recall_frameshift", ""))
-                p_if = str(results[vartype][var_f].get("prec_inframe", ""))
-                r_if = str(results[vartype][var_f].get("recall_inframe", ""))
-                outline = outline + [p, r, p_f, r_f, p_if, r_if]
+        for var_f in results["snv"].keys():
+            bin_val, dp, gq, ab, call_rate = parse_hard_filter_values(var_f)
+            tp = str((results["snv"][var_f]["TP"] / results["snv_total_tp"]) * 100)
+            fp = str((results["snv"][var_f]["FP"] / results["snv_total_fp"]) * 100)
+            tu = str(results["snv"][var_f]["t_u_ratio"])
+            p = str(results["snv"][var_f].get("prec", ""))
+            r = str(results["snv"][var_f].get("recall", ""))
 
-            o.write(("\t").join(outline))
+            outline = [var_f, bin_val, dp, gq, ab, call_rate, tp, fp, tu, p, r]
+            o.write("\t".join(outline))
             o.write("\n")
+
+
+def write_indel_filter_metrics(results: dict, outfile: str):
+    """
+    Write indel filtering metrics to a tab-delimited file, including true/false positive rates,
+    precision/recall for all indels, frameshift indels, and inframe indels.
+
+    :param dict results: Dictionary containing filtering results and metrics for each indel filter combination
+    :param str outfile: Path to output TSV file
+    """
+    header = [
+        "filter",
+        "bin",
+        "DP",
+        "GQ",
+        "AB",
+        "call_rate",
+        "TP",
+        "FP",
+        "precision",
+        "recall",
+        "precision_frameshift",
+        "recall_frameshift",
+        "precision_inframe",
+        "recall_inframe",
+    ]
+
+    with open(outfile, "w") as o:
+        o.write("\t".join(header))
+        o.write("\n")
+
+        for var_f in results["indel"].keys():
+            bin_val, dp, gq, ab, call_rate = parse_hard_filter_values(var_f)
+            tp = str((results["indel"][var_f]["TP"] / results["indel_total_tp"]) * 100)
+            fp = str((results["indel"][var_f]["FP"] / results["indel_total_fp"]) * 100)
+            p = str(results["indel"][var_f].get("prec", ""))
+            r = str(results["indel"][var_f].get("recall", ""))
+            p_f = str(results["indel"][var_f].get("prec_frameshift", ""))
+            r_f = str(results["indel"][var_f].get("recall_frameshift", ""))
+            p_if = str(results["indel"][var_f].get("prec_inframe", ""))
+            r_if = str(results["indel"][var_f].get("recall_inframe", ""))
+
+            outline = [var_f, bin_val, dp, gq, ab, call_rate, tp, fp, p, r, p_f, r_f, p_if, r_if]
+            o.write("\t".join(outline))
+            o.write("\n")
+
+
+def parse_hard_filter_values(filter_string: str) -> tuple:
+    """
+    Get hard filter values from a filter string
+    :param str filter_string: Filter string
+    :return tuple: Tuple of hard filter values, they are bin, DP, GQ, AB, call_rate
+    """
+    values = filter_string.split("_")
+    return values[1], values[3], values[5], values[7], values[9]
+
+
+def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str):
+    """
+    Create an interactive scatter plot of hard filter combinations with enhanced controls
+
+    :param pd.DataFrame df: Input dataframe with filter metrics
+    :param str x: Column name for x-axis
+    :param str y: Column name for y-axis
+    :param str outfile: Path to save the plot
+    """
+    # Create the data source
+    # Convert DP to string for factor mapping
+    df["DP"] = df["DP"].astype(str)
+    source = ColumnDataSource(df)
+    filtered_source = ColumnDataSource(data=source.data)
+    margin_x = abs(df[x].max() - df[x].min()) * 0.05
+    max_x = df[x].max() + margin_x
+    min_x = df[x].min() - margin_x
+    margin_y = abs(df[y].max() - df[y].min()) * 0.05
+    max_y = df[y].max() + margin_y
+    min_y = df[y].min() - margin_y
+
+    # Define markers for different DP values
+    MARKERS = ["circle", "diamond", "triangle", "square", "star", "plus"]
+    DPs = [str(i) for i in sorted(df["DP"].unique().tolist())]
+
+    tooltips = [
+        ("--", "--"),
+        ("Bin", "@bin"),
+        (x, f"@{x}"),
+        (y, f"@{y}"),
+        ("DP", "@DP"),
+        ("GQ", "@GQ"),
+        ("AB", "@AB"),
+        ("Call Rate", "@call_rate"),
+    ]
+    hover = HoverTool(tooltips=tooltips)
+    plot = figure(
+        title=(" ").join([y, "v", x]),
+        height=800,
+        width=1400,
+        x_axis_label=x,
+        y_axis_label=y,
+        x_range=(min_x, max_x),
+        y_range=(min_y, max_y),
+        tools=[hover, "pan", "box_zoom", "wheel_zoom", "reset"],
+    )
+
+    bin_min = df["bin"].min()
+    bin_max = df["bin"].max()
+    unique_bins = sorted(df["bin"].unique())
+    num_bins = len(unique_bins)
+    interval = (bin_max - bin_min) / num_bins
+
+    # Define available palettes
+    palette_dict = {
+        "Rainbow": TolRainbow23[:: max(1, len(TolRainbow23) // num_bins)][:num_bins],
+        "Turbo": Turbo256[:: max(1, len(Turbo256) // num_bins)][:num_bins],
+    }
+
+    # Create palette selector
+    palette_select = Select(title="Color Palette", value="Turbo", options=list(palette_dict.keys()))
+
+    # Initialize color mapper with default palette
+    color_mapper = LinearColorMapper(palette=palette_dict["Turbo"], low=bin_min, high=bin_max)
+
+    # Add scatter points with continuous color mapping and marker mapping
+    plot.scatter(
+        x,
+        y,
+        source=filtered_source,
+        size=14,
+        alpha=0.6,
+        color={"field": "bin", "transform": color_mapper},
+        marker=factor_mark("DP", MARKERS, DPs),
+        legend_group="DP",
+    )
+
+    # Configure legend
+    plot.legend.click_policy = "hide"
+    plot.legend.location = "top_left"
+    plot.legend.title = "DP"
+    plot.legend.background_fill_alpha = 0.7
+
+    # Add color bar with custom ticks
+    ticks = np.linspace(bin_min + interval / 2, bin_max - interval / 2, num_bins)
+    color_bar = ColorBar(
+        color_mapper=color_mapper,
+        label_standoff=12,
+        title="Bin",
+        location=(0, 0),
+        orientation="vertical",
+        ticker=FixedTicker(ticks=ticks),
+        formatter=CustomJSTickFormatter(
+            code="""
+                            return bins[index].toString();
+                        """,
+            args={"bins": list([int(i) for i in unique_bins])},
+        ),
+    )
+
+    plot.add_layout(color_bar, "right")
+
+    # Create checkboxes for filtering
+    unique_dp = [str(i) for i in sorted(df["DP"].unique().tolist())]
+    unique_gq = [str(i) for i in sorted(df["GQ"].unique().tolist())]
+    unique_ab = [f"{i:.2f}" for i in sorted(df["AB"].unique().tolist())]
+    unique_cr = [f"{i:.2f}" for i in sorted(df["call_rate"].unique().tolist())]
+
+    checkbox_dp = CheckboxGroup(labels=unique_dp, active=list(range(len(unique_dp))), name="DP Filter")
+    checkbox_gq = CheckboxGroup(labels=unique_gq, active=list(range(len(unique_gq))), name="GQ Filter")
+    checkbox_ab = CheckboxGroup(labels=unique_ab, active=list(range(len(unique_ab))), name="AB Filter")
+    checkbox_cr = CheckboxGroup(labels=unique_cr, active=list(range(len(unique_cr))), name="Call Rate Filter")
+
+    # Create bin filter sliders
+    min_bin_slider = Slider(start=bin_min, end=bin_max, value=bin_min, step=1, title="Minimum Bin", width=200)
+
+    max_bin_slider = Slider(start=bin_min, end=bin_max, value=bin_max, step=1, title="Maximum Bin", width=200)
+
+    # JavaScript callback for filtering based on all controls
+    callback = CustomJS(
+        args=dict(
+            source=source,
+            filtered_source=filtered_source,
+            checkbox_dp=checkbox_dp,
+            checkbox_gq=checkbox_gq,
+            checkbox_ab=checkbox_ab,
+            checkbox_cr=checkbox_cr,
+            color_mapper=color_mapper,
+            palette_select=palette_select,
+            palette_dict=palette_dict,
+            min_bin_slider=min_bin_slider,
+            max_bin_slider=max_bin_slider,
+        ),
+        code="""
+        const active_labels_dp = checkbox_dp.active.map(i => checkbox_dp.labels[i]);
+        const active_labels_gq = checkbox_gq.active.map(i => checkbox_gq.labels[i]);
+        const active_labels_ab = checkbox_ab.active.map(i => checkbox_ab.labels[i]);
+        const active_labels_cr = checkbox_cr.active.map(i => checkbox_cr.labels[i]);
+
+        const data = source.data;
+        const filtered_data = {};
+
+        Object.keys(data).forEach(key => {
+            filtered_data[key] = [];
+        });
+
+        for (let i = 0; i < data['DP'].length; i++) {
+            const match_gq = active_labels_gq.includes(String(data['GQ'][i]));
+            const match_ab = active_labels_ab.includes(data['AB'][i].toFixed(2));
+            const match_cr = active_labels_cr.includes(data['call_rate'][i].toFixed(2));
+            const match_dp = active_labels_dp.includes(String(data['DP'][i]));
+            const match_bin = data['bin'][i] >= min_bin_slider.value &&
+                            data['bin'][i] <= max_bin_slider.value;
+
+            if (match_dp && match_gq && match_ab && match_cr && match_bin) {
+                Object.keys(data).forEach(key => {
+                    filtered_data[key].push(data[key][i]);
+                });
+            }
+        }
+
+        filtered_source.data = filtered_data;
+        filtered_source.change.emit();
+        """,
+    )
+
+    # Add palette change callback
+    palette_callback = CustomJS(
+        args=dict(color_mapper=color_mapper, palette_dict=palette_dict),
+        code="""
+        const new_palette = palette_dict[cb_obj.value];
+        color_mapper.palette = new_palette;
+        """,
+    )
+
+    # Connect all callbacks
+    min_bin_slider.js_on_change("value", callback)
+    max_bin_slider.js_on_change("value", callback)
+    checkbox_dp.js_on_change("active", callback)
+    checkbox_gq.js_on_change("active", callback)
+    checkbox_ab.js_on_change("active", callback)
+    checkbox_cr.js_on_change("active", callback)
+    palette_select.js_on_change("value", palette_callback)
+
+    # Create layout with all controls
+    controls = column(
+        row(
+            column(Div(text="<b>Genotype Depth (DP)</b>"), checkbox_dp, width=100),
+            column(Div(text="<b>Genotype Quality (GQ)</b>"), checkbox_gq, width=100),
+        ),
+        row(
+            column(Div(text="<b>Allele Balance (AB)</b>"), checkbox_ab, width=100),
+            column(Div(text="<b>Call Rate</b>"), checkbox_cr, width=100),
+        ),
+        Div(text="<b>Bin Range Filter</b>"),
+        row(column(min_bin_slider, max_bin_slider, width=200)),
+        row(column(palette_select, width=200)),
+    )
+    layout = row(controls, plot)
+
+    # Save to file
+    output_file(outfile)
+    save(layout)
 
 
 def get_options() -> Any:
@@ -508,6 +770,7 @@ def get_options() -> Any:
     parser = argparse.ArgumentParser()
     parser.add_argument("--prepare", help="Prepare all required matrixtables", action="store_true")
     parser.add_argument("--evaluate", help="Run hardfilter evaluation", action="store_true")
+    parser.add_argument("--plot", help="Plot hard filter combinations", action="store_true")
     parser.add_argument("--all", help="Run All steps", action="store_true")
     args = parser.parse_args()
     return args
@@ -520,7 +783,7 @@ def main():
     if args.all:
         args.prepare = True
         args.evaluate = True
-
+        args.plot = True
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
@@ -565,8 +828,19 @@ def main():
         results = filter_and_count(
             mt_path=mt_annot_path, ht_giab=giab_ht, pedfile=pedfile, mtdir=wd, conf=config["step4"]["evaluation"]
         )
-        print_results(results, outfile_snv, "snv")
-        print_results(results, outfile_indel, "indel")
+
+        # Write metrics for SNVs and indels separately
+        write_snv_filter_metrics(results, outfile_snv)
+        write_indel_filter_metrics(results, outfile_indel)
+
+    if args.plot:
+        df_snv = pd.read_csv(outfile_snv, sep="\t")
+        df_indel = pd.read_csv(outfile_indel, sep="\t")
+        # Plot hard filter combinations
+        for k, v in config["step4"]["plot"].items():
+            type_, x, y = k.split("-")
+            df = df_snv if type_ == "snv" else df_indel
+            plot_hard_filter_combinations(df, x, y, v)
 
 
 if __name__ == "__main__":
