@@ -531,6 +531,7 @@ All plots are interactive, and you can use the following options to explode your
 * Use Checkboxes to filter data by DP, GQ AB, and call_rate hardfilters.
   This option is especially useful when you select/deselect a checkbox and observe how your data are changed.
 * Use sliders to filter by minimum/maximum bin value.
+* Change between several available color maps using the dropdown menu.
 
 Based on the desired balance of true positives vs. false positives
 and the desired precision/recall balance, choose the three combinations of filters:
