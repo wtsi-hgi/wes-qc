@@ -509,23 +509,35 @@ Add the sample control name, the corresponding VCF file, and the VEP annotation 
     giab_sample: 'NA12878.alt_bwamem_GRCh38DH.20120826.exome'
 ```
 
+If you don't have a GIAB sample, put null in the `giab_vcf` section.
+The precision/recall calculations will be skipped in this case.
+
 Run the hard-filter evaluation step:
 
 ```shell
 spark-submit 4-genotype_qc/1-compare_hard_filter_combinations.py --all
 ```
 
-The script calculates all possible combinations of hard filters, and collects
-results in the subfolder in `annotation` folder, named by the RF model ID.
+The script calculates all possible combinations of hard filters, and
+saves interactive plots in the `plot` directory with the `hard_filter_evaluation` prefix.
+Also, the script saves results in the subfolder in `annotation` folder, named by the RF model ID.
 
-Review, plot, and analyze the results.
+**At this step, you MUST review and analyze the results to choose correct values for hardfilter combinations**.
+The values for the public datasets are not suitable for your data.
+
+All plots are interactive, and you can use the following options to explode your data:
+* Zoom in/out
+* Move to a specific location by dragging a graph content.
+* Use Checkboxes to filter data by DP, GQ AB, and call_rate hardfilters.
+  This option is especially useful when you select/deselect a checkbox and observe how your data are changed.
+* Use sliders to filter by minimum/maximum bin value.
+* Change between several available color maps using the dropdown menu.
+
 Based on the desired balance of true positives vs. false positives
 and the desired precision/recall balance, choose the three combinations of filters:
 relaxed, medium, and stringent.
-
-If needed, add more values to evaluate in the config and rerun the hard filter evaluation.
-
 Fill in the values in the `apply_hard_filters` part of the config.
+If needed, add more values to evaluate in the config and rerun the hard filter evaluation.
 
 Run the Genotype QC with the chosen set of filters:
 

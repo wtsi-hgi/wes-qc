@@ -382,14 +382,22 @@ step4:
     giab_sample: 'EGAN00003332049'
     snp_bins: [70, 80, 90]
     indel_bins: [40, 60, 80]
+    dp_vals: [5, 10]
     gq_vals: [10]
-    dp_vals: [5]
     ab_vals: [0.2]
-    missing_vals: [0.01]
+    missing_vals: [0.0, 0.5]
     snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
     indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
     indel_tsv:  '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
+
+  plot:
+    snv-precision-recall: '{pltdir}/hard_filter_evaluation.snv.precision_recall.html'
+    snv-TP-FP: '{pltdir}/hard_filter_evaluation.snv.tp_fp.html'
+    snv-t_u_ratio-TP: '{pltdir}/hard_filter_evaluation.snv.t_u_ratio_tp.html'
+    indel-precision-recall: '{pltdir}/hard_filter_evaluation.indel.precision_recall.html'
+    indel-TP-FP: '{pltdir}/hard_filter_evaluation.indel.tp_fp.html'
+
 
   # --- Step 4.2 --- #
   annotate_cq_rf:
