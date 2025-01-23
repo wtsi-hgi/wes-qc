@@ -9,24 +9,12 @@ from utils.utils import parse_config, path_spark
 from utils.utils import select_founders, collect_pedigree_samples
 from wes_qc import hail_utils
 import pandas as pd
-from bokeh.models import (
-    ColumnDataSource,
-    CustomJS,
-    HoverTool,
-    ColorBar,
-    LinearColorMapper,
-    CheckboxGroup,
-    Div,
-    Select,
-    Slider,
-    FixedTicker,
-    CustomJSTickFormatter,
-)
-from bokeh.plotting import figure, save
-from bokeh.layouts import column, row
-from bokeh.io import output_file
-from bokeh.transform import factor_mark
-from bokeh.palettes import Turbo256, TolRainbow23
+import bokeh.plotting
+import bokeh.layouts
+import bokeh.io
+import bokeh.transform
+import bokeh.palettes
+import bokeh.models
 import numpy as np
 
 snv_label = "snv"
@@ -570,8 +558,8 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
     # Create the data source
     # Convert DP to string for factor mapping
     df["DP"] = df["DP"].astype(str)
-    source = ColumnDataSource(df)
-    filtered_source = ColumnDataSource(data=source.data)
+    source = bokeh.models.ColumnDataSource(df)
+    filtered_source = bokeh.models.ColumnDataSource(data=source.data)
     margin_x = abs(df[x].max() - df[x].min()) * 0.05
     max_x = df[x].max() + margin_x
     min_x = df[x].min() - margin_x
@@ -593,8 +581,8 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
         ("AB", "@AB"),
         ("Call Rate", "@call_rate"),
     ]
-    hover = HoverTool(tooltips=tooltips)
-    plot = figure(
+    hover = bokeh.models.HoverTool(tooltips=tooltips)
+    plot = bokeh.plotting.figure(
         title=(" ").join([y, "v", x]),
         height=800,
         width=1400,
@@ -613,15 +601,15 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
 
     # Define available palettes
     palette_dict = {
-        "Rainbow": TolRainbow23[:: max(1, len(TolRainbow23) // num_bins)][:num_bins],
-        "Turbo": Turbo256[:: max(1, len(Turbo256) // num_bins)][:num_bins],
+        "Rainbow": bokeh.palettes.TolRainbow23[:: max(1, len(bokeh.palettes.TolRainbow23) // num_bins)][:num_bins],
+        "Turbo": bokeh.palettes.Turbo256[:: max(1, len(bokeh.palettes.Turbo256) // num_bins)][:num_bins],
     }
 
     # Create palette selector
-    palette_select = Select(title="Color Palette", value="Turbo", options=list(palette_dict.keys()))
+    palette_select = bokeh.models.Select(title="Color Palette", value="Turbo", options=list(palette_dict.keys()))
 
     # Initialize color mapper with default palette
-    color_mapper = LinearColorMapper(palette=palette_dict["Turbo"], low=bin_min, high=bin_max)
+    color_mapper = bokeh.models.LinearColorMapper(palette=palette_dict["Turbo"], low=bin_min, high=bin_max)
 
     # Add scatter points with continuous color mapping and marker mapping
     plot.scatter(
@@ -631,7 +619,7 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
         size=14,
         alpha=0.6,
         color={"field": "bin", "transform": color_mapper},
-        marker=factor_mark("DP", MARKERS, DPs),
+        marker=bokeh.transform.factor_mark("DP", MARKERS, DPs),
         legend_group="DP",
     )
 
@@ -643,14 +631,14 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
 
     # Add color bar with custom ticks
     ticks = np.linspace(bin_min + interval / 2, bin_max - interval / 2, num_bins)
-    color_bar = ColorBar(
+    color_bar = bokeh.models.ColorBar(
         color_mapper=color_mapper,
         label_standoff=12,
         title="Bin",
         location=(0, 0),
         orientation="vertical",
-        ticker=FixedTicker(ticks=ticks),
-        formatter=CustomJSTickFormatter(
+        ticker=bokeh.models.FixedTicker(ticks=ticks),
+        formatter=bokeh.models.CustomJSTickFormatter(
             code="""
                             return bins[index].toString();
                         """,
@@ -666,18 +654,23 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
     unique_ab = [f"{i:.2f}" for i in sorted(df["AB"].unique().tolist())]
     unique_cr = [f"{i:.2f}" for i in sorted(df["call_rate"].unique().tolist())]
 
-    checkbox_dp = CheckboxGroup(labels=unique_dp, active=list(range(len(unique_dp))), name="DP Filter")
-    checkbox_gq = CheckboxGroup(labels=unique_gq, active=list(range(len(unique_gq))), name="GQ Filter")
-    checkbox_ab = CheckboxGroup(labels=unique_ab, active=list(range(len(unique_ab))), name="AB Filter")
-    checkbox_cr = CheckboxGroup(labels=unique_cr, active=list(range(len(unique_cr))), name="Call Rate Filter")
+    checkbox_dp = bokeh.models.CheckboxGroup(labels=unique_dp, active=list(range(len(unique_dp))), name="DP Filter")
+    checkbox_gq = bokeh.models.CheckboxGroup(labels=unique_gq, active=list(range(len(unique_gq))), name="GQ Filter")
+    checkbox_ab = bokeh.models.CheckboxGroup(labels=unique_ab, active=list(range(len(unique_ab))), name="AB Filter")
+    checkbox_cr = bokeh.models.CheckboxGroup(
+        labels=unique_cr, active=list(range(len(unique_cr))), name="Call Rate Filter"
+    )
 
     # Create bin filter sliders
-    min_bin_slider = Slider(start=bin_min, end=bin_max, value=bin_min, step=1, title="Minimum Bin", width=200)
-
-    max_bin_slider = Slider(start=bin_min, end=bin_max, value=bin_max, step=1, title="Maximum Bin", width=200)
+    min_bin_slider = bokeh.models.Slider(
+        start=bin_min, end=bin_max, value=bin_min, step=1, title="Minimum Bin", width=200
+    )
+    max_bin_slider = bokeh.models.Slider(
+        start=bin_min, end=bin_max, value=bin_max, step=1, title="Maximum Bin", width=200
+    )
 
     # JavaScript callback for filtering based on all controls
-    callback = CustomJS(
+    callback = bokeh.models.CustomJS(
         args=dict(
             source=source,
             filtered_source=filtered_source,
@@ -725,7 +718,7 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
     )
 
     # Add palette change callback
-    palette_callback = CustomJS(
+    palette_callback = bokeh.models.CustomJS(
         args=dict(color_mapper=color_mapper, palette_dict=palette_dict),
         code="""
         const new_palette = palette_dict[cb_obj.value];
@@ -743,24 +736,24 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
     palette_select.js_on_change("value", palette_callback)
 
     # Create layout with all controls
-    controls = column(
-        row(
-            column(Div(text="<b>Genotype Depth (DP)</b>"), checkbox_dp, width=100),
-            column(Div(text="<b>Genotype Quality (GQ)</b>"), checkbox_gq, width=100),
+    controls = bokeh.layouts.column(
+        bokeh.layouts.row(
+            bokeh.layouts.column(bokeh.models.Div(text="<b>Genotype Depth (DP)</b>"), checkbox_dp, width=100),
+            bokeh.layouts.column(bokeh.models.Div(text="<b>Genotype Quality (GQ)</b>"), checkbox_gq, width=100),
         ),
-        row(
-            column(Div(text="<b>Allele Balance (AB)</b>"), checkbox_ab, width=100),
-            column(Div(text="<b>Call Rate</b>"), checkbox_cr, width=100),
+        bokeh.layouts.row(
+            bokeh.layouts.column(bokeh.models.Div(text="<b>Allele Balance (AB)</b>"), checkbox_ab, width=100),
+            bokeh.layouts.column(bokeh.models.Div(text="<b>Call Rate</b>"), checkbox_cr, width=100),
         ),
-        Div(text="<b>Bin Range Filter</b>"),
-        row(column(min_bin_slider, max_bin_slider, width=200)),
-        row(column(palette_select, width=200)),
+        bokeh.models.Div(text="<b>Bin Range Filter</b>"),
+        bokeh.layouts.row(bokeh.layouts.column(min_bin_slider, max_bin_slider, width=200)),
+        bokeh.layouts.row(bokeh.layouts.column(palette_select, width=200)),
     )
-    layout = row(controls, plot)
+    layout = bokeh.layouts.row(controls, plot)
 
     # Save to file
-    output_file(outfile)
-    save(layout)
+    bokeh.io.output_file(outfile)
+    bokeh.io.save(layout)
 
 
 def get_options() -> Any:
