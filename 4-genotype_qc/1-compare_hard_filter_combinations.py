@@ -6,7 +6,7 @@ from pathlib import Path
 import hail as hl
 import json
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, Union
 from utils.utils import parse_config, path_spark
 from utils.utils import select_founders, collect_pedigree_samples
 from wes_qc import hail_utils
@@ -126,8 +126,9 @@ def filter_and_count(
     ht_giab: hl.Table,
     pedigree: hl.Pedigree,
     mtdir: str,
-    conf: dict,
     var_type: str,
+    hardfilter_combinations: dict[str, Union[int, float]],
+    giab_sample: str,
     json_dump_folder: str,
     **kwargs,
 ) -> dict:
@@ -135,13 +136,12 @@ def filter_and_count(
     Filter MT by various bins followed by genotype GQ and calculate % of FP and TP remaining for each bin
     """
 
-    snv_bins = conf["snp_bins"]
-    indel_bins = conf["indel_bins"]
-    gq_vals = conf["gq_vals"]
-    dp_vals = conf["dp_vals"]
-    ab_vals = conf["ab_vals"]
-    missing_vals = conf["missing_vals"]
-    giab_sample = conf["giab_sample"]
+    snv_bins: int = hardfilter_combinations["snp_bins"]
+    indel_bins: int = hardfilter_combinations["indel_bins"]
+    gq_vals: int = hardfilter_combinations["gq_vals"]
+    dp_vals: int = hardfilter_combinations["dp_vals"]
+    ab_vals: float = hardfilter_combinations["ab_vals"]
+    missing_vals: float = hardfilter_combinations["missing_vals"]
 
     Path(json_dump_folder).mkdir(parents=True, exist_ok=True)
 
@@ -815,7 +815,7 @@ def main():
     mtdir = config["general"]["matrixtables_dir"]
     rf_dir = config["general"]["var_qc_rf_dir"]
 
-    wd = os.path.join(mtdir, model_id)
+    hardfilter_evaluate_workdir = os.path.join(mtdir, model_id)
 
     # = STEP DEPENDENCIES = #
     # GIAB sample to compare
@@ -829,7 +829,7 @@ def main():
     rf_htfile = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")
 
     # = STEP OUTPUTS = #
-    mt_annot_path = os.path.join(wd, "tmp.hard_filters_combs.mt")
+    mt_annot_path = os.path.join(hardfilter_evaluate_workdir, "tmp.hard_filters_combs.mt")
     outfile_snv = config["step4"]["evaluation"]["snp_tsv"]
     outfile_indel = config["step4"]["evaluation"]["indel_tsv"]
     giab_ht_file = config["step4"]["evaluation"]["giab_ht_file"]
@@ -862,10 +862,9 @@ def main():
             mt,
             giab_ht,
             pedigree,
-            mtdir=path_spark(wd),
-            conf=config["step4"]["evaluation"],
+            mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="snv",
-            json_dump_folder=config["step4"]["evaluation"]["json_dump_folder"],
+            **config["step4"]["evaluation"],
         )
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
         write_snv_filter_metrics(results, outfile_snv)
@@ -876,13 +875,12 @@ def main():
         giab_ht = hl.read_table(path_spark(giab_ht_file))
         pedigree = hl.Pedigree.read(path_spark(pedfile))
         results = filter_and_count(
-            mt_path=mt_annot_path,
-            ht_giab=giab_ht,
-            pedfile=pedfile,
-            mtdir=path_spark(wd),
-            conf=config["step4"]["evaluation"],
+            mt,
+            giab_ht,
+            pedigree,
+            mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="indel",
-            json_dump_folder=config["step4"]["evaluation"]["json_dump_folder"],
+            **config["step4"]["evaluation"],
         )
 
         os.makedirs(os.path.dirname(outfile_indel), exist_ok=True)
