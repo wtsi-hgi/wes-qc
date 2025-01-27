@@ -405,6 +405,12 @@ def print_validation_summary(df: pd.DataFrame) -> None:
     print(validation_result)
 
 
+def read_mapping_file(path: str) -> pd.DataFrame:
+    wes2microarray = pd.read_csv(path, sep="\t", keep_default_na=False)
+    wes2microarray = wes2microarray.convert_dtypes(convert_string=True)
+    return wes2microarray
+
+
 def main() -> None:
     # = STEP SETUP = #
     config = parse_config()
@@ -455,7 +461,7 @@ def main() -> None:
     )
 
     # - Validating mapping table
-    wes2microarray = pd.read_csv(wes_microarray_mapping, sep="\t")
+    wes2microarray = read_mapping_file(wes_microarray_mapping)
     verify_wes2microarray_mapping(
         ids_wes_data,
         ids_microarray_data,

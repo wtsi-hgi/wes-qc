@@ -609,3 +609,21 @@ def test_gtcheck_validate_map_by_score() -> None:
     assert len(has_mapping_pairs) == 3  # Only pairs with scores
     assert len(no_mapping_pairs) == 1  # One pair missing score
     assert "no_mapfile_pairs_have_gtcheck" in no_mapping_pairs["validation_tags"].iloc[0]
+
+
+def test_gtcheck_read_mapping_file(tmp_path) -> None:
+    # create a file with NA in its column
+    df = pd.DataFrame({"data_sample": ["sample1", "sample2", "NOT_FOUND"], "microarray_sample": ["1.2", "3", "NA"]})
+    df.to_csv(tmp_path / "test_mapping.txt", sep="\t", index=False)
+
+    # read the file
+    df = qc_step_1_3.read_mapping_file(tmp_path / "test_mapping.txt")
+
+    # check if all the data are strings
+    assert df["data_sample"].dtype == pd.StringDtype()
+    assert df["microarray_sample"].dtype == pd.StringDtype()
+
+    # assert the dump is working without errors
+    qc_step_1_3.dump_ids(df["data_sample"].tolist(), tmp_path / "test_data_sample_dumped_ids.txt")
+
+    qc_step_1_3.dump_ids(df["microarray_sample"].tolist(), tmp_path / "test_microarray_sample_dumped_ids.txt")
