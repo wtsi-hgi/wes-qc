@@ -163,13 +163,13 @@ def test_gtcheck_prepare_gtcheck(capsys) -> None:
     # Test data
     gtcheck = pd.DataFrame(
         {
-            0: ["DCv2"] * 4,
-            1: ["sample1", "sample2", "sample2", "sample3"],  # data_sample
-            2: ["array1", "array2", "array2", "array3"],  # microarray_sample
-            3: [0.01, 0.02, 0.02, 0.009],  # discordance
-            4: [-10.5, -9.8, -9.8, -8.5],  # average_logP
-            5: [100, 95, 95, 0],  # n_sites
-            6: [98, 93, 93, 88],  # N_matching_genotypes
+            0: ["DCv2"] * 5,
+            1: ["sample1", "sample2", "sample2", "sample3", "sample0"],  # data_sample
+            2: ["array1", "array2", "array2", "array3", "array0"],  # microarray_sample
+            3: [0.01, 0.02, 0.02, 0.009, 0.000],  # discordance
+            4: [-10.5, -9.8, -9.8, -8.5, -7.6],  # average_logP
+            5: [100, 95, 95, 0, 0],  # n_sites
+            6: [98, 93, 93, 88, 0],  # N_matching_genotypes
         }
     )
 
@@ -194,14 +194,14 @@ def test_gtcheck_prepare_gtcheck(capsys) -> None:
     assert list(result.columns) == expected_columns
 
     # Check duplicates were removed
-    assert len(result) == 3  # One duplicate pair should be removed
+    assert len(result) == 4  # One duplicate pair should be removed
     assert not result.duplicated(subset=["data_sample", "microarray_sample"]).any()
 
     # Check score calculation
-    expected_scores = [0.0001, 0.00021052631578947367, 1000]  # discordance/n_sites, 1 for NA
+    expected_scores = [0.0001, 0.00021052631578947367, 1000.0, 1000.0]
     pd.testing.assert_series_equal(
         result["score"].round(10),
-        pd.Series(expected_scores, name="score", index=[0, 1, 3]).round(10),
+        pd.Series(expected_scores, name="score", index=[0, 1, 3, 4]).round(10),
         check_names=False,
     )
 
@@ -609,3 +609,21 @@ def test_gtcheck_validate_map_by_score() -> None:
     assert len(has_mapping_pairs) == 3  # Only pairs with scores
     assert len(no_mapping_pairs) == 1  # One pair missing score
     assert "no_mapfile_pairs_have_gtcheck" in no_mapping_pairs["validation_tags"].iloc[0]
+
+
+def test_gtcheck_read_mapping_file(tmp_path) -> None:
+    # create a file with NA in its column
+    df = pd.DataFrame({"data_sample": ["sample1", "sample2", "NOT_FOUND"], "microarray_sample": ["1.2", "3", "NA"]})
+    df.to_csv(tmp_path / "test_mapping.txt", sep="\t", index=False)
+
+    # read the file
+    df = qc_step_1_3.read_mapping_file(tmp_path / "test_mapping.txt")
+
+    # check if all the data are strings
+    assert df["data_sample"].dtype == pd.StringDtype()
+    assert df["microarray_sample"].dtype == pd.StringDtype()
+
+    # assert the dump is working without errors
+    qc_step_1_3.dump_ids(df["data_sample"].tolist(), tmp_path / "test_data_sample_dumped_ids.txt")
+
+    qc_step_1_3.dump_ids(df["microarray_sample"].tolist(), tmp_path / "test_microarray_sample_dumped_ids.txt")
