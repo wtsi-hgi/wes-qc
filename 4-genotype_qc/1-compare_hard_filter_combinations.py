@@ -26,7 +26,7 @@ indel_label = "indel"
 
 def clean_mt(mt: hl.MatrixTable) -> hl.MatrixTable:
     """
-    reduces matrixtables by cleaning all non-nesessary information
+    Reduces matrixtable by cleaning all non-nesessary information
     """
     mt = mt.select_entries(mt.GT, mt.HetAB, mt.DP, mt.GQ)
     mt = mt.drop(mt.assigned_pop, *mt.row_value)
@@ -40,15 +40,13 @@ def clean_mt(mt: hl.MatrixTable) -> hl.MatrixTable:
     return mt
 
 
-def annotate_with_rf(mt: hl.MatrixTable, rf_htfile: str) -> hl.MatrixTable:
+def annotate_with_rf(mt: hl.MatrixTable, rf_ht: hl.Table) -> hl.MatrixTable:
     """
     Annotate MatrixTable with TP, FP, rf_bin and rf_score
     :param hl.MatrixTable mt: Input MatrixTable
     :param str rf_htfile: Random forest ht file
     :return: hl.MatrixTable
     """
-    rf_ht = hl.read_table(rf_htfile)
-
     # keep only vars with rank_id = rank
     rf_ht = rf_ht.filter(rf_ht.rank_id == "rank")
 
@@ -69,7 +67,7 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     :param str cqfile: Most severe consequence annotation from VEP
     :return: hl.MatrixTable
     """
-    ht = hl.import_table(cqfile, types={"f1": "int32"}, no_header=True)
+    ht = hl.import_table(path_spark(cqfile), types={"f1": "int32"}, no_header=True)
     ht = ht.rename({"f0": "chr", "f1": "pos", "f2": "rs", "f3": "ref", "f4": "alt", "f5": "consequence"})
     ht = ht.key_by(locus=hl.locus(ht.chr, ht.pos), alleles=[ht.ref, ht.alt])
     ht = ht.drop(ht.chr, ht.pos, ht.ref, ht.alt)
@@ -86,11 +84,11 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str) -> hl.Table:
     :return: hl.Table
     """
     logging.info("Preparing GiaB HailTable")
-    mt = hl.import_vcf(giab_vcf, force_bgz=True, reference_genome="GRCh38")
+    mt = hl.import_vcf(path_spark(giab_vcf), force_bgz=True, reference_genome="GRCh38")
     mt = hl.variant_qc(mt)
     mt = mt.filter_rows(mt.variant_qc.n_non_ref > 0)
 
-    ht = hl.import_table(giab_cqfile, types={"f1": "int32"}, no_header=True)
+    ht = hl.import_table(path_spark(giab_cqfile), types={"f1": "int32"}, no_header=True)
     ht = ht.rename(
         {
             "f0": "chr",
@@ -124,9 +122,9 @@ def str_timedelta(delta: datetime.timedelta) -> str:
 
 
 def filter_and_count(
-    mt_path: str,
+    mt: hl.MatrixTable,
     ht_giab: hl.Table,
-    pedfile: str,
+    pedigree: hl.Pedigree,
     mtdir: str,
     conf: dict,
     var_type: str,
@@ -158,9 +156,7 @@ def filter_and_count(
     start_time = datetime.datetime.now()
 
     results = {var_type: {}}
-    pedigree = hl.Pedigree.read(pedfile)
 
-    mt = hl.read_matrix_table(mt_path)
     sample_ids = set(mt.s.collect())
     if giab_sample is not None and giab_sample not in sample_ids:
         raise ValueError(f"=== Control sample {giab_sample} not found in matrixtable")
@@ -823,24 +819,23 @@ def main():
 
     # = STEP DEPENDENCIES = #
     # GIAB sample to compare
-    giab_vcf = path_spark(config["step4"]["evaluation"]["giab_vcf"])
-    giab_cqfile = path_spark(config["step4"]["evaluation"]["giab_cqfile"])
+    giab_vcf = config["step4"]["evaluation"]["giab_vcf"]
+    giab_cqfile = config["step4"]["evaluation"]["giab_cqfile"]
 
     # Files from VariantQC
-    mtfile = path_spark(config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"])
-    cqfile = path_spark(config["step3"]["annotate_mt_with_cq_rf_score_and_bin"]["cqfile"])
-    pedfile = path_spark(config["step3"]["pedfile"])
+    mtfile = config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"]
+    cqfile = config["step3"]["annotate_mt_with_cq_rf_score_and_bin"]["cqfile"]
+    pedfile = config["step3"]["pedfile"]
+    rf_htfile = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")
 
     # = STEP OUTPUTS = #
-    mt_annot_path = path_spark(os.path.join(wd, "tmp.hard_filters_combs.mt"))
+    mt_annot_path = os.path.join(wd, "tmp.hard_filters_combs.mt")
     outfile_snv = config["step4"]["evaluation"]["snp_tsv"]
     outfile_indel = config["step4"]["evaluation"]["indel_tsv"]
     giab_ht_file = config["step4"]["evaluation"]["giab_ht_file"]
 
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
-
-    print(args)
 
     if args.prepare:
         if giab_vcf is not None:
@@ -849,21 +844,24 @@ def main():
             giab_ht.write(path_spark(giab_ht_file), overwrite=True)
 
         print("=== Annotating matrix table with RF bins ===")
-        rf_htfile = path_spark(os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht"))
-        mt = hl.read_matrix_table(mtfile)
+
+        mt = hl.read_matrix_table(path_spark(mtfile))
         mt = clean_mt(mt)  # Remove all information not required for hard filter evaluation
-        mt_annot = annotate_with_rf(mt, rf_htfile)
+
+        rf_ht = hl.read_table(path_spark(rf_htfile))
+        mt_annot = annotate_with_rf(mt, rf_ht)
         mt_annot = annotate_cq(mt_annot, cqfile)
-        mt_annot.write(mt_annot_path, overwrite=True)
+        mt_annot.write(path_spark(mt_annot_path), overwrite=True)
 
     if args.evaluate_snv:
         print("=== Calculating hard filter evaluation for SNV ===")
+        mt = hl.read_matrix_table(path_spark(mt_annot_path))
         giab_ht = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
-
+        pedigree = hl.Pedigree.read(path_spark(pedfile))
         results = filter_and_count(
-            mt_path=mt_annot_path,
-            ht_giab=giab_ht,
-            pedfile=pedfile,
+            mt,
+            giab_ht,
+            pedigree,
             mtdir=path_spark(wd),
             conf=config["step4"]["evaluation"],
             var_type="snv",
@@ -874,8 +872,9 @@ def main():
 
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
+        mt = hl.read_matrix_table(path_spark(mt_annot_path))
         giab_ht = hl.read_table(path_spark(giab_ht_file))
-
+        pedigree = hl.Pedigree.read(path_spark(pedfile))
         results = filter_and_count(
             mt_path=mt_annot_path,
             ht_giab=giab_ht,

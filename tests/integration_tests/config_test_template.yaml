@@ -381,12 +381,13 @@ step4:
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
     giab_sample: 'EGAN00003332049'
-    snp_bins: [70, 80, 90]
-    indel_bins: [40, 60, 80]
-    dp_vals: [5, 10]
-    gq_vals: [10]
-    ab_vals: [0.2]
-    missing_vals: [0.0, 0.5]
+    hardfilter_combinations:
+      snp_bins: [70, 80, 90]
+      indel_bins: [40, 60, 80]
+      dp_vals: [5, 10]
+      gq_vals: [10]
+      ab_vals: [0.2]
+      missing_vals: [0.1]
     json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
     snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
