@@ -205,11 +205,24 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
         gtcheck = gtcheck.drop_duplicates(subset=["data_sample", "microarray_sample"], keep="first")
     else:
         print("ALL WES-microarray pairs are unique.")
-    # Calculation score
-    # Lowest score corresponds to the best match
+
+    # Reporting zeros in n_sites
+    df_nan = gtcheck[gtcheck["n_sites"] == 0]
+    if (n_zero_nsites := len(df_nan)) > 0:
+        print(f"=== WARNING: Found {n_zero_nsites} zero values i the n_sites column ===")
+        print(df_nan)
+
+    # Calculation score. Lowest score corresponds to the best match
     gtcheck["score"] = gtcheck.discordance / gtcheck.n_sites
+
     # Filling all non-calculated values with the "bad" score
-    gtcheck["score"] = gtcheck["score"].replace({np.inf: 1000.0})
+    gtcheck.loc[gtcheck["n_sites"] == 0, "score"] = 1000.0
+
+    # Double-checking for NaN in the score column
+    df_nan = gtcheck[gtcheck["score"].isna() | np.isinf(gtcheck["score"])]
+    if (n_nan := len(df_nan)) > 0:
+        raise ValueError(f"Found {n_nan} NaN values in the score column after handling zero values")
+
     return gtcheck
 
 
@@ -405,6 +418,12 @@ def print_validation_summary(df: pd.DataFrame) -> None:
     print(validation_result)
 
 
+def read_mapping_file(path: str) -> pd.DataFrame:
+    wes2microarray = pd.read_csv(path, sep="\t", keep_default_na=False)
+    wes2microarray = wes2microarray.convert_dtypes(convert_string=True)
+    return wes2microarray
+
+
 def main() -> None:
     # = STEP SETUP = #
     config = parse_config()
@@ -455,7 +474,7 @@ def main() -> None:
     )
 
     # - Validating mapping table
-    wes2microarray = pd.read_csv(wes_microarray_mapping, sep="\t")
+    wes2microarray = read_mapping_file(wes_microarray_mapping)
     verify_wes2microarray_mapping(
         ids_wes_data,
         ids_microarray_data,
