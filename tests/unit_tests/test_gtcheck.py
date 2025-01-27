@@ -198,7 +198,7 @@ def test_gtcheck_prepare_gtcheck(capsys) -> None:
     assert not result.duplicated(subset=["data_sample", "microarray_sample"]).any()
 
     # Check score calculation
-    expected_scores = [0.0001, 0.00021052631578947367, 1000.0, 1000.0]  # discordance/n_sites, 1 for NA
+    expected_scores = [0.0001, 0.00021052631578947367, 1000.0, 1000.0]
     pd.testing.assert_series_equal(
         result["score"].round(10),
         pd.Series(expected_scores, name="score", index=[0, 1, 3, 4]).round(10),
