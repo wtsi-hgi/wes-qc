@@ -205,11 +205,25 @@ def prepare_gtcheck(gtcheck: pd.DataFrame) -> pd.DataFrame:
         gtcheck = gtcheck.drop_duplicates(subset=["data_sample", "microarray_sample"], keep="first")
     else:
         print("ALL WES-microarray pairs are unique.")
-    # Calculation score
-    # Lowest score corresponds to the best match
+
+    # Calculation score. Lowest score corresponds to the best match
     gtcheck["score"] = gtcheck.discordance / gtcheck.n_sites
+
+    # Reporting the NaN/inc values in score
+    df_nan = gtcheck[gtcheck["n_sites"] == 0]
+    if n_zero_nsites := len(df_nan) > 0:
+        print(
+            f"=== WARNING: Found {n_zero_nsites} NaN values in the score column (most probably due to zero number of compared sites ==="
+        )
+        print(df_nan)
+
     # Filling all non-calculated values with the "bad" score
-    gtcheck["score"] = gtcheck["score"].replace({np.inf: 1000.0})
+    gtcheck.loc[gtcheck["n_sites"] == 0, "score"] = 1000.0
+    # Double-check validation for NaN
+    df_nan = gtcheck[gtcheck["score"].isna() | np.isinf(gtcheck["score"])]
+    if n_nan := len(df_nan) > 0:
+        raise ValueError(f"Found {n_nan} NaN values in the score column after handling zero values")
+
     return gtcheck
 
 
