@@ -362,9 +362,13 @@ For example, you can use the `metric_threshold` dictionary to specify individual
 
 The script outputs the full list of samples with calculated metrics
 (the `stratified_sample_qc`:`output_text_file` config parameter),
-statistics and outlier intervals for all metrics in JSON format
-(the `stratified_sample_qc`:`output_globals_json_file` config parameter),
-and metric distribution plots (the `plot_sample_qc_metrics`:`plot_outfile` config parameter).
+statistics, and outlier intervals for all metrics in JSON format
+(the `stratified_sample_qc`:`output_globals_json_file` config parameter).
+
+The script plots distribution histograms for all metrics, and
+saves them in the folder defined by the `plot_sample_qc_metrics`:`plot_outdir`
+config parameter (a set of individual plots and one combined plot for all metrics and populations).
+To change default number of bins, use the `n_bins` config parameter.
 
 5. **Filter out samples which fail QC**
 
