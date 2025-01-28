@@ -119,6 +119,72 @@ def str_timedelta(delta: datetime.timedelta) -> str:
     return f"{days} days and {hours:4.2f} hr"
 
 
+def cache_filter_results(func):
+    """
+    Decorator to handle caching of filter combination results to JSON files.
+    If a cached result exists, it will be loaded instead of recomputing.
+    If not, the function will be executed and its results cached.
+    """
+
+    def wrapper(filter_name: str, json_dump_folder: str, var_type: str, **kwargs) -> dict:
+        json_dump_file = os.path.join(json_dump_folder, f"{var_type}_hardfilters_{filter_name}.json")
+
+        if os.path.exists(json_dump_file):
+            with open(json_dump_file, "r") as f:
+                checkpoint = json.load(f)
+            print(f"--- Checkpoint data loaded from file {json_dump_file}")
+            return checkpoint[filter_name]
+
+        var_counts = func(var_type=var_type, **kwargs)
+
+        with open(json_dump_file, "w") as f:
+            json.dump({filter_name: var_counts}, f)
+
+        print(f"--- Temporary results dumped to JSON: {json_dump_file}")
+        return var_counts
+
+    return wrapper
+
+
+@cache_filter_results
+def process_filter_combination(
+    mt_bin: hl.MatrixTable,
+    dp: int,
+    gq: int,
+    ab: float,
+    call_rate: float,
+    ht_giab: hl.Table,
+    pedigree: hl.Pedigree,
+    var_type: str,
+    mtdir: str,
+    giab_sample: Optional[str] = None,
+) -> dict:
+    """
+    Process a single filter combination and return the variant counts and metrics.
+
+    :param hl.MatrixTable mt_bin: Input MatrixTable filtered by bin
+    :param int dp: Depth threshold
+    :param int gq: Genotype quality threshold
+    :param float ab: Allele balance threshold
+    :param float call_rate: Call rate threshold
+    :param hl.Table ht_giab: GIAB variants table
+    :param hl.Pedigree pedigree: Hail pedigree object
+    :param str var_type: Variant type (snv/indel)
+    :param str mtdir: MatrixTable directory
+    :param str giab_sample: Optional GIAB sample name
+    :return: Dictionary containing variant counts and metrics
+    """
+    mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
+    mt_hard_path = os.path.join(mtdir, f"tmp.hard_filters_combs.{var_type}-hard.mt")
+    mt_hard = mt_hard.checkpoint(mt_hard_path, overwrite=True)
+
+    mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_hard, mtdir=mtdir, giab_sample=giab_sample)
+
+    var_counts = count_tp_fp_t_u(mt_tp, mt_fp, mt_syn, mt_prec_recall, ht_giab, pedigree, var_type, mtdir)
+
+    return var_counts
+
+
 def filter_and_count(
     mt: hl.MatrixTable,
     ht_giab: hl.Table,
@@ -186,43 +252,34 @@ def filter_and_count(
                     ab_str = f"AB_{ab}"
                     for call_rate in missing_vals:
                         missing_str = f"missing_{call_rate}"
+
                         print(
                             f"--- Testing {var_type} hard filter combination: bin={bin} DP={dp} GQ={gq} AB={ab} call_rate={call_rate}"
                         )
                         logging.info(f"{dp_str} {gq_str} {ab_str} {missing_str}")
                         filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
 
-                        # Checking for the particular combination in the dump files
-                        json_dump_file = os.path.join(json_dump_folder, f"{var_type}_hardfilters_{filter_name}.json")
+                        var_counts = process_filter_combination(
+                            mt_bin=mt_bin,
+                            dp=dp,
+                            gq=gq,
+                            ab=ab,
+                            call_rate=call_rate,
+                            ht_giab=ht_giab,
+                            pedigree=pedigree,
+                            var_type=var_type,
+                            mtdir=mtdir,
+                            giab_sample=giab_sample,
+                            filter_name=filter_name,
+                            json_dump_folder=json_dump_folder,
+                        )
 
-                        if os.path.exists(json_dump_file):
-                            with open(json_dump_file, "r") as f:
-                                checkpoint = json.load(f)
-                            results[var_type][filter_name] = checkpoint[filter_name]
-                            print(f"--- Checkpoint data loaded from file {json_dump_file}")
-                        else:
-                            mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
-                            mt_hard_path = os.path.join(mtdir, f"tmp.hard_filters_combs.{var_type}-hard.mt")
-                            mt_hard = mt_hard.checkpoint(mt_hard_path, overwrite=True)
+                        results[var_type][filter_name] = var_counts
+                        # Cleaning up Hail temporary folder to avoid exceeding inodes limit.
+                        hail_utils.clear_temp_folder(hl.tmp_dir())
 
-                            mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(
-                                mt_hard, mtdir=mtdir, giab_sample=giab_sample
-                            )
-
-                            var_counts = count_tp_fp_t_u(
-                                mt_tp, mt_fp, mt_syn, mt_prec_recall, ht_giab, pedigree, var_type, mtdir
-                            )
-
-                            with open(json_dump_file, "w") as f:
-                                json.dump({filter_name: var_counts}, f)
-
-                            print(f"--- Temporary results dumped to JSON: {json_dump_file}")
-                            results[var_type][filter_name] = var_counts
-                            # Cleaning up Hail temporary folder to avoid exceeding inodes limit.
-                            hail_utils.clear_temp_folder(hl.tmp_dir())
-
-                            stop_time = datetime.datetime.now()
-                            n_steps_run += 1
+                        stop_time = datetime.datetime.now()
+                        n_steps_run += 1
 
                         n_step += 1
                         print(f"--- Step {n_step}/{total_steps} completed.")
