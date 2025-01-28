@@ -1,11 +1,15 @@
 # perform hail sample QC stratified by superpopulation and identify outliers
+import os.path
+
 import hail as hl
+import pandas as pd
+
 from wes_qc import hail_utils
 from utils.utils import parse_config, path_spark
 from gnomad.sample_qc.filtering import compute_stratified_metrics_filter
 import bokeh.plotting as bkplot
 import bokeh.layouts as bklayouts
-from bokeh.models import Div, Span, Range1d, Label
+from bokeh.models import Div, Span, Range1d, Label, Title
 import numpy as np
 from collections import defaultdict
 
@@ -127,12 +131,103 @@ def stratified_sample_qc(
     return mt_with_sampleqc, pop_ht
 
 
-def plot_sample_qc_metrics(
-    pop_ht: hl.Table, plot_outfile: str, plot_width: int = 400, plot_height: int = 400, n_bins: int = 100, **kwargs
-):
-    pd_ht = pop_ht.to_pandas()
-    stats = hl.eval(pop_ht.globals)
+def add_caption_to_plot(p, metric, pop):
+    caption_title = Title(text=f"{metric} for {pop}", text_font_size="14pt", align="center")
+    p.add_layout(caption_title, "above")
+    p.yaxis.axis_label = "Count"
+    p.xaxis.axis_label = metric
+    return p
 
+
+def plot_sampleqc_metric(
+    df: pd.Series,
+    lower_threshold=None,
+    upper_threshold=None,
+    n_bins=150,
+    color="blue",
+    plot_width: int = 800,
+    plot_height: int = 600,
+):
+    """
+    Plots a histogram of the given metric values for a specific population, with options to add
+    thresholds, annotations, captions, and configure visual aspects of the plot.
+
+    Parameters:
+        df: Input data series for the metric to be visualized.
+        Should be already filtered to contain only single pop and a single metric
+        metric: Metric name to be displayed on the x-axis and caption of the plot.
+        pop: Name of the population to be included in the plot's caption.
+        lower_threshold: A numeric value to mark the lower boundary on the plot.
+           Default is None.
+        upper_threshold: A numeric value to mark the upper boundary on the plot.
+           Default is None.
+        n_bins: Number of bins to use for the histogram.
+        Default is 150.
+        color: Color used for the histogram and plot elements.
+        Default is 'blue'.
+        plot_width: Width of the plot.
+        Default is 800.
+        plot_height: Height of the plot.
+        Default is 600.
+
+    Returns:
+        bokeh.plotting.figure: A Bokeh plot object that visualizes the specified metric.
+    """
+
+    p = bkplot.figure(width=plot_width, height=plot_height)
+    hist, edges = np.histogram(df[df.notna()], bins=n_bins)
+    interval = edges[1] - edges[0]
+    padding = max(1, n_bins // 10) * interval
+    p.x_range.start = edges[0] - padding
+    p.x_range.end = edges[-1] + padding
+
+    p.quad(
+        top=hist,
+        bottom=0,
+        left=edges[:-1],
+        right=edges[1:],
+        fill_color=color,
+        line_color=color,
+    )
+
+    if lower_threshold is not None:
+        n_below = len(df[df < lower_threshold])
+        hline_lower = Span(location=lower_threshold, dimension="height", line_color="red", line_width=2)
+        ann_below = Label(
+            x=lower_threshold,
+            y=hist.max(),
+            text=f"{n_below}",
+            text_font_size="10pt",
+            background_fill_color="white",
+            background_fill_alpha=0.5,
+            text_align="right",
+            x_offset=-5,
+        )
+        p.add_layout(hline_lower)
+        p.add_layout(ann_below)
+
+    if upper_threshold is not None:
+        n_above = len(df[df > upper_threshold])
+        hline_upper = Span(location=upper_threshold, dimension="height", line_color="red", line_width=2)
+
+        ann_above = Label(
+            x=upper_threshold,
+            y=hist.max(),
+            text=f"{n_above}",
+            text_font_size="10pt",
+            background_fill_color="white",
+            background_fill_alpha=0.5,
+            text_align="left",
+            x_offset=5,
+        )
+        p.add_layout(hline_upper)
+        p.add_layout(ann_above)
+    return p
+
+
+def plot_sample_qc_metrics(
+    pop_ht: hl.Table, plot_outdir: str, plot_width: int = 400, plot_height: int = 400, n_bins: int = 100, **kwargs
+):
     def extract_lower_upper(metadata):
         output = {}
         stat = metadata["qc_metrics_stats"]
@@ -140,6 +235,11 @@ def plot_sample_qc_metrics(
             for k2, v2 in v.items():
                 output[(k2, k[0])] = (v2["lower"], v2["upper"])
         return output
+
+    os.makedirs(plot_outdir, exist_ok=True)
+
+    pd_ht = pop_ht.to_pandas()
+    stats = hl.eval(pop_ht.globals)
 
     limits = extract_lower_upper(stats)
 
@@ -156,49 +256,37 @@ def plot_sample_qc_metrics(
         pops.add(pop)
         for metric in metrics:
             data = subdf[f"sample_qc.{metric}"]
-            p = bkplot.figure(width=plot_width, height=plot_height)
-            hist, edges = np.histogram(data[data.notna()], bins=n_bins)
-            interval = edges[1] - edges[0]
+            lower, upper = limits[(metric, pop)]
+            p = plot_sampleqc_metric(
+                data,
+                lower_threshold=lower,
+                upper_threshold=upper,
+                n_bins=n_bins,
+                color=pop_colors[pop],
+                plot_width=plot_width,
+                plot_height=plot_height,
+            )
+
             plots.append(p)
             plots_by_metric[metric].append(p)
-            p.x_range.start = edges[0] - max(1, n_bins // 10) * interval
-            p.x_range.end = edges[-1] + max(1, n_bins // 10) * interval
-            p.quad(
-                top=hist,
-                bottom=0,
-                left=edges[:-1],
-                right=edges[1:],
-                fill_color=pop_colors[pop],
-                line_color=pop_colors[pop],
+
+            # Saving individual plot.
+            # Need to create another plot due to Bokeh restrictions
+            # Python deepcopy doesn't work
+            p = plot_sampleqc_metric(
+                data,
+                lower_threshold=lower,
+                upper_threshold=upper,
+                n_bins=n_bins,
+                color=pop_colors[pop],
+                plot_width=plot_width,
+                plot_height=plot_height,
             )
-            lower, upper = limits[(metric, pop)]
-            n_below = len(data[data < lower])
-            n_above = len(data[data > upper])
-            hline_lower, hline_upper = (
-                Span(location=lower, dimension="height", line_color="red", line_width=2),
-                Span(location=upper, dimension="height", line_color="red", line_width=2),
-            )
-            ann_below = Label(
-                x=lower,
-                y=hist.max(),
-                text=f"{n_below}",
-                text_font_size="10pt",
-                background_fill_color="white",
-                background_fill_alpha=0.5,
-                text_align="right",
-                x_offset=-5,
-            )
-            ann_above = Label(
-                x=upper,
-                y=hist.max(),
-                text=f"{n_above}",
-                text_font_size="10pt",
-                background_fill_color="white",
-                background_fill_alpha=0.5,
-                text_align="left",
-                x_offset=5,
-            )
-            p.renderers.extend([hline_lower, hline_upper, ann_below, ann_above])
+            plot_with_caption = add_caption_to_plot(p, metric, pop)
+            plot_name = f"SampleQC_hist_{metric}_{pop}.html"
+            bkplot.output_file(os.path.join(plot_outdir, plot_name))
+            bkplot.save(plot_with_caption)
+
         plots.append(
             Div(
                 text=f"<b>{pop}</b>",
@@ -220,6 +308,7 @@ def plot_sample_qc_metrics(
     ] + [None]
 
     grid = bklayouts.gridplot(col_titles + plots, ncols=len(metrics) + 1)
+    plot_outfile = os.path.join(plot_outdir, "sample_qc_all_metrics_by_pop.html")
     bkplot.output_file(plot_outfile)
     bkplot.save(grid)
 
@@ -259,6 +348,7 @@ def main():
     pop_ht.globals.export(path_spark(output_globals_json))
 
     # plot population metrics
+    print("=== Plotting population metrics ===")
     plot_sample_qc_metrics(pop_ht, **config["step2"]["plot_sample_qc_metrics"])
 
 
