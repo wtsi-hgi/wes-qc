@@ -106,8 +106,6 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str) -> hl.Table:
 
     mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
     giab_vars = mt.rows()
-    # tmphtg = path_spark(os.path.join(mtdir, "tmphtgx.ht"))
-    # giab_vars = giab_vars.checkpoint(tmphtg, overwrite=True)
 
     return giab_vars
 
