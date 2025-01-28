@@ -247,7 +247,7 @@ step2:
 
   plot_sample_qc_metrics:
     n_bins: 20
-    plot_outfile: '{pltdir}/sample_qc_metrics_by_pop.html' # output
+    plot_outdir: '{pltdir}/sample_qc_metrics'
 
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
