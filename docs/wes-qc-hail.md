@@ -512,6 +512,9 @@ Add the sample control name, the corresponding VCF file, and the VEP annotation 
 If you don't have a GIAB sample, put null in the `giab_sample` section.
 The precision/recall calculations will be skipped in this case.
 
+_Note_: For now, you still need to specify the GIAB VCF and cqfile, even if you're skipping
+the precision calculation.
+
 Run the hard-filter evaluation step:
 
 ```shell

@@ -838,13 +838,11 @@ def main():
     hail_utils.init_hl(tmp_dir)
 
     if args.prepare:
-        if giab_vcf is not None:
-            print("=== Preparing Hail table for GIAB sample ===")
-            giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile)
-            giab_ht.write(path_spark(giab_ht_file), overwrite=True)
+        print("=== Preparing Hail table for GIAB sample ===")
+        giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile)
+        giab_ht.write(path_spark(giab_ht_file), overwrite=True)
 
         print("=== Annotating matrix table with RF bins ===")
-
         mt = hl.read_matrix_table(path_spark(mtfile))
         mt = clean_mt(mt)  # Remove all information not required for hard filter evaluation
 
@@ -887,6 +885,7 @@ def main():
         write_indel_filter_metrics(results, outfile_indel)
 
     if args.plot:
+        print("=== Plotting hard filter combinations ===")
         df_snv = pd.read_csv(outfile_snv, sep="\t")
         df_indel = pd.read_csv(outfile_indel, sep="\t")
         # Plot hard filter combinations

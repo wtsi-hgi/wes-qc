@@ -382,8 +382,8 @@ step4:
     # (the precision/recall calculations will be skipped in this case)
     giab_sample: 'EGAN00003332049'
     hardfilter_combinations:
-      snp_bins: [70, 80]
-      indel_bins: [40, 60]
+      snp_bins: [70, 90]
+      indel_bins: [40, 70]
       dp_vals: [5]
       gq_vals: [10]
       ab_vals: [0.2]
