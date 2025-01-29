@@ -491,7 +491,7 @@ For example:
 
 ```yaml
     snp_bins: [ 60, 75, 90 ]
-    indel_bins: [ 25,50,75 ]
+    indel_bins: [ 25, 50, 75 ]
     gq_vals: [ 10, 15 ]
     dp_vals: [ 5, 10 ]
     ab_vals: [ 0.2, 0.3 ]
@@ -513,8 +513,11 @@ Add the sample control name, the corresponding VCF file, and the VEP annotation 
     giab_sample: 'NA12878.alt_bwamem_GRCh38DH.20120826.exome'
 ```
 
-If you don't have a GIAB sample, put null in the `giab_vcf` section.
+If you don't have a GIAB sample, put null in the `giab_sample` section.
 The precision/recall calculations will be skipped in this case.
+
+_Note_: For now, you still need to specify the GIAB VCF and cqfile, even if you're skipping
+the precision calculation.
 
 Run the hard-filter evaluation step:
 
@@ -522,8 +525,12 @@ Run the hard-filter evaluation step:
 spark-submit 4-genotype_qc/1-compare_hard_filter_combinations.py --all
 ```
 
-The script calculates all possible combinations of hard filters, and
-saves interactive plots in the `plot` directory with the `hard_filter_evaluation` prefix.
+The script calculates all possible combinations of hard filters.
+Depending on the dataset size and number of evaluated combinations, the calculation can take significant time.
+The script prints elapsed time and estimated time to complete after each step.
+
+After finishing the calculations, the script
+makes interactive plots in the `plot` directory with the `hard_filter_evaluation` prefix.
 Also, the script saves results in the subfolder in `annotation` folder, named by the RF model ID.
 
 **At this step, you MUST review and analyze the results to choose correct values for hardfilter combinations**.
@@ -536,6 +543,15 @@ All plots are interactive, and you can use the following options to explode your
   This option is especially useful when you select/deselect a checkbox and observe how your data are changed.
 * Use sliders to filter by minimum/maximum bin value.
 * Change between several available color maps using the dropdown menu.
+
+If you need to analyze more data points, add required values to the config file and rerun the evaluation.
+The evaluation script dumps intermediate results for each filter combination and calculates only new
+combinations, so the real calculation time will be smaller than estimated.
+
+If you need to recalculate some combinations, go to the folder with dumped results (`json_dump_folder`)
+and manually delete all combinations that you need to re-evaluate.
+To rerun all calculations from scratch, delete the dump folder entirely.
+
 
 Based on the desired balance of true positives vs. false positives
 and the desired precision/recall balance, choose the three combinations of filters:

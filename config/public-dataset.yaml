@@ -376,16 +376,19 @@ step4:
   evaluation:
     giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
     giab_cqfile: '{resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
+    giab_ht_file: '{mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
     giab_sample: null
-    snp_bins: [ 40, 60, 80 ]
-    indel_bins: [ 25,50,75 ]
-    dp_vals: [ 5, 10 ]
-    gq_vals: [ 10 ]
-    ab_vals: [ 0.2 ]
-    missing_vals: [ 0.5 ]
+    hardfilter_combinations:
+      snp_bins: [ 40, 60, 80 ]
+      indel_bins: [ 25, 50, 75 ]
+      dp_vals: [ 5, 10 ]
+      gq_vals: [ 10 ]
+      ab_vals: [ 0.2 ]
+      missing_vals: [ 0.5 ]
+    json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
     snp_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
     indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'

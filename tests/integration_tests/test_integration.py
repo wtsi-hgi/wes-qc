@@ -280,7 +280,7 @@ class IntegrationTests(HailTestCase):
     ### === Genotype QC === ###
     @patch(
         "argparse.ArgumentParser.parse_args",
-        return_value=argparse.Namespace(prepare=True, evaluate=True, plot=True, all=False),
+        return_value=argparse.Namespace(prepare=True, evaluate_snv=True, evaluate_indel=True, plot=True, all=False),
     )
     def test_4_1_genotype_qc(self, mock_args):
         qc_step_4_1 = importlib.import_module("4-genotype_qc.1-compare_hard_filter_combinations")
