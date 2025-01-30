@@ -151,7 +151,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 1.3 failed with an exception: {e}")
 
-    def test_1_4_genotype_qc(self):
+    def test_1_4_import_data(self):
         qc_step_1_4 = importlib.import_module("1-import_data.4-mutation-spectra_preqc")
         try:
             qc_step_1_4.main()

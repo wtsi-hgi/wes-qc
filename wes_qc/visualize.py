@@ -38,7 +38,7 @@ def plot_pop_pca(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Opti
 
 def calculate_mutation_spectra(mt):
     """
-    Calculates he mutation spectra form matritable and returns it in pivoted form
+    Calculates the mutation spectra from the matritable and returns it in the pivoted Pandas dataframe
     """
     # calculate mutation fraction
     mt = mt.filter_rows(mt.locus.in_autosome())
@@ -88,7 +88,9 @@ def plot_mutation_spectra(df, iqr_multiplier: float = 1.5, width=800, height=600
     p.vbar(
         x="Mutation type", width=0.7, bottom="25%", top="50%", source=source, line_color="black", fill_color="skyblue"
     )
-    p.vbar("Mutation type", 0.7, "50%", "75%", source=source, line_color="black", fill_color="skyblue")
+    p.vbar(
+        x="Mutation type", width=0.7, bottom="50%", top="75%", source=source, line_color="black", fill_color="skyblue"
+    )
 
     # outlier range
     whisker = bokeh.models.Whisker(base="Mutation type", upper="upper", lower="lower", source=source)
