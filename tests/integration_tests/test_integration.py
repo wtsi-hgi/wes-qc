@@ -151,6 +151,13 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 1.3 failed with an exception: {e}")
 
+    def test_1_4_genotype_qc(self):
+        qc_step_1_4 = importlib.import_module("1-import_data.4-mutation-spectra_preqc")
+        try:
+            qc_step_1_4.main()
+        except Exception as e:
+            self.fail(f"Step 1_4 failed with an exception: {e}")
+
     ### === Sample QC === ###
     def test_2_1_sample_qc(self):
         qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
@@ -316,3 +323,10 @@ class IntegrationTests(HailTestCase):
             qc_step_4_4.main()
         except Exception as e:
             self.fail(f"Step 4.4 failed with an exception: {e}")
+
+    def test_4_5_genotype_qc(self):
+        qc_step_4_5 = importlib.import_module("4-genotype_qc.5-mutation-spectra_afterqc")
+        try:
+            qc_step_4_5.main()
+        except Exception as e:
+            self.fail(f"Step 4.5 failed with an exception: {e}")
