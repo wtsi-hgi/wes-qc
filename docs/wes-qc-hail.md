@@ -277,6 +277,20 @@ Here are all already implemented tags:
 | mapfile_pairs_have_gtcheck, no_mapfile_pairs_have_gtcheck    | There is at least one/there are no samples form the mapping file that were reported in the Gtcheck best matching samples |
 
 
+4. **Plot mutations spectra**
+
+Plotting the mutation spectra can help you to identify batch-level artifacts.
+To do it, run the calculation script:
+
+```shell
+spark-submit 1-import_data/4-mutation-spectra_preqc.py
+```
+
+The script saves the plot in the html file specified under the
+`plot_mutation_spectra_preqc`:`mut_spectra_path` config section.
+Also, you can specify the IQR range for outliers and change the plot size if needed.
+
+
 
 ### 2. Sample QC
 
@@ -565,6 +579,20 @@ Run the Genotype QC with the chosen set of filters:
 spark-submit 4-genotype_qc/2-apply_range_of_hard_filters.py
 ```
 
+4. **Plot mutations spectra**
+
+Plotting the mutation spectra can help you to identify batch-level artifacts.
+To do it, run the calculation script:
+
+```shell
+spark-submit 1-import_data/4-mutation-spectra_preqc.py
+```
+
+The script saves the plot in the html file specified under the
+`plot_mutation_spectra_preqc`:`mut_spectra_path` config section.
+Also, you can specify the IQR range for outliers and change the plot size if needed.
+
+
 Export the filtered variants to VCF.
 Script 3a tags all variations with the corresponding filter (relaxed, medium, stringent)
 removes all variants not passing the relaxed filter, and saves the resulting data to VCF files.
@@ -596,3 +624,17 @@ chr1    100200019   .  C    A   stop_gained&splice_region_variant
 ```shell
 spark-submit 4-genotype_qc/4-counts_per_sample.py
 ```
+
+5. **Plot mutations spectra**
+
+After completion of the QC process, run the mutation spectra calculation
+and validate that results match the expected distribution.
+
+To do it, run the calculation script:
+
+```shell
+spark-submit 4-genotype_qc/5-mutation-spectra_afterqc.py
+```
+
+The script saves the plot in the html file specified under the
+`plot_mutation_spectra_afterqc`:`mut_spectra_path` config section.

@@ -25,7 +25,7 @@ def main():
     # Save the plot
     p = visualize.plot_mutation_spectra(mut_spectra, **config["step1"]["plot_mutation_spectra_preqc"])
     bokeh.io.output_file(mut_spectra_path)
-    bokeh.io.show(p)
+    bokeh.io.save(p)
 
 
 if __name__ == "__main__":
