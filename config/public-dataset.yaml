@@ -124,6 +124,12 @@ step1:
     microarray_id_col: 'Microarray_ID'
     gtcheck_score_threshold: 0.2
 
+  plot_mutation_spectra_preqc:
+    mut_spectra_path: '{pltdir}/mutation_spectra_preqc.html'
+    iqr_multiplier: 1.5
+    width: 800
+    height: 600
+
 step2:
   # --- Step 2.1 --- #
   sex_annotation_hard_filters:
@@ -470,3 +476,9 @@ step4:
   export_vcfs_b:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
     filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'
+
+  plot_mutation_spectra_afterqc:
+    mut_spectra_path: '{pltdir}/mutation_spectra_afterqc.html'
+    iqr_multiplier: 1.5
+    width: 800
+    height: 600
