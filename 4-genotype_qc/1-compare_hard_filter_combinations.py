@@ -18,6 +18,7 @@ import bokeh.transform
 import bokeh.palettes
 import bokeh.models
 import numpy as np
+import time
 import datetime
 
 snv_label = "snv"
@@ -178,11 +179,66 @@ def process_filter_combination(
     mt_hard_path = os.path.join(mtdir, f"tmp.hard_filters_combs.{var_type}-hard.mt")
     mt_hard = mt_hard.checkpoint(mt_hard_path, overwrite=True)
 
-    mt_tp, mt_fp, mt_syn, mt_prec_recall = filter_mts(mt_hard, mtdir=mtdir, giab_sample=giab_sample)
+    var_counts = {}
+    # TP and FP
+    var_counts["TP"], var_counts["FP"] = count_tp_fp_new(mt_hard)
+    # t_u ratio - for SNPs only
 
-    var_counts = count_tp_fp_t_u(mt_tp, mt_fp, mt_syn, mt_prec_recall, ht_giab, pedigree, var_type, mtdir)
+    if var_type == "snv":
+        # tmpmts = os.path.join(mtdir, "syn.mt")
+        mt_syn = mt_hard.filter_rows(
+            mt_hard.consequence == "synonymous_variant"
+        )  # synonymous for transmitted/unstransmitted
+        # mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
+        ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
+        var_counts["t_u_ratio"] = ratio
+
+    tmpmtpr = os.path.join(mtdir, "pr.ht")
+    if giab_sample is not None:
+        # making matrixtable for precision recall
+        ht_prec_recall = get_prec_recall_ht(giab_sample, mt_hard)
+        ht_prec_recall = ht_prec_recall.checkpoint(tmpmtpr, overwrite=True)
+
+        if var_type == "snv":
+            prec, recall = get_prec_recall(ht_prec_recall, ht_giab, "snv", mtdir)
+            var_counts["prec"] = prec
+            var_counts["recall"] = recall
+        elif var_type == "indel":
+            prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = get_prec_recall(
+                ht_prec_recall, ht_giab, "indel", mtdir
+            )
+            var_counts["prec"] = prec
+            var_counts["recall"] = recall
+            var_counts["prec_inframe"] = prec_inframe
+            var_counts["recall_inframe"] = recall_inframe
+            var_counts["prec_frameshift"] = prec_frameshift
+            var_counts["recall_frameshift"] = recall_frameshift
+    else:
+        var_counts["prec"] = -1
+        var_counts["recall"] = -1
+        if var_type == "indel":
+            var_counts["prec_frameshift"] = -1
+            var_counts["prec_inframe"] = -1
+            var_counts["recall_inframe"] = -1
+            var_counts["prec_frameshift"] = -1
+            var_counts["recall_frameshift"] = -1
+
+    # _, _, _, mt_prec_recall = filter_mts(mt_hard, mtdir=mtdir, giab_sample=giab_sample)
+
+    # var_counts = {**var_counts, **count_tp_fp_t_u(None, None, None, mt_prec_recall, ht_giab, pedigree, var_type, mtdir)}
 
     return var_counts
+
+
+def get_prec_recall_ht(giab_sample, mt_hard):
+    mt_prec_recall = mt_hard.filter_cols(mt_hard.s == giab_sample)  # GIAB sample for precision/recall
+    mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
+    mt_prec_recall = hl.variant_qc(mt_prec_recall)
+    mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
+    # n_partitions = max(1, mt_hard.n_partitions() // 10)
+    # mt_prec_recall = mt_prec_recall.repartition(n_partitions).checkpoint(tmpmtpr, overwrite=True)
+    ht_prec_recall = mt_prec_recall.rows()
+    return ht_prec_recall
 
 
 def filter_and_count(
@@ -234,10 +290,14 @@ def filter_and_count(
 
     mt = mt.filter_rows(mt.type == var_type)
 
-    mt_path = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.mt")
-    mt = mt.checkpoint(mt_path, overwrite=True)
+    # mt_path = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.mt")
+    # mt = mt.checkpoint(mt_path, overwrite=True)
 
     print(f"=== Starting evaluation for {var_type} ===")
+
+    mtbin_path = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.mt")
+    mtbin = mt
+    mtbin.checkpoint(mtbin_path, overwrite=True)
 
     for bin in bins:
         bin_str = f"bin_{bin}"
@@ -293,11 +353,16 @@ def filter_and_count(
                             print(f"--- Estimated to complete: {str_timedelta(est_time)}.")
 
     print(f"=== Calculating total TP and FP for {var_type} ===")
-    mt_tp, mt_fp, _, _ = filter_mts(mt, mtdir=mtdir, giab_sample=giab_sample, calculate_syn_pr=False)
-    results[f"{var_type}_total_tp"] = mt_tp.count_rows()
-    results[f"{var_type}_total_fp"] = mt_fp.count_rows()
+
+    (results[f"{var_type}_total_tp"], results[f"{var_type}_total_fp"]) = count_tp_fp_new(mt)
 
     return results
+
+
+def count_tp_fp_new(mt: hl.MatrixTable) -> tuple[int, int]:
+    ht = mt.rows()
+    value_counts = ht.aggregate(hl.struct(tp=hl.agg.count_where(ht.TP), fp=hl.agg.count_where(ht.FP)))
+    return value_counts.tp, value_counts.fp
 
 
 def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rate: float) -> hl.MatrixTable:
@@ -344,13 +409,9 @@ def count_tp_fp_t_u(
 
     logging.debug("Executing count_tp_fp_t_u")
 
-    counts = count_tp_fp(mt_tp, mt_fp)
-    results["TP"] = counts[0]
-    results["FP"] = counts[1]
-
-    if var_type == "snv":
-        ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
-        results["t_u_ratio"] = ratio
+    # if var_type == "snv":
+    #     ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
+    #     results["t_u_ratio"] = ratio
 
     if mt_prec_recall is not None:
         ht_prec_recall = mt_prec_recall.rows()
@@ -402,16 +463,13 @@ def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, 
     tmpht6 = os.path.join(mtdir, "tmppr6x.ht")
 
     if var_type == "snv":
-        giab_snvs = ht_giab.filter(hl.is_snp(ht_giab.alleles[0], ht_giab.alleles[1]))
-        alspac_snvs = ht_prec_recall.filter(hl.is_snp(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        giab_snvs = giab_snvs.checkpoint(tmpht1, overwrite=True)
-        alspac_snvs = alspac_snvs.checkpoint(tmpht2, overwrite=True)
-        p, r = calculate_precision_recall(giab_snvs, alspac_snvs)
+        p, r = get_prec_recall_snv(ht_giab, ht_prec_recall, tmpht1, tmpht2)
         return p, r
 
     elif var_type == "indel":
         giab_indels = ht_giab.filter(hl.is_indel(ht_giab.alleles[0], ht_giab.alleles[1]))
         alspac_indels = ht_prec_recall.filter(hl.is_indel(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
+
         giab_indels = giab_indels.checkpoint(tmpht1, overwrite=True)
         alspac_indels = alspac_indels.checkpoint(tmpht2, overwrite=True)
         p, r = calculate_precision_recall(giab_indels, alspac_indels)
@@ -430,6 +488,17 @@ def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, 
         p_if, r_if = calculate_precision_recall(giab_in_frame, alspac_in_frame)
 
         return p, r, p_f, r_f, p_if, r_if
+
+
+def get_prec_recall_snv(ht_giab, ht_prec_recall, tmpht1, tmpht2):
+    # TODO: move separateion GIAB sample to SNV and indel outside main fucntion
+
+    giab_snvs = ht_giab.filter(hl.is_snp(ht_giab.alleles[0], ht_giab.alleles[1]))
+    ht_prec_recall_snvs = ht_prec_recall.filter(hl.is_snp(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
+    giab_snvs = giab_snvs.checkpoint(tmpht1, overwrite=True)
+    ht_prec_recall_snvs = ht_prec_recall_snvs.checkpoint(tmpht2, overwrite=True)
+    p, r = calculate_precision_recall(giab_snvs, ht_prec_recall_snvs)
+    return p, r
 
 
 def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple[float, float]:
@@ -520,18 +589,18 @@ def filter_mts(
     :param giab_sample: sample name of GiaB sample in cohort data
     :return: tuple of 4 hl.MatrixTable objects
     """
-    tmpmtt = os.path.join(mtdir, "tp.mt")
-    tmpmtf = os.path.join(mtdir, "fp.mt")
-    mt_true = mt.filter_rows(mt.TP)  # TP variants
-    mt_false = mt.filter_rows(mt.FP)  # FP variants
+    # tmpmtt = os.path.join(mtdir, "tp.mt")
+    # tmpmtf = os.path.join(mtdir, "fp.mt")
+    # mt_true = mt.filter_rows(mt.TP)  # TP variants
+    # mt_false = mt.filter_rows(mt.FP)  # FP variants
     n_partitions = max(1, mt.n_partitions() // 10)
-    mt_true = mt_true.checkpoint(tmpmtt, overwrite=True)
-    mt_false = mt_false.repartition(n_partitions).checkpoint(tmpmtf, overwrite=True)
+    # mt_true = mt_true.checkpoint(tmpmtt, overwrite=True)
+    # mt_false = mt_false.repartition(n_partitions).checkpoint(tmpmtf, overwrite=True)
 
     if calculate_syn_pr:
-        tmpmts = os.path.join(mtdir, "syn.mt")
-        mt_syn = mt.filter_rows(mt.consequence == "synonymous_variant")  # synonymous for transmitted/unstransmitted
-        mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
+        # tmpmts = os.path.join(mtdir, "syn.mt")
+        # mt_syn = mt.filter_rows(mt.consequence == "synonymous_variant")  # synonymous for transmitted/unstransmitted
+        # mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
 
         tmpmtpr = os.path.join(mtdir, "pr.mt")
         mt_prec_recall = None
@@ -542,9 +611,9 @@ def filter_mts(
             mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
             mt_prec_recall = mt_prec_recall.repartition(n_partitions).checkpoint(tmpmtpr, overwrite=True)
     else:
-        mt_syn = None
+        # mt_syn = None
         mt_prec_recall = None
-    return mt_true, mt_false, mt_syn, mt_prec_recall
+    return None, None, None, mt_prec_recall
 
 
 def write_snv_filter_metrics(results: dict, outfile: str):
@@ -908,6 +977,7 @@ def main():
 
     if args.evaluate_snv:
         print("=== Calculating hard filter evaluation for SNV ===")
+        start_time = time.time()
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
         giab_ht = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
         pedigree = hl.Pedigree.read(path_spark(pedfile))
@@ -921,9 +991,12 @@ def main():
         )
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
         write_snv_filter_metrics(results, outfile_snv)
+        end_time = time.time()
+        print(f"=== SNV evaluation execution time: {end_time - start_time:.2f} seconds ===")
 
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
+        start_time = time.time()
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
         giab_ht = hl.read_table(path_spark(giab_ht_file))
         pedigree = hl.Pedigree.read(path_spark(pedfile))
@@ -938,6 +1011,8 @@ def main():
 
         os.makedirs(os.path.dirname(outfile_indel), exist_ok=True)
         write_indel_filter_metrics(results, outfile_indel)
+        end_time = time.time()
+        print(f"=== INDEL evaluation execution time: {end_time - start_time:.2f} seconds ===")
 
     if args.plot:
         print("=== Plotting hard filter combinations ===")
