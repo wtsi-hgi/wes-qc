@@ -181,7 +181,7 @@ def process_filter_combination(
 
     var_counts = {}
     # TP and FP
-    var_counts["TP"], var_counts["FP"] = count_tp_fp_new(mt_hard)
+    var_counts["TP"], var_counts["FP"] = count_tp_fp(mt_hard)
 
     # t_u ratio - for SNPs only
     if var_type == "snv":
@@ -356,12 +356,21 @@ def filter_and_count(
 
     print(f"=== Calculating total TP and FP for {var_type} ===")
 
-    (results[f"{var_type}_total_tp"], results[f"{var_type}_total_fp"]) = count_tp_fp_new(mt)
+    (results[f"{var_type}_total_tp"], results[f"{var_type}_total_fp"]) = count_tp_fp(mt)
 
     return results
 
 
-def count_tp_fp_new(mt: hl.MatrixTable) -> tuple[int, int]:
+def count_tp_fp(mt: hl.MatrixTable) -> tuple[int, int]:
+    """
+    Count true positives and false positives from a Hail MatrixTable.
+    Parameters:
+        mt (hl.MatrixTable): Input Hail MatrixTable that contains the 'TP' and 'FP' fields
+                             used for counting.
+    Returns:
+        tuple[int, int]: A tuple where the first value is the count of true positives (TP)
+                         and the second value is the count of false positives (FP).
+    """
     ht = mt.rows()
     value_counts = ht.aggregate(hl.struct(tp=hl.agg.count_where(ht.TP), fp=hl.agg.count_where(ht.FP)))
     return value_counts.tp, value_counts.fp
@@ -369,16 +378,39 @@ def count_tp_fp_new(mt: hl.MatrixTable) -> tuple[int, int]:
 
 def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rate: float) -> hl.MatrixTable:
     """
-    Apply predefined hard filters to a Hail MatrixTable and return a filtered version.
+    Applies hard filters to a Hail MatrixTable based on genotype, depth, quality, allele balance,
+    and variant call rate metrics.
+    Filters out entries and rows that fail the specified thresholds
+    and ensures removal of reference-only rows.
+
+    Parameters
+    ----------
+    mt : hl.MatrixTable.
+    Input Hail MatrixTable to be filtered.
+    dp : int.
+    Minimum depth threshold for filtering.
+    gq : int.
+    Minimum genotype quality threshold for filtering.
+    ab : float.
+    Minimum allele balance threshold for heterozygous calls.
+    call_rate : float.
+    Minimum call rate threshold for filtering variants.
+
+    Returns
+    -------
+    hl.MatrixTable.
+    Filtered Hail MatrixTable after applying hard filters and call rate filtering.
     """
+    # Filtering out entries by the hardfilter combination
     filter_condition = (mt.GT.is_het() & (mt.HetAB < ab)) | (mt.DP < dp) | (mt.GQ < gq)
     mt_tmp = mt.annotate_entries(hard_filters=hl.if_else(filter_condition, "Fail", "Pass"))
     mt_tmp = mt_tmp.filter_entries(mt_tmp.hard_filters == "Pass")
 
+    # Filter variants by call rate
     mt_tmp = mt_tmp.annotate_rows(pass_count=hl.agg.count_where(mt_tmp.hard_filters == "Pass"))
     mt_tmp = mt_tmp.filter_rows(mt_tmp.pass_count / mt_tmp.count_cols() > call_rate)
 
-    # remove unused rows
+    # remove reference-only rows
     mt_tmp = hl.variant_qc(mt_tmp)
     mt_tmp = mt_tmp.filter_rows(mt_tmp.variant_qc.n_non_ref == 0, keep=False)
 
@@ -519,10 +551,10 @@ def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple
     return precision, recall
 
 
-def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> float:
+def get_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> float:
     """
     get transmitted/untransmitted ratio
-    :param hl.MatrixTable mt: matrixtable
+    :param hl.MatrixTable mt_syn: matrixtable, containing only synonymous variants
     :param hl.Pedigree pedigree: Hail Pedigree
     :param str mtdir: matrixtable directory
     :return float:
@@ -531,7 +563,7 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> 
     sample_list = collect_pedigree_samples(pedigree)
 
     # filter to synonymous
-    mt_syn = mt.filter_rows(mt.consequence == "synonymous_variant")
+    # mt_syn = mt.filter_rows(mt.consequence == "synonymous_variant")
 
     # restrict to samples in trios, annotate with AC and filter to AC == 1 in parents
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
@@ -541,20 +573,22 @@ def get_trans_untrans(mt: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> 
     mt_founders = hl.variant_qc(mt_founders, name="varqc_founders")
 
     mt2 = mt2.annotate_rows(varqc_trios=hl.Struct(AC=mt_founders.index_rows(mt2.row_key).varqc_founders.AC))
-    tmpmt3 = os.path.join(mtdir, "tmp1x.mt")
-    mt2 = mt2.checkpoint(tmpmt3, overwrite=True)
+    # tmpmt3 = os.path.join(mtdir, "tmp1x.mt")
+    # mt2 = mt2.checkpoint(tmpmt3, overwrite=True)
 
     # split to potentially transmitted/untransmitted
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    tmpmt5 = os.path.join(mtdir, "tmp2x.mt")
-    trans_mt = trans_mt.checkpoint(tmpmt5, overwrite=True)
+    # tmpmt5 = os.path.join(mtdir, "tmp2x.mt")
+    # trans_mt = trans_mt.checkpoint(tmpmt5, overwrite=True)
 
     # run tdt function for potential trans and untrans
     tdt_ht = hl.transmission_disequilibrium_test(trans_mt, pedigree)
-    trans = tdt_ht.aggregate(hl.agg.sum(tdt_ht.t))
-    untrans = tdt_ht.aggregate(hl.agg.sum(tdt_ht.u))
-    if untrans > 0:
-        ratio = trans / untrans
+
+    # Collecting stats in a single pass
+    t_u_stats = tdt_ht.aggregate(hl.struct(trans=hl.agg.sum(tdt_ht.t), untrans=hl.agg.sum(tdt_ht.u)))
+
+    if t_u_stats.untrans > 0:
+        ratio = t_u_stats.trans / t_u_stats.untrans
     else:
         ratio = -1
 
@@ -926,6 +960,8 @@ def main():
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
         giab_ht = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
         pedigree = hl.Pedigree.read(path_spark(pedfile))
+        # profiler = cProfile.Profile()
+        # profiler.enable()
         results = filter_and_count(
             mt,
             giab_ht,
@@ -934,10 +970,17 @@ def main():
             var_type="snv",
             **config["step4"]["evaluation"],
         )
+        # profiler.disable()
+
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
         write_snv_filter_metrics(results, outfile_snv)
         end_time = time.time()
         print(f"=== SNV evaluation execution time: {end_time - start_time:.2f} seconds ===")
+
+        # Print profiling results sorted by cumulative time
+        # stats = pstats.Stats(profiler)
+        # print("=== Profiling results for SNV ===")
+        # stats.strip_dirs().sort_stats("cumulative").print_stats(50)
 
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
