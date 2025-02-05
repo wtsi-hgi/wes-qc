@@ -175,9 +175,8 @@ def process_filter_combination(
     :param str giab_sample: Optional GIAB sample name
     :return: Dictionary containing variant counts and metrics
     """
-    mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate)
     mt_hard_path = os.path.join(mtdir, f"tmp.hard_filters_combs.{var_type}-hard.mt")
-    mt_hard = mt_hard.checkpoint(mt_hard_path, overwrite=True)
+    mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate, checkpoint_path=mt_hard_path)
 
     var_counts = {}
     # TP and FP
@@ -188,16 +187,13 @@ def process_filter_combination(
         mt_syn = mt_hard.filter_rows(
             mt_hard.consequence == "synonymous_variant"
         )  # synonymous for transmitted/unstransmitted
-        # tmpmts = os.path.join(mtdir, "syn.mt")
-        # mt_syn = mt_syn.checkpoint(tmpmts, overwrite=True)
-        ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
+        ratio = get_trans_untrans(mt_syn, pedigree)
         var_counts["t_u_ratio"] = ratio
 
     tmpmtpr = os.path.join(mtdir, "pr.ht")
     if giab_sample is not None:
         # making matrixtable for precision recall
-        ht_prec_recall = get_prec_recall_ht(giab_sample, mt_hard)
-        ht_prec_recall = ht_prec_recall.checkpoint(tmpmtpr, overwrite=True)
+        ht_prec_recall = get_prec_recall_ht(giab_sample, mt_hard, checkpoint_path=tmpmtpr)
 
         if var_type == "snv":
             prec, recall = get_prec_recall(ht_prec_recall, ht_giab, "snv", mtdir)
@@ -226,7 +222,7 @@ def process_filter_combination(
     return var_counts
 
 
-def get_prec_recall_ht(giab_sample, mt_hard):
+def get_prec_recall_ht(giab_sample, mt_hard, checkpoint_path):
     mt_prec_recall = mt_hard.filter_cols(mt_hard.s == giab_sample)  # GIAB sample for precision/recall
     mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
     mt_prec_recall = hl.variant_qc(mt_prec_recall)
@@ -234,6 +230,7 @@ def get_prec_recall_ht(giab_sample, mt_hard):
     # n_partitions = max(1, mt_hard.n_partitions() // 10)
     # mt_prec_recall = mt_prec_recall.repartition(n_partitions).checkpoint(tmpmtpr, overwrite=True)
     ht_prec_recall = mt_prec_recall.rows()
+    ht_prec_recall = ht_prec_recall.checkpoint(checkpoint_path, overwrite=True)
     return ht_prec_recall
 
 
@@ -288,23 +285,23 @@ def filter_and_count(
     total_steps = len(bins) * len(dp_vals) * len(gq_vals) * len(ab_vals) * len(missing_vals)
     print(f"=== Starting parameter combination evaluation: {total_steps} combinations ===")
 
-    n_steps_run = 0
-    stop_time = datetime.datetime.now()
-
-    mt = mt.filter_rows(mt.type == var_type)
-
-    mt_path = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.mt")
-    mt = mt.checkpoint(mt_path, overwrite=True)
-
     print(f"=== Starting evaluation for {var_type} ===")
+    mt = mt.filter_rows(mt.type == var_type)
+    n_steps_run = 0
 
-    # mt_bin_path = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.mt")
+    mt_bin_path_from = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.1.mt")
+    mt_bin_path_to = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.2.mt")
+
+    mtbin = mt
+    mtbin.checkpoint(mt_bin_path_from, overwrite=True)
 
     for bin in sorted(bins, reverse=True):
         bin_str = f"bin_{bin}"
         print(f"=== Processing {var_type} bin: {bin} ===")
-        mt_bin = mt.filter_rows(mt.info.rf_bin <= bin)
-        # mt_bin = mt_bin.checkpoint(mt_bin_path, overwrite=True)
+        mt_bin = mt.filter_rows(mtbin.info.rf_bin <= bin)
+        mt_bin = mt_bin.checkpoint(mt_bin_path_to, overwrite=True)
+
+        mt_bin_path_from, mt_bin_path_to = mt_bin_path_to, mt_bin_path_from
 
         for dp in dp_vals:
             dp_str = f"DP_{dp}"
@@ -376,7 +373,9 @@ def count_tp_fp(mt: hl.MatrixTable) -> tuple[int, int]:
     return value_counts.tp, value_counts.fp
 
 
-def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rate: float) -> hl.MatrixTable:
+def apply_hard_filters(
+    mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rate: float, checkpoint_path: str
+) -> hl.MatrixTable:
     """
     Applies hard filters to a Hail MatrixTable based on genotype, depth, quality, allele balance,
     and variant call rate metrics.
@@ -413,6 +412,7 @@ def apply_hard_filters(mt: hl.MatrixTable, dp: int, gq: int, ab: float, call_rat
     # remove reference-only rows
     mt_tmp = hl.variant_qc(mt_tmp)
     mt_tmp = mt_tmp.filter_rows(mt_tmp.variant_qc.n_non_ref == 0, keep=False)
+    mt_tmp = mt_tmp.checkpoint(checkpoint_path, overwrite=True)
 
     return mt_tmp
 
@@ -489,44 +489,42 @@ def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, 
     :param str mtdir: matrixtable directory
     :return: tuple
     """
-    tmpht1 = os.path.join(mtdir, "tmppr1x.ht")
+    # tmpht1 = os.path.join(mtdir, "tmppr1x.ht")
     tmpht2 = os.path.join(mtdir, "tmppr2x.ht")
-    tmpht3 = os.path.join(mtdir, "tmppr3x.ht")
-    tmpht4 = os.path.join(mtdir, "tmppr4x.ht")
-    tmpht5 = os.path.join(mtdir, "tmppr5x.ht")
-    tmpht6 = os.path.join(mtdir, "tmppr6x.ht")
+    # tmpht3 = os.path.join(mtdir, "tmppr3x.ht")
+    # tmpht4 = os.path.join(mtdir, "tmppr4x.ht")
+    # tmpht5 = os.path.join(mtdir, "tmppr5x.ht")
+    # tmpht6 = os.path.join(mtdir, "tmppr6x.ht")
 
     if var_type == "snv":
-        p, r = get_prec_recall_snv(ht_giab, ht_prec_recall, tmpht1, tmpht2)
+        p, r = calculate_precision_recall(ht_giab, ht_prec_recall)
         return p, r
 
     elif var_type == "indel":
-        alspac_indels = ht_prec_recall.filter(hl.is_indel(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        alspac_indels = alspac_indels.checkpoint(tmpht2, overwrite=True)
-        p, r = calculate_precision_recall(ht_giab, alspac_indels)
+        ht_prec_recall_indels = (
+            ht_prec_recall  # = ht_prec_recall.filter(hl.is_indel(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
+        )
+        ht_prec_recall_indels = ht_prec_recall_indels.checkpoint(tmpht2, overwrite=True)
+        p, r = calculate_precision_recall(ht_giab, ht_prec_recall_indels)
 
         giab_frameshift = ht_giab.filter(ht_giab.consequence == "frameshift_variant")
-        alspac_frameshift = alspac_indels.filter(alspac_indels.consequence == "frameshift_variant")
-        giab_frameshift = giab_frameshift.checkpoint(tmpht3, overwrite=True)
-        alspac_frameshift = alspac_frameshift.checkpoint(tmpht4, overwrite=True)
-        p_f, r_f = calculate_precision_recall(giab_frameshift, alspac_frameshift)
+        ht_prec_recall_frameshift = ht_prec_recall_indels.filter(
+            ht_prec_recall_indels.consequence == "frameshift_variant"
+        )
+        # giab_frameshift = giab_frameshift.checkpoint(tmpht3, overwrite=True)
+        # ht_prec_recall_frameshift = ht_prec_recall_frameshift.checkpoint(tmpht4, overwrite=True)
+        p_f, r_f = calculate_precision_recall(giab_frameshift, ht_prec_recall_frameshift)
 
         inframe_cqs = ["inframe_deletion", "inframe_insertion"]
         giab_in_frame = ht_giab.filter(hl.literal(inframe_cqs).contains(ht_giab.consequence))
-        alspac_in_frame = alspac_indels.filter(hl.literal(inframe_cqs).contains(alspac_indels.consequence))
-        giab_in_frame = giab_in_frame.checkpoint(tmpht5, overwrite=True)
-        alspac_in_frame = alspac_in_frame.checkpoint(tmpht6, overwrite=True)
-        p_if, r_if = calculate_precision_recall(giab_in_frame, alspac_in_frame)
+        ht_prec_recall_in_frame = ht_prec_recall_indels.filter(
+            hl.literal(inframe_cqs).contains(ht_prec_recall_indels.consequence)
+        )
+        # giab_in_frame = giab_in_frame.checkpoint(tmpht5, overwrite=True)
+        # ht_prec_recall_in_frame = ht_prec_recall_in_frame.checkpoint(tmpht6, overwrite=True)
+        p_if, r_if = calculate_precision_recall(giab_in_frame, ht_prec_recall_in_frame)
 
         return p, r, p_f, r_f, p_if, r_if
-
-
-def get_prec_recall_snv(ht_giab, ht_prec_recall, tmpht1, tmpht2):
-    # TODO: move separateion GIAB sample to SNV and indel outside main fucntion
-    ht_prec_recall_snvs = ht_prec_recall.filter(hl.is_snp(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-    ht_prec_recall_snvs = ht_prec_recall_snvs.checkpoint(tmpht2, overwrite=True)
-    p, r = calculate_precision_recall(ht_giab, ht_prec_recall_snvs)
-    return p, r
 
 
 def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple[float, float]:
@@ -551,7 +549,7 @@ def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple
     return precision, recall
 
 
-def get_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str) -> float:
+def get_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree) -> float:
     """
     get transmitted/untransmitted ratio
     :param hl.MatrixTable mt_syn: matrixtable, containing only synonymous variants
@@ -562,9 +560,6 @@ def get_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str)
     # list of samples in trios
     sample_list = collect_pedigree_samples(pedigree)
 
-    # filter to synonymous
-    # mt_syn = mt.filter_rows(mt.consequence == "synonymous_variant")
-
     # restrict to samples in trios, annotate with AC and filter to AC == 1 in parents
     mt2 = mt_syn.filter_cols(hl.set(sample_list).contains(mt_syn.s))
 
@@ -573,13 +568,9 @@ def get_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree, mtdir: str)
     mt_founders = hl.variant_qc(mt_founders, name="varqc_founders")
 
     mt2 = mt2.annotate_rows(varqc_trios=hl.Struct(AC=mt_founders.index_rows(mt2.row_key).varqc_founders.AC))
-    # tmpmt3 = os.path.join(mtdir, "tmp1x.mt")
-    # mt2 = mt2.checkpoint(tmpmt3, overwrite=True)
 
     # split to potentially transmitted/untransmitted
     trans_mt = mt2.filter_rows(mt2.varqc_trios.AC[1] == 1)
-    # tmpmt5 = os.path.join(mtdir, "tmp2x.mt")
-    # trans_mt = trans_mt.checkpoint(tmpmt5, overwrite=True)
 
     # run tdt function for potential trans and untrans
     tdt_ht = hl.transmission_disequilibrium_test(trans_mt, pedigree)
