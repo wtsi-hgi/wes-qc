@@ -1,7 +1,9 @@
 ---
 
 #############################################################################################
-# This is a config file to process the real experimental dataset: Fenland
+# This is a config file example to process public 1000 Genomes dataset.
+# All data files and resources are here: s3://wes-qc-data/test_data_from_1000_genomes_v2
+# To download it to sanger farm, use s3cmd command.
 #############################################################################################
 
 # - You can insert a variable in the string value via '{}'. For example,
@@ -36,6 +38,7 @@ cvars:
   dataroot: general.data_root
   tmpdir: general.tmp_dir
   anndir: general.annotation_dir
+  metadir: general.metadata_dir
   mtdir: general.matrixtables_dir
   resdir: general.resource_dir
   1kg_resdir: general.onekg_resource_dir
@@ -45,32 +48,31 @@ cvars:
   vcf_export_dir: general.vcf_export_dir
 
 general:
-  # Dataset name - to name plots, files, legends, etc
-  dataset_name: 'fenland'
+  # Dataset name - the root folder for all analysis files
+  # Also used for the naming of tables, plots, etc
+  dataset_name: 'fenland-test'
 
   # Dataset root directory - to use in folder paths
   data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
 
-  tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
+  tmp_dir: 'file://{general.data_root}/tmp/' # output
+  #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
-  # For data_root file prefix is added automatically
-  # tmp_dir: '{general.data_root}/tmp'
-
+  # tmp_dir: 'file://{general.data_root}/tmp'
+  metadata_dir: '{general.data_root}/metadata/' # input
   annotation_dir: '{general.data_root}/annotations/'
   matrixtables_dir: '{general.data_root}/matrixtables/'
   resource_dir: '{general.data_root}/resources/'
-  onekg_resource_dir: '{general.data_root}/resources/mini_1000G/'
+  onekg_resource_dir: '{general.resource_dir}//1kg_vcf_nosv/'
   plots_dir: '{general.data_root}/plots/'
   training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
+  rf_model_id: test-run-model
 
-step1:
-  # --- Step 1.1 --- #
-  gatk_vcf_header_infile:
-  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
-  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
-
+step0:
+  # --- Step 0.1 --- #
   create_1kg_mt:
     indir: '{1kg_resdir}'
     vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
@@ -95,27 +97,60 @@ step1:
     pca_components: 10
     kin_threshold: 0.125
 
+step1:
+  # --- Step 1.1 --- #
+  gatk_vcf_header_infile:
+  gatk_vcf_indir: '{general.data_root}/vcf_preqc/'
+  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
+
+  # --- Step 1.2 --- #
+  validate_verifybamid:
+    verifybamid_selfsm: '{metadir}/fenland.verify_bam_id_result_concat.selfSM'  # Set to null if you don't have freemix data
+    verifybamid_plot: '{pltdir}/freemix_validation.html'
+    samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
+    freemix_treshold: 0.05
+
+  sex_metadata_file: '{metadir}/fenland.self_reported_sex.tsv'
+  mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
+
+  validate_gtcheck:
+    wes_microarray_mapping: null #'{metadir}/testdata_1000genomes_v2.microarray_mapping.tsv' # Set to null if you don't have microarray data
+    microarray_ids: '{metadir}/testdata_1000genomes_v2.samples_microarray.txt'
+    gtcheck_report: '{metadir}/testdata_1000genomes_v2.gtcheck.txt'
+    gtcheck_results_folder: '{anndir}/gtcheck'
+    mt_gtcheck_validated: '{mtdir}/mt_gtcheck_validated.mt'
+
+    wes_id_col: 'WES_ID'
+    microarray_id_col: 'Microarray_ID'
+    gtcheck_score_threshold: 0.2
+
+  plot_mutation_spectra_preqc:
+    mut_spectra_path: '{pltdir}/mutation_spectra_preqc.html'
+    iqr_multiplier: 1.5
+    width: 800
+    height: 600
+
 step2:
   # --- Step 2.1 --- #
   sex_annotation_hard_filters:
-    filtered_mt_outfile: '{mtdir}/mt_hard_filters_annotated.mt'
     n_alt_alleles_threshold: 0.001
     defined_gt_frac_threshold: 0.99
 
   impute_sex:
-    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.txt.bgz'
+    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.tsv.bgz'
     sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
-    female_threshold: 0.5
-    male_threshold: 0.8
-    aaf_threshold: 0.05
+    hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
+      female_threshold: 0.5
+      male_threshold: 0.8
+      aaf_threshold: 0.05
 
-  sex_inconsistencies:
-    # TODO: specify structure of a sex metadata file
-    sex_metadata_file: '{resdir}/mlwh_sample_and_sex.txt'
-    conflicting_sex_report_file: '{anndir}/conflicting_sex.txt.bgz' # output
-    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.txt.bgz' # output
+  f_stat_outliers:
+    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_low: 0.2
     fstat_high: 0.8
+
+  sex_inconsistencies:
+    conflicting_sex_report_file: '{anndir}/conflicting_sex.tsv' # output
 
   # --- Step 2.2 --- #
   prune:
@@ -127,13 +162,12 @@ step2:
       # keep_higher_maf:
       # block_size:
 
-  # previously pc_relate
   prune_pc_relate:
-    relatedness_ht_file: '{mtdir}/mt_relatedness.ht' # output
-    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
-    pca_components: 3
-    pc_relate_args:
+    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
+    samples_to_remove_tsv: '{anndir}/related_samples_to_remove.tsv' # output in the TSV table
+    pca_components: 20
+    pc_relate_args: # https://hail.is/docs/0.2/methods/relatedness.html#hail.methods.pc_relate
       min_individual_maf: 0.05
       block_size: 4096
       min_kinship: 0.05
@@ -142,8 +176,9 @@ step2:
       # include_self_kinship:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
+    relatedness_outfile: '{anndir}/relatedness.tsv.gz'
+    relatedness_plotfile: '{pltdir}/relatedness_plot.html'
 
-  # previously population_pca
   prune_plot_pca:
     plink_outfile: '{mtdir}/mt_unrelated.plink'
     pca_components: 4
@@ -152,8 +187,16 @@ step2:
     pca_mt_file: '{mtdir}/mt_pca.mt' # output
     plot_outfile: '{pltdir}/pca.html' # output
 
-  # --- Step 2.3 --- #
 
+
+
+
+
+
+
+
+
+  # --- Step 2.3 --- #
   merge_1kg_and_ldprune:
     long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
     merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
@@ -168,7 +211,7 @@ step2:
     pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
     pca_1kg_evals_file: '{anndir}/pop_pca_1kg_evals.tsv'
     pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
-    pca_components: 4
+    pca_components: 20
 
   plot_pop_pca:
     pca_components: 3
@@ -183,7 +226,7 @@ step2:
     pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
 
   plot_pop_pca_assigned:
-    pca_components: 3
+    pca_components: 10
     pop_assigned_pca_dataset_graph: '{pltdir}/pop_pca_assigned_scores_dataset.html'
     pop_assigned_pca_union_graph: '{pltdir}/pop_pca_assigned_scores_union.html'
 
@@ -197,12 +240,20 @@ step2:
     mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
     ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
     qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
-
     min_depth: 20
     min_genotype_quality: 20
     min_vaf: 0.25
+    # Additional parameters to pass to gnomAD sampleQC function:
+    # https://broadinstitute.github.io/gnomad_methods/api_reference/sample_qc/filtering.html#gnomad.sample_qc.filtering.compute_stratified_metrics_filter
+    compute_stratified_metrics_filter_args:
+      lower_threshold: 4.0
+      upper_threshold: 4.0
     output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
     output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
+
+  plot_sample_qc_metrics:
+    n_bins: 100
+    plot_outdir: '{pltdir}/sample_qc_metrics'
 
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
@@ -212,12 +263,7 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{anndir}/1000g.ped'
-
-  # TODO: implement reading runhash from config
-  # The runhash of the Random Forest model. Generated at the step 3.3
-  # Hashes for all trained models can be found in {dataroot}/variant_qc_random_forest
-  rf_runhash: '19327460'
+  pedfile: '{metadir}/fenland.giab.ped'
 
   # --- Step 3.1 --- #
   get_truth_ht:
@@ -331,29 +377,38 @@ step3:
     cqfile: '{resdir}/all_consequences.txt'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
-evaluation:
-  giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
-  giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
-  giab_sample: null
-  snp_bins: []
-  indel_bins: []
-  gq_vals: [10, 15, 20]
-  dp_vals: [5, 10]
-  ab_vals: [0.2, 0.3]
-  missing_vals: [0, 0.5, 0.9, 0.95]
-  snp_json: '{anndir}/evaluation.snp.json'
-  snp_tsv_filesuffix: '_genotype_hard_filter_comparison_snv.txt'
-  indel_json: '{anndir}/evaluation.indel.json'
-  indel_tsv_filesuffix: '_genotype_hard_filter_comparison_indel.txt'
-
 step4:
   # --- Step 4.1 --- #
-  filter_mt:
-    mtfile: '{mtdir}/mt_after_var_qc.mt'
-    mtoutfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
+  evaluation:
+    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_cqfile: '{resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
+    giab_ht_file: '{mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
+    # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
+    # If you don't have it, use null value instead
+    # (the precision/recall calculations will be skipped in this case)
+    giab_sample: 'bibkidex13951069'
+    hardfilter_combinations:
+      snp_bins: [ 83, 89, 92 ]
+      indel_bins: [ 56, 68, 72 ]
+      dp_vals: [ 5 ]
+      gq_vals: [ 10 ]
+      ab_vals: [ 0.2 ]
+      missing_vals: [ 0.0, 0.5 ]
+    json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
+    snp_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
+    snp_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
+    indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
+    indel_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
 
-  # --- Step 4.1a --- #
+  plot:
+    snv-precision-recall: '{pltdir}/hard_filter_evaluation.snv.precision_recall.html'
+    snv-TP-FP: '{pltdir}/hard_filter_evaluation.snv.tp_fp.html'
+    snv-t_u_ratio-TP: '{pltdir}/hard_filter_evaluation.snv.t_u_ratio_tp.html'
+    indel-precision-recall: '{pltdir}/hard_filter_evaluation.indel.precision_recall.html'
+    indel-TP-FP: '{pltdir}/hard_filter_evaluation.indel.tp_fp.html'
 
+
+  # --- Step 4.2 --- #
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
     cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'
@@ -412,11 +467,6 @@ step4:
   get_ca_fractions:
     cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
 
-  # --- Step 4.3 --- #
-  export_vcfs:
-    mtfile_filtered: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt'
-    vcf_output_dir: '{vcf_export_dir}/filtered_vcfs/'
-
   # --- Step 4.3a --- #
   export_vcfs_a:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
@@ -426,3 +476,9 @@ step4:
   export_vcfs_b:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
     filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'
+
+  plot_mutation_spectra_afterqc:
+    mut_spectra_path: '{pltdir}/mutation_spectra_afterqc.html'
+    iqr_multiplier: 1.5
+    width: 800
+    height: 600
