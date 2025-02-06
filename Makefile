@@ -14,8 +14,8 @@ test-it-one-step:
 
 test-it-one-step-profile: clear-hard-filter-checkpoints
 	cd tests/integration_tests && \
-	python -m cProfile -o profile-main.stats -m pytest -vv -s -k $(test) && \
-	snakeviz --hostname 0.0.0.0 $(shell pwd)/tests/integration_tests/profile-main.stats
+	python -m cProfile -o profile.stats -m pytest -vv -s -k $(test) && \
+	snakeviz --hostname 0.0.0.0 $(shell pwd)/tests/integration_tests/profile.stats
 
 integration-test: clear-ht clear-logs
 	cd tests/integration_tests && pytest
