@@ -14,7 +14,7 @@ def clear_temp_folder(tmp_dir: str) -> None:
         return
     tmp_dir = tmp_dir.replace("file://", "")
     print(f"=== Cleaning up temporary folder {tmp_dir}")
-    shutil.rmtree(tmp_dir)
+    shutil.rmtree(tmp_dir, ignore_errors=True)
     os.makedirs(tmp_dir, exist_ok=True)
 
 
