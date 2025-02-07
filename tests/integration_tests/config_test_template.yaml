@@ -389,11 +389,11 @@ step4:
     giab_sample: 'EGAN00003332049'
     hardfilter_combinations:
       snp_bins: [70, 90]
-      indel_bins: [40, 70]
+      indel_bins: [40, 80]
       dp_vals: [5]
       gq_vals: [10]
       ab_vals: [0.2]
-      missing_vals: [0.1]
+      missing_vals: [0.0]
     json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
     snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
