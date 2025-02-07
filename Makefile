@@ -12,6 +12,11 @@ test-ut-one-step:
 test-it-one-step:
 	cd tests/integration_tests && pytest -vv -s -k $(test)
 
+test-it-one-step-profile: clear-hard-filter-checkpoints
+	cd tests/integration_tests && \
+	python -m cProfile -o profile.stats -m pytest -vv -s -k $(test) && \
+	snakeviz --hostname 0.0.0.0 $(shell pwd)/tests/integration_tests/profile.stats
+
 integration-test: clear-ht clear-logs
 	cd tests/integration_tests && pytest
 
@@ -25,6 +30,9 @@ unit-test:
 
 unit-test-coverage:
 	cd tests/unit_tests && pytest --cov=../..
+
+clear-hard-filter-checkpoints:
+	rm -rf tests/integration_tests/integration-data/annotations/testhash/json_dump/* || true
 
 clear-logs:
 	rm hail*.log || true
