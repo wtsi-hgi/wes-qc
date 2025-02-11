@@ -866,8 +866,6 @@ def main():
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
         giab_ht = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
         pedigree = hl.Pedigree.read(path_spark(pedfile))
-        # profiler = cProfile.Profile()
-        # profiler.enable()
         results = filter_and_count(
             mt,
             giab_ht,
@@ -876,17 +874,11 @@ def main():
             var_type="snv",
             **config["step4"]["evaluation"],
         )
-        # profiler.disable()
 
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
         write_snv_filter_metrics(results, outfile_snv)
         end_time = time.time()
-        print(f"=== SNV evaluation execution time: {end_time - start_time:.2f} seconds ===")
-
-        # Print profiling results sorted by cumulative time
-        # stats = pstats.Stats(profiler)
-        # print("=== Profiling results for SNV ===")
-        # stats.strip_dirs().sort_stats("cumulative").print_stats(50)
+        print(f"=== SNV evaluation competed successfully.\nExecution time: {end_time - start_time:.2f} seconds ===")
 
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
@@ -906,7 +898,7 @@ def main():
         os.makedirs(os.path.dirname(outfile_indel), exist_ok=True)
         write_indel_filter_metrics(results, outfile_indel)
         end_time = time.time()
-        print(f"=== INDEL evaluation execution time: {end_time - start_time:.2f} seconds ===")
+        print(f"=== INDEL evaluation competed successfully.\nExecution time: {end_time - start_time:.2f} seconds ===")
 
     if args.plot:
         print("=== Plotting hard filter combinations ===")
@@ -917,6 +909,7 @@ def main():
             type_, x, y = k.split("-")
             df = df_snv if type_ == "snv" else df_indel
             plot_hard_filter_combinations(df, x, y, v)
+        print("=== Plotting hard filter combinations completed successfully ===")
 
 
 if __name__ == "__main__":
