@@ -69,9 +69,9 @@ def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=8
     Plot mutation spectra by calculated table
     """
     # Prepare the data
-    df = df.copy()
-    df["samples"] = df.index
-    df_melted = df.melt(id_vars=["samples"], var_name="mutation_type", value_name="Proportion")
+    df_copy = df.copy()
+    df_copy["samples"] = df_copy.index
+    df_melted = df_copy.melt(id_vars=["samples"], var_name="mutation_type", value_name="Proportion")
     df_melted["Proportion"] = df_melted["Proportion"].astype(
         "float64"
     )  # For some samples Hail returns NaN that Pandas do not recognize

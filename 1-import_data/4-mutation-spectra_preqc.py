@@ -25,7 +25,7 @@ def main():
     mut_spectra = visualize.calculate_mutation_spectra(mt)
     mut_spectra.to_csv(mut_spectra_path, sep="\t")
 
-    # Amke and save the plot
+    # Make and save the plot
     p = visualize.plot_mutation_spectra(mut_spectra, **config["step1"]["plot_mutation_spectra_preqc"])
     bokeh.io.output_file(mut_spectra_plot_path)
     bokeh.io.save(p)
