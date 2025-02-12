@@ -4,6 +4,8 @@ import hail as hl
 import bokeh
 import math
 
+import pandas as pd
+
 
 def plot_pop_pca(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Optional[str] = None) -> None:
     """
@@ -62,16 +64,20 @@ def calculate_mutation_spectra(mt):
     return fraction_mutation_df
 
 
-def plot_mutation_spectra(df, iqr_multiplier: float = 1.5, width=800, height=600, **kwargs):
+def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=800, height=600, **kwargs):
     """
     Plot mutation spectra by calculated table
     """
     # Prepare the data
-    df["samples"] = df.index
-    df_melted = df.melt(id_vars=["samples"], var_name="Mutation type", value_name="Proportion")
+    df_copy = df.copy()
+    df_copy["samples"] = df_copy.index
+    df_melted = df_copy.melt(id_vars=["samples"], var_name="mutation_type", value_name="Proportion")
+    df_melted["Proportion"] = df_melted["Proportion"].astype(
+        "float64"
+    )  # For some samples Hail returns NaN that Pandas do not recognize
 
     # Calculate statistics for box plot
-    stats = df_melted.groupby("Mutation type").Proportion.describe()
+    stats = df_melted.groupby("mutation_type").Proportion.describe()
     iqr = stats["75%"] - stats["25%"]
     stats["lower"] = stats["25%"] - iqr_multiplier * iqr
     stats["upper"] = stats["75%"] + iqr_multiplier * iqr
@@ -79,32 +85,38 @@ def plot_mutation_spectra(df, iqr_multiplier: float = 1.5, width=800, height=600
     mutation_types = stats.index.tolist()
     source = bokeh.models.ColumnDataSource(stats)
 
-    # Create figure
+    # Create the figure
     p = bokeh.plotting.figure(
         width=width, height=height, x_range=mutation_types, title="Mutation Spectrum", toolbar_location="above"
     )
 
     # quantile boxes
     p.vbar(
-        x="Mutation type", width=0.7, bottom="25%", top="50%", source=source, line_color="black", fill_color="skyblue"
+        x="mutation_type", width=0.7, bottom="25%", top="50%", source=source, line_color="black", fill_color="skyblue"
     )
     p.vbar(
-        x="Mutation type", width=0.7, bottom="50%", top="75%", source=source, line_color="black", fill_color="skyblue"
+        x="mutation_type", width=0.7, bottom="50%", top="75%", source=source, line_color="black", fill_color="skyblue"
     )
 
     # outlier range
-    whisker = bokeh.models.Whisker(base="Mutation type", upper="upper", lower="lower", source=source)
+    whisker = bokeh.models.Whisker(base="mutation_type", upper="upper", lower="lower", source=source)
     whisker.upper_head.size = whisker.lower_head.size = 20
     p.add_layout(whisker)
 
     # Identify outliers
-    outliers = df_melted.groupby("Mutation type").apply(
-        lambda group: group[
-            (group["Proportion"] > stats.upper[group.name]) | (group["Proportion"] < stats.lower[group.name])
-        ]
+    is_outlier = df_melted.apply(
+        lambda row: (row["Proportion"] < stats.at[row["mutation_type"], "lower"])
+        | (row["Proportion"] > stats.at[row["mutation_type"], "upper"]),
+        axis=1,
     )
+    outliers = df_melted[is_outlier]
     # Plot outliers
-    p.scatter("Mutation type", "Proportion", source=outliers, size=6, color="black", alpha=0.3)
+    outlier_glyphs = p.scatter("mutation_type", "Proportion", source=outliers, size=6, color="black", alpha=0.3)
+
+    outlier_hover = bokeh.models.HoverTool(
+        renderers=[outlier_glyphs], tooltips=[("Sample", "@samples"), ("Proportion", "@Proportion")]
+    )
+    p.add_tools(outlier_hover)
 
     # Customize the plot
     p.xgrid.grid_line_color = None

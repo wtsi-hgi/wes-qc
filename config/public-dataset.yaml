@@ -125,7 +125,8 @@ step1:
     gtcheck_score_threshold: 0.2
 
   plot_mutation_spectra_preqc:
-    mut_spectra_path: '{pltdir}/mutation_spectra_preqc.html'
+    mut_spectra_path: '{anndir}/mutation_spectra_preqc.tsv'
+    mut_spectra_plot_path: '{pltdir}/mutation_spectra_preqc.html'
     iqr_multiplier: 1.5
     width: 800
     height: 600
@@ -478,7 +479,8 @@ step4:
     filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'
 
   plot_mutation_spectra_afterqc:
-    mut_spectra_path: '{pltdir}/mutation_spectra_afterqc.html'
+    mut_spectra_path: '{anndir}/mutation_spectra_afterqc.tsv'
+    mut_spectra_plot_path: '{pltdir}/mutation_spectra_afterqc.html'
     iqr_multiplier: 1.5
     width: 800
     height: 600
