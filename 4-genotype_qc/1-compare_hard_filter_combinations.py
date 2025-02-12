@@ -27,7 +27,7 @@ indel_label = "indel"
 
 def clean_mt(mt: hl.MatrixTable) -> hl.MatrixTable:
     """
-    Reduces matrixtable by cleaning all non-nesessary information
+    Reduces matrixtable by cleaning all fields not required for hardfilter evaluation
     """
     mt = mt.select_entries(mt.GT, mt.HetAB, mt.DP, mt.GQ)
     mt = mt.drop(mt.assigned_pop, *mt.row_value)
@@ -63,7 +63,7 @@ def annotate_with_rf(mt: hl.MatrixTable, rf_ht: hl.Table) -> hl.MatrixTable:
 
 def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     """
-    Annotate MatrixTable with consequence
+    Annotate MatrixTable with variant consequences taken from VEP annotation
     :param hl.MatrixTable mt: Input MatrixTable
     :param str cqfile: Most severe consequence annotation from VEP
     :return: hl.MatrixTable
@@ -78,10 +78,9 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
 
 def prepare_giab_ht(giab_vcf: str, giab_cqfile: str) -> hl.Table:
     """
-    Get GIAB ht from vcf file
-    :param str giab_vcf: path of input VCF file
-    :param str giab_cqfile: path of vep annotation
-    :param str mtdir: MatrixTable directory
+    Make GIAB table from the VCF file
+    :param str giab_vcf: input VCF file
+    :param str giab_cqfile: Vep annotation
     :return: hl.Table
     """
     logging.info("Preparing GiaB HailTable")
@@ -112,6 +111,9 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str) -> hl.Table:
 
 
 def str_timedelta(delta: datetime.timedelta) -> str:
+    """
+    Convert a timedelta object to a human-readable string
+    """
     seconds_in_hr = 60 * 60
     seconds_in_day = seconds_in_hr * 24
     seconds = int(delta.total_seconds())
@@ -154,11 +156,11 @@ def process_filter_combination(
     gq: int,
     ab: float,
     call_rate: float,
-    ht_giab: hl.Table,
+    ht_giab_control: hl.Table,
     pedigree: hl.Pedigree,
     var_type: str,
     mtdir: str,
-    giab_sample: Optional[str] = None,
+    giab_sample_id: Optional[str] = None,
 ) -> dict:
     """
     Process a single filter combination and return the variant counts and metrics.
@@ -168,40 +170,45 @@ def process_filter_combination(
     :param int gq: Genotype quality threshold
     :param float ab: Allele balance threshold
     :param float call_rate: Call rate threshold
-    :param hl.Table ht_giab: GIAB variants table
+    :param hl.Table ht_giab_control: GIAB variants table from the external sample.
+    Used as control
     :param hl.Pedigree pedigree: Hail pedigree object
     :param str var_type: Variant type (snv/indel)
     :param str mtdir: MatrixTable directory
-    :param str giab_sample: Optional GIAB sample name
+    :param str giab_sample_id: The ID of GIAB sample in the dataset.
+    If None, then no prec/recall is calculated.
     :return: Dictionary containing variant counts and metrics
     """
+    # Applying the combination of hard filters
     mt_hard_path = os.path.join(mtdir, f"tmp.hard_filters_combs.{var_type}-hard.mt")
     mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate, checkpoint_path=mt_hard_path)
 
     var_counts = {}
-    # TP and FP
+    # Counting TP and FP
     var_counts["TP"], var_counts["FP"] = count_tp_fp(mt_hard)
 
-    # t_u ratio - for SNPs only
+    # Counting transmitted/untransmitted ratio - for SNPs only
     if var_type == "snv":
-        mt_syn = mt_hard.filter_rows(
-            mt_hard.consequence == "synonymous_variant"
-        )  # synonymous for transmitted/unstransmitted
-        ratio = get_trans_untrans(mt_syn, pedigree)
+        # Extracting synonymous for transmitted/unstransmitted calculation
+        mt_syn = mt_hard.filter_rows(mt_hard.consequence == "synonymous_variant")
+        ratio = count_trans_untrans(mt_syn, pedigree)
         var_counts["t_u_ratio"] = ratio
 
-    tmpmtpr = os.path.join(mtdir, "pr.ht")
-    if giab_sample is not None:
-        # making matrixtable for precision recall
-        ht_prec_recall = get_prec_recall_ht(giab_sample, mt_hard, checkpoint_path=tmpmtpr)
+    # Calculating precision/recall - possible only if we have GIAB sample
+    if giab_sample_id is not None:
+        # Extracting GIAB sample for precision/recall calculation
+        tmp_ht_giab_dataset_path = os.path.join(mtdir, "pr.ht")
+        ht_giab_dataset = get_giab_sample_from_dataset(
+            giab_sample_id, mt_hard, checkpoint_path=tmp_ht_giab_dataset_path
+        )
 
         if var_type == "snv":
-            prec, recall = get_prec_recall(ht_prec_recall, ht_giab, "snv", mtdir)
+            prec, recall = count_precision_recall(ht_giab_control, ht_giab_dataset)
             var_counts["prec"] = prec
             var_counts["recall"] = recall
         elif var_type == "indel":
-            prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = get_prec_recall(
-                ht_prec_recall, ht_giab, "indel", mtdir
+            prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = count_prec_recall_indel(
+                ht_giab_control=ht_giab_control, ht_giab_dataset=ht_giab_dataset, mtdir=mtdir
             )
             var_counts["prec"] = prec
             var_counts["recall"] = recall
@@ -222,26 +229,27 @@ def process_filter_combination(
     return var_counts
 
 
-def get_prec_recall_ht(giab_sample, mt_hard, checkpoint_path):
-    mt_prec_recall = mt_hard.filter_cols(mt_hard.s == giab_sample)  # GIAB sample for precision/recall
-    mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.locus.in_autosome())
-    mt_prec_recall = hl.variant_qc(mt_prec_recall)
-    mt_prec_recall = mt_prec_recall.filter_rows(mt_prec_recall.variant_qc.n_non_ref > 0)
-    # n_partitions = max(1, mt_hard.n_partitions() // 10)
-    # mt_prec_recall = mt_prec_recall.repartition(n_partitions).checkpoint(tmpmtpr, overwrite=True)
-    ht_prec_recall = mt_prec_recall.rows()
-    ht_prec_recall = ht_prec_recall.checkpoint(checkpoint_path, overwrite=True)
-    return ht_prec_recall
+def get_giab_sample_from_dataset(giab_sample_id: str, mt_hard: hl.MatrixTable, checkpoint_path):
+    """
+    Extracts the GIAB sample table from the dataset matrixtable
+    """
+    mt_giab_sample = mt_hard.filter_cols(mt_hard.s == giab_sample_id)  # GIAB sample for precision/recall
+    mt_giab_sample = mt_giab_sample.filter_rows(mt_giab_sample.locus.in_autosome())
+    mt_giab_sample = hl.variant_qc(mt_giab_sample)
+    mt_giab_sample = mt_giab_sample.filter_rows(mt_giab_sample.variant_qc.n_non_ref > 0)
+    ht_giab_dataset = mt_giab_sample.rows()
+    ht_giab_dataset = ht_giab_dataset.checkpoint(checkpoint_path, overwrite=True)
+    return ht_giab_dataset
 
 
 def filter_and_count(
     mt: hl.MatrixTable,
-    ht_giab: hl.Table,
+    ht_giab_control: hl.Table,
     pedigree: hl.Pedigree,
     mtdir: str,
     var_type: str,
     hardfilter_combinations: dict[str, Union[int, float]],
-    giab_sample: str,
+    giab_sample_id: Optional[str],
     json_dump_folder: str,
     **kwargs,
 ) -> dict:
@@ -258,17 +266,18 @@ def filter_and_count(
 
     Path(json_dump_folder).mkdir(parents=True, exist_ok=True)
 
+    # Subsetting GIAB table to SNVs or indels, depending on the input parameters
     giab_ht_type_name = os.path.join(mtdir, f"giab_table.{var_type}.ht")
     if var_type == "snv":
         bins = snv_bins
-        ht_giab = ht_giab.filter(hl.is_snp(ht_giab.alleles[0], ht_giab.alleles[1])).checkpoint(
-            giab_ht_type_name, overwrite=True
-        )
+        ht_giab_control = ht_giab_control.filter(
+            hl.is_snp(ht_giab_control.alleles[0], ht_giab_control.alleles[1])
+        ).checkpoint(giab_ht_type_name, overwrite=True)
     elif var_type == "indel":
         bins = indel_bins
-        ht_giab = ht_giab.filter(hl.is_indel(ht_giab.alleles[0], ht_giab.alleles[1])).checkpoint(
-            giab_ht_type_name, overwrite=True
-        )
+        ht_giab_control = ht_giab_control.filter(
+            hl.is_indel(ht_giab_control.alleles[0], ht_giab_control.alleles[1])
+        ).checkpoint(giab_ht_type_name, overwrite=True)
     else:
         print(f"Unknown variant type: {var_type}")
         raise ValueError("The filter_and_count_ function can be called only for snv or for indels")
@@ -278,8 +287,8 @@ def filter_and_count(
     results = {var_type: {}}
 
     sample_ids = set(mt.s.collect())
-    if giab_sample is not None and giab_sample not in sample_ids:
-        raise ValueError(f"=== Control sample {giab_sample} not found in matrixtable")
+    if giab_sample_id is not None and giab_sample_id not in sample_ids:
+        raise ValueError(f"=== Control sample {giab_sample_id} not found in matrixtable")
 
     n_step = 0
     total_steps = len(bins) * len(dp_vals) * len(gq_vals) * len(ab_vals) * len(missing_vals)
@@ -289,19 +298,24 @@ def filter_and_count(
     mt = mt.filter_rows(mt.type == var_type)
     n_steps_run = 0
 
-    mt_bin_path_from = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.1.mt")
-    mt_bin_path_to = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.2.mt")
+    mt_bin_path_previous = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.1.mt")
+    mt_bin_path_current = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.2.mt")
 
+    # Making the first bin-filtered matrixtable
+    # For the zero iteration, this is full initial matrixtable
     mtbin = mt
-    mtbin.checkpoint(mt_bin_path_from, overwrite=True)
+    mtbin.checkpoint(mt_bin_path_previous, overwrite=True)
 
     for bin in sorted(bins, reverse=True):
         bin_str = f"bin_{bin}"
         print(f"=== Processing {var_type} bin: {bin} ===")
+        # Making next bin-filtered matrixtable form the previous matrixtable,
+        # It works because we cycle from the most relaxed bin to the most stringent
         mt_bin = mt.filter_rows(mtbin.info.rf_bin <= bin)
-        mt_bin = mt_bin.checkpoint(mt_bin_path_to, overwrite=True)
-
-        mt_bin_path_from, mt_bin_path_to = mt_bin_path_to, mt_bin_path_from
+        mt_bin = mt_bin.checkpoint(mt_bin_path_current, overwrite=True)
+        # Swapping paths
+        # The current path becomes previous, and the old previous becomes current for the next bin
+        mt_bin_path_previous, mt_bin_path_current = mt_bin_path_current, mt_bin_path_previous
 
         for dp in dp_vals:
             dp_str = f"DP_{dp}"
@@ -317,18 +331,18 @@ def filter_and_count(
                         )
                         logging.info(f"{dp_str} {gq_str} {ab_str} {missing_str}")
                         filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
-
+                        # Running evaluation for the hardfilter combination
                         var_counts = process_filter_combination(
                             mt_bin=mt_bin,
                             dp=dp,
                             gq=gq,
                             ab=ab,
                             call_rate=call_rate,
-                            ht_giab=ht_giab,
+                            ht_giab_control=ht_giab_control,
                             pedigree=pedigree,
                             var_type=var_type,
                             mtdir=mtdir,
-                            giab_sample=giab_sample,
+                            giab_sample_id=giab_sample_id,
                             filter_name=filter_name,
                             json_dump_folder=json_dump_folder,
                         )
@@ -365,8 +379,7 @@ def count_tp_fp(mt: hl.MatrixTable) -> tuple[int, int]:
         mt (hl.MatrixTable): Input Hail MatrixTable that contains the 'TP' and 'FP' fields
                              used for counting.
     Returns:
-        tuple[int, int]: A tuple where the first value is the count of true positives (TP)
-                         and the second value is the count of false positives (FP).
+        tuple[int, int]: A tuple (TP, FP).
     """
     ht = mt.rows()
     value_counts = ht.aggregate(hl.struct(tp=hl.agg.count_where(ht.TP), fp=hl.agg.count_where(ht.FP)))
@@ -379,26 +392,14 @@ def apply_hard_filters(
     """
     Applies hard filters to a Hail MatrixTable based on genotype, depth, quality, allele balance,
     and variant call rate metrics.
-    Filters out entries and rows that fail the specified thresholds
-    and ensures removal of reference-only rows.
-
-    Parameters
-    ----------
-    mt : hl.MatrixTable.
-    Input Hail MatrixTable to be filtered.
-    dp : int.
-    Minimum depth threshold for filtering.
-    gq : int.
-    Minimum genotype quality threshold for filtering.
-    ab : float.
-    Minimum allele balance threshold for heterozygous calls.
-    call_rate : float.
-    Minimum call rate threshold for filtering variants.
+    mt : hl.MatrixTable. Input Hail MatrixTable to be filtered.
+    dp : int. Minimum depth threshold for filtering.
+    gq : int. Minimum genotype quality threshold for filtering.
+    ab : float Minimum allele balance threshold for heterozygous calls.
+    call_rate : float. Minimum call rate threshold for filtering variants.
 
     Returns
-    -------
-    hl.MatrixTable.
-    Filtered Hail MatrixTable after applying hard filters and call rate filtering.
+    hl.MatrixTable. Filtered Hail MatrixTable after applying hard filters and call rate filtering.
     """
     # Filtering out entries by the hardfilter combination
     filter_condition = (mt.GT.is_het() & (mt.HetAB < ab)) | (mt.DP < dp) | (mt.GQ < gq)
@@ -417,128 +418,50 @@ def apply_hard_filters(
     return mt_tmp
 
 
-def count_tp_fp_t_u(
-    mt_tp: hl.MatrixTable,
-    mt_fp: hl.MatrixTable,
-    mt_syn: hl.MatrixTable,
-    mt_prec_recall: Optional[hl.Table],
-    ht_giab: hl.Table,
-    pedigree: hl.Pedigree,
-    var_type: str,
-    mtdir: str,
-) -> dict[str, float]:
+def count_prec_recall_indel(ht_giab_control: hl.Table, ht_giab_dataset: hl.Table, mtdir: str) -> tuple:
     """
-    Filter mt by each rf bin in a list, then genotype hard filters and count remaining TP and P variants
-    :param hl.MatrixTable mt_tp: Input TP MatrixTable
-    :param hl.MatrixTable mt_fp: Input FP MatrixTable
-    :param hl.MatrixTable mt_syn: Input synonymous MatrixTable
-    :param hl.MatrixTable mt_prec_recall: mt from GIAB sample for precision/recall
-    :param hl.Table ht_giab: GIAB variants
-    :param hl.Pedigree pedigree: hail pedigree object
-    :param  str var_type: variant type (snv/indel)
-    :param str mtdir: matrixtable directory
-    :return: Dict containing bin and remaning TP/FP count
-    """
-    results = {}
-
-    logging.debug("Executing count_tp_fp_t_u")
-
-    # if var_type == "snv":
-    #     ratio = get_trans_untrans(mt_syn, pedigree, mtdir)
-    #     results["t_u_ratio"] = ratio
-
-    if mt_prec_recall is not None:
-        ht_prec_recall = mt_prec_recall.rows()
-
-        if var_type == "snv":
-            prec, recall = get_prec_recall(ht_prec_recall, ht_giab, "snv", mtdir)
-            results["prec"] = prec
-            results["recall"] = recall
-        elif var_type == "indel":
-            prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = get_prec_recall(
-                ht_prec_recall, ht_giab, "indel", mtdir
-            )
-            results["prec"] = prec
-            results["recall"] = recall
-            results["prec_inframe"] = prec_inframe
-            results["recall_inframe"] = recall_inframe
-            results["prec_frameshift"] = prec_frameshift
-            results["recall_frameshift"] = recall_frameshift
-        else:
-            raise ValueError(
-                f"An incorrect function call: variant type {var_type} not supported for TP/FP and prec/recall calculations."
-            )
-    else:
-        results["prec"] = -1
-        results["recall"] = -1
-        if var_type == "indel":
-            results["prec_frameshift"] = -1
-            results["prec_inframe"] = -1
-            results["recall_inframe"] = -1
-            results["prec_frameshift"] = -1
-            results["recall_frameshift"] = -1
-    return results
-
-
-def get_prec_recall(ht_prec_recall: hl.Table, ht_giab: hl.Table, var_type: str, mtdir: str) -> tuple:
-    """
-    Get precison/recall vs GIAB
-    :param hl.Table ht_prec_recall: hail Table of variants in ALSPAC GIAB sample
-    :param hl.Table ht_giab: hail Table GIAB variants
+    Get precison/recall vs GIAB for indels
+    In fact, calls calculate_precision_recall for different subset of indels
+    :param hl.Table ht_giab_dataset: hail Table of variants in ALSPAC GIAB sample
+    :param hl.Table ht_giab_control: hail Table GIAB variants
     :param str var_type: Variant type
     :param str mtdir: matrixtable directory
     :return: tuple
     """
-    # tmpht1 = os.path.join(mtdir, "tmppr1x.ht")
-    tmpht2 = os.path.join(mtdir, "tmppr2x.ht")
-    # tmpht3 = os.path.join(mtdir, "tmppr3x.ht")
-    # tmpht4 = os.path.join(mtdir, "tmppr4x.ht")
-    # tmpht5 = os.path.join(mtdir, "tmppr5x.ht")
-    # tmpht6 = os.path.join(mtdir, "tmppr6x.ht")
+    tmp_ht_giab_dataset_indels = os.path.join(mtdir, "tmp_pr_indel.ht")
+    ht_giab_dataset_indels = ht_giab_dataset.checkpoint(tmp_ht_giab_dataset_indels, overwrite=True)
 
-    if var_type == "snv":
-        p, r = calculate_precision_recall(ht_giab, ht_prec_recall)
-        return p, r
+    # Regular precision-recall for the full set of indels
+    p, r = count_precision_recall(ht_giab_control, ht_giab_dataset_indels)
 
-    elif var_type == "indel":
-        ht_prec_recall_indels = (
-            ht_prec_recall  # = ht_prec_recall.filter(hl.is_indel(ht_prec_recall.alleles[0], ht_prec_recall.alleles[1]))
-        )
-        ht_prec_recall_indels = ht_prec_recall_indels.checkpoint(tmpht2, overwrite=True)
-        p, r = calculate_precision_recall(ht_giab, ht_prec_recall_indels)
+    # Precision/recall for FrameShift indels
+    ht_giab_control_frameshift = ht_giab_control.filter(ht_giab_control.consequence == "frameshift_variant")
+    ht_giab_dataset_frameshift = ht_giab_dataset_indels.filter(
+        ht_giab_dataset_indels.consequence == "frameshift_variant"
+    )
+    p_f, r_f = count_precision_recall(ht_giab_control_frameshift, ht_giab_dataset_frameshift)
 
-        giab_frameshift = ht_giab.filter(ht_giab.consequence == "frameshift_variant")
-        ht_prec_recall_frameshift = ht_prec_recall_indels.filter(
-            ht_prec_recall_indels.consequence == "frameshift_variant"
-        )
-        # giab_frameshift = giab_frameshift.checkpoint(tmpht3, overwrite=True)
-        # ht_prec_recall_frameshift = ht_prec_recall_frameshift.checkpoint(tmpht4, overwrite=True)
-        p_f, r_f = calculate_precision_recall(giab_frameshift, ht_prec_recall_frameshift)
+    # Precision/recall for In-Frame indels
+    inframe_cqs = ["inframe_deletion", "inframe_insertion"]
+    ht_giab_conrol_inframe = ht_giab_control.filter(hl.literal(inframe_cqs).contains(ht_giab_control.consequence))
+    ht_giab_dataset_inframe = ht_giab_dataset_indels.filter(
+        hl.literal(inframe_cqs).contains(ht_giab_dataset_indels.consequence)
+    )
+    p_if, r_if = count_precision_recall(ht_giab_conrol_inframe, ht_giab_dataset_inframe)
 
-        inframe_cqs = ["inframe_deletion", "inframe_insertion"]
-        giab_in_frame = ht_giab.filter(hl.literal(inframe_cqs).contains(ht_giab.consequence))
-        ht_prec_recall_in_frame = ht_prec_recall_indels.filter(
-            hl.literal(inframe_cqs).contains(ht_prec_recall_indels.consequence)
-        )
-        # giab_in_frame = giab_in_frame.checkpoint(tmpht5, overwrite=True)
-        # ht_prec_recall_in_frame = ht_prec_recall_in_frame.checkpoint(tmpht6, overwrite=True)
-        p_if, r_if = calculate_precision_recall(giab_in_frame, ht_prec_recall_in_frame)
-
-        return p, r, p_f, r_f, p_if, r_if
+    return p, r, p_f, r_f, p_if, r_if
 
 
-def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple[float, float]:
+def count_precision_recall(ht_control: hl.Table, ht_dataset: hl.Table) -> tuple[float, float]:
     """
-    Calculate orecision recall
+    Calculates precision/recall for the gived control and test Hail tables.
     :param hl.Table ht_control: Control set
     :paran hl.Table ht_test: Test set
     :return tuple:
     """
-    print("get intersects")
-    vars_in_both = ht_control.semi_join(ht_test)
-    control_only = ht_control.anti_join(ht_test)
-    test_only = ht_test.anti_join(ht_control)
-    print("count_vars")
+    vars_in_both = ht_control.semi_join(ht_dataset)
+    control_only = ht_control.anti_join(ht_dataset)
+    test_only = ht_dataset.anti_join(ht_control)
     tp = vars_in_both.count()
     fn = control_only.count()
     fp = test_only.count()
@@ -549,9 +472,9 @@ def calculate_precision_recall(ht_control: hl.Table, ht_test: hl.Table) -> tuple
     return precision, recall
 
 
-def get_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree) -> float:
+def count_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree) -> float:
     """
-    get transmitted/untransmitted ratio
+    Calculates transmitted/untransmitted ratio for the synonymous matrixtable
     :param hl.MatrixTable mt_syn: matrixtable, containing only synonymous variants
     :param hl.Pedigree pedigree: Hail Pedigree
     :param str mtdir: matrixtable directory
@@ -932,9 +855,9 @@ def main():
     hail_utils.init_hl(tmp_dir)
 
     if args.prepare:
-        print("=== Preparing Hail table for GIAB sample ===")
-        giab_ht = prepare_giab_ht(giab_vcf, giab_cqfile)
-        giab_ht.write(path_spark(giab_ht_file), overwrite=True)
+        print("=== Preparing control GIAB sample ===")
+        ht_giab_control = prepare_giab_ht(giab_vcf, giab_cqfile)
+        ht_giab_control.write(path_spark(giab_ht_file), overwrite=True)
 
         print("=== Annotating matrix table with RF bins ===")
         mt = hl.read_matrix_table(path_spark(mtfile))
@@ -949,39 +872,31 @@ def main():
         print("=== Calculating hard filter evaluation for SNV ===")
         start_time = time.time()
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
-        giab_ht = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
+        ht_giab_control = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
         pedigree = hl.Pedigree.read(path_spark(pedfile))
-        # profiler = cProfile.Profile()
-        # profiler.enable()
         results = filter_and_count(
             mt,
-            giab_ht,
+            ht_giab_control,
             pedigree,
             mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="snv",
             **config["step4"]["evaluation"],
         )
-        # profiler.disable()
 
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
         write_snv_filter_metrics(results, outfile_snv)
         end_time = time.time()
-        print(f"=== SNV evaluation execution time: {end_time - start_time:.2f} seconds ===")
-
-        # Print profiling results sorted by cumulative time
-        # stats = pstats.Stats(profiler)
-        # print("=== Profiling results for SNV ===")
-        # stats.strip_dirs().sort_stats("cumulative").print_stats(50)
+        print(f"=== SNV evaluation competed successfully.\nExecution time: {end_time - start_time:.2f} seconds ===")
 
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
         start_time = time.time()
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
-        giab_ht = hl.read_table(path_spark(giab_ht_file))
+        ht_giab_control = hl.read_table(path_spark(giab_ht_file))
         pedigree = hl.Pedigree.read(path_spark(pedfile))
         results = filter_and_count(
             mt,
-            giab_ht,
+            ht_giab_control,
             pedigree,
             mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="indel",
@@ -991,7 +906,7 @@ def main():
         os.makedirs(os.path.dirname(outfile_indel), exist_ok=True)
         write_indel_filter_metrics(results, outfile_indel)
         end_time = time.time()
-        print(f"=== INDEL evaluation execution time: {end_time - start_time:.2f} seconds ===")
+        print(f"=== INDEL evaluation competed successfully.\nExecution time: {end_time - start_time:.2f} seconds ===")
 
     if args.plot:
         print("=== Plotting hard filter combinations ===")
@@ -1002,6 +917,7 @@ def main():
             type_, x, y = k.split("-")
             df = df_snv if type_ == "snv" else df_indel
             plot_hard_filter_combinations(df, x, y, v)
+        print("=== Plotting hard filter combinations completed successfully ===")
 
 
 if __name__ == "__main__":

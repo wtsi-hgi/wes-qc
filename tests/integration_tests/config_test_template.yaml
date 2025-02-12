@@ -387,14 +387,14 @@ step4:
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
-    giab_sample: 'EGAN00003332049'
+    giab_sample_id: 'EGAN00003332049'
     hardfilter_combinations:
       snp_bins: [70, 90]
-      indel_bins: [40, 70]
+      indel_bins: [40, 80]
       dp_vals: [5]
       gq_vals: [10]
       ab_vals: [0.2]
-      missing_vals: [0.1]
+      missing_vals: [0.0]
     json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
     snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
