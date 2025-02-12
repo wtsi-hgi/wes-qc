@@ -386,7 +386,7 @@ step4:
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
-    giab_sample: null
+    giab_sample_id: null
     hardfilter_combinations:
       snp_bins: [ 40, 60, 80 ]
       indel_bins: [ 25, 50, 75 ]

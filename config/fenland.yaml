@@ -69,7 +69,7 @@ general:
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
   # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
-  rf_model_id: test-run-model
+  rf_model_id: '5278832e'
 
 step0:
   # --- Step 0.1 --- #
@@ -386,7 +386,7 @@ step4:
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
-    giab_sample: 'bibkidex13951069'
+    giab_sample_id: 'bibkidex13951069'
     hardfilter_combinations:
       snp_bins: [ 83, 89, 92 ]
       indel_bins: [ 56, 68, 72 ]
