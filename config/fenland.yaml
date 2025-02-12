@@ -386,7 +386,7 @@ step4:
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
-    giab_sample: 'bibkidex13951069'
+    giab_sample_id: 'bibkidex13951069'
     hardfilter_combinations:
       snp_bins: [ 83, 89, 92 ]
       indel_bins: [ 56, 68, 72 ]
