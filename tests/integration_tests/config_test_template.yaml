@@ -97,6 +97,13 @@ step0:
     pca_components: 10
     kin_threshold: 0.125
 
+  generate_truthset_ht:
+    omni: '{traindir}/1000G_omni2.5.hg38.ht'
+    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
+    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+    truth_ht_outfile: '{mtdir}/truthset_table.ht'
+
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
@@ -264,19 +271,12 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{metadir}/control_set_small_trios.ped'
+  pedfile: null #'{metadir}/control_set_small_trios.ped'
 
-  # --- Step 3.1 --- #
-  get_truth_ht:
-    truth_ht_outfile: '{resdir}/truthset_table.ht'
-    omni: '{traindir}/1000G_omni2.5.hg38.ht'
-    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
-    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
-
+  # --- Step 0.2 --- #
   split_multi_and_var_qc:
     mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
-    varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
+    varqc_mtoutfile: '{mtdir}/mt_varqc.mt' # TODO: check, do we use it in VariantQC. Disable saving and check for errors.
     varqc_mtoutfile_split: '{mtdir}/mt_varqc_splitmulti.mt'
 
   # not used for non-trios mode

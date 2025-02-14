@@ -130,6 +130,13 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 0.1 failed with an exception: {e}")
 
+    def test_0_2_import_data(self):
+        qc_step_0_2 = importlib.import_module("0-resource_preparation.2-generate-truthset-ht")
+        try:
+            qc_step_0_2.main()
+        except Exception as e:
+            self.fail(f"Step 0.2 failed with an exception: {e}")
+
     def test_1_1_import_data(self):
         qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
         try:
@@ -205,9 +212,12 @@ class IntegrationTests(HailTestCase):
 
     ### === Variant QC === ###
     # mock cli arguments
-    @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(all=True, truth=True, annotation=True))
+    @patch(
+        "argparse.ArgumentParser.parse_args",
+        return_value=argparse.Namespace(all=False, split_qc=True, trios_stats=True, inbreeding=True),
+    )
     def test_3_1_variant_qc(self, mock_args):
-        qc_step_3_1 = importlib.import_module("3-variant_qc.1-generate_truth_sets")
+        qc_step_3_1 = importlib.import_module("3-variant_qc.1-split_and_family_annotate")
         try:
             qc_step_3_1.main()
         except Exception as e:
