@@ -1,31 +1,24 @@
-import os
 import argparse
-import unittest
 import importlib
-
+import inspect
+import os
+import unittest
 from typing import Optional
 from unittest.mock import patch
+
+from tests.integration_tests import *
 from wes_qc import teszt
 
 # /path/to/wes_qc must be in PYTHONPATH
 
-# list with the test files must be located in the test directory in the repo
-TEST_FILES_LIST = "../test_files_list_in_bucket.txt"
 
 # configuration file template for the integration tests
 INTEGRATION_TESTS_CONFIG_TEMPLATE = "config_test_template.yaml"
 INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE = "integration_config_rendered.yaml"
+PEDIGREE_FILE_PATH = """ '{metadir}/control_set_small_trios.ped' """
 
 # set up explicit runhash parameter for reproducible RF training
 RF_RUN_TEST_HASH = "testhash"  # manually set rf run id
-
-# variables for test config rendering
-INTEGRATION_TESTS_DIR = "{INTEGRATION_TESTS_DIR}"
-TEST_DATA_DIR = "{TEST_DATA_DIR}"
-RESOURCES_DIR = "{RESOURCES_DIR}"
-METADATA_DIR = "{METADATA_DIR}"
-TRAINING_SETS_DIR = "{TRAINING_SETS_DIR}"
-VARIANT_QC_RANDOM_FOREST_DIR = "{VARIANT_QC_RANDOM_FOREST_DIR}"
 
 
 def render_config(
@@ -35,6 +28,7 @@ def render_config(
     metadata_dir: Optional[str],
     training_sets_dir: Optional[str],
     variant_qc_random_forest_dir: Optional[str],
+    pedigree_file_name: Optional[str],
     savefile: str = "inputs_test_rendered.yaml",
 ):
     """
@@ -63,6 +57,7 @@ def render_config(
     template = template.replace(METADATA_DIR, metadata_dir)
     template = template.replace(TRAINING_SETS_DIR, training_sets_dir)
     template = template.replace(VARIANT_QC_RANDOM_FOREST_DIR, variant_qc_random_forest_dir)
+    template = template.replace(PEDIGREE_FILE_NAME, pedigree_file_name)
 
     with open(savefile, "w") as f:
         f.write(template)
@@ -104,6 +99,7 @@ class HailTestCase(unittest.TestCase):
             metadata_path,
             training_sets_path,
             variant_qc_random_forest_path,
+            pedigree_file_name=PEDIGREE_FILE_PATH,
             savefile=rendered_config_savefile,
         )
 
@@ -116,49 +112,49 @@ class HailTestCase(unittest.TestCase):
         pass
 
 
-class IntegrationTests(HailTestCase):
+class IntegrationTestsStub(HailTestCase):
     @patch(
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(
             kg_to_mt=True, kg_filter_and_prune=True, kg_pc_relate=True, kg_remove_related_samples=True, all=False
         ),
     )
-    def test_0_1_import_data(self, mock_args):
+    def stub_0_1_import_data(self, mock_args):
         qc_step_0_1 = importlib.import_module("0-resource_preparation.1-import_1kg")
         try:
             qc_step_0_1.main()
         except Exception as e:
             self.fail(f"Step 0.1 failed with an exception: {e}")
 
-    def test_0_2_import_data(self):
+    def stub_0_2_import_data(self):
         qc_step_0_2 = importlib.import_module("0-resource_preparation.2-generate-truthset-ht")
         try:
             qc_step_0_2.main()
         except Exception as e:
             self.fail(f"Step 0.2 failed with an exception: {e}")
 
-    def test_1_1_import_data(self):
+    def stub_1_1_import_data(self):
         qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
         try:
             qc_step_1_1.main()
         except Exception as e:
             self.fail(f"Step 1.1 failed with an exception: {e}")
 
-    def test_1_2_import_data(self):
+    def stub_1_2_import_data(self):
         qc_step_1_2 = importlib.import_module("1-import_data.2-import_annotations")
         try:
             qc_step_1_2.main()
         except Exception as e:
             self.fail(f"Step 1.2 failed with an exception: {e}")
 
-    def test_1_3_import_data(self):
+    def stub_1_3_import_data(self):
         qc_step_1_3 = importlib.import_module("1-import_data.3-validate-gtcheck")
         try:
             qc_step_1_3.main()
         except Exception as e:
             self.fail(f"Step 1.3 failed with an exception: {e}")
 
-    def test_1_4_import_data(self):
+    def stub_1_4_import_data(self):
         qc_step_1_4 = importlib.import_module("1-import_data.4-mutation-spectra_preqc")
         try:
             qc_step_1_4.main()
@@ -166,14 +162,14 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 1_4 failed with an exception: {e}")
 
     ### === Sample QC === ###
-    def test_2_1_sample_qc(self):
+    def stub_2_1_sample_qc(self):
         qc_step_2_1 = importlib.import_module("2-sample_qc.1-hard_filters_sex_annotation")
         try:
             qc_step_2_1.main()
         except Exception as e:
             self.fail(f"Step 2.1 failed with an exception: {e}")
 
-    def test_2_2_sample_qc(self):
+    def stub_2_2_sample_qc(self):
         qc_step_2_2 = importlib.import_module("2-sample_qc.2-prune_related_samples")
 
         try:
@@ -187,7 +183,7 @@ class IntegrationTests(HailTestCase):
             merge_and_ldprune=True, pca=True, pca_plot=True, assign_pops=True, pca_plot_assigned=True, all=False
         ),
     )
-    def test_2_3_sample_qc(self, mock_args):
+    def stub_2_3_sample_qc(self, mock_args):
         qc_step_2_3 = importlib.import_module("2-sample_qc.3-population_pca_prediction")
 
         try:
@@ -195,7 +191,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 2.3 failed with an exception: {e}")
 
-    def test_2_4_sample_qc(self):
+    def stub_2_4_sample_qc(self):
         qc_step_2_4 = importlib.import_module("2-sample_qc.4-find_population_outliers")
 
         try:
@@ -203,7 +199,7 @@ class IntegrationTests(HailTestCase):
         except Exception as e:
             self.fail(f"Step 2.4 failed with an exception: {e}")
 
-    def test_2_5_sample_qc(self):
+    def stub_2_5_sample_qc(self):
         qc_step_2_5 = importlib.import_module("2-sample_qc.5-filter_fail_sample_qc")
         try:
             qc_step_2_5.main()
@@ -216,14 +212,14 @@ class IntegrationTests(HailTestCase):
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(all=False, split_qc=True, trios_stats=True, inbreeding=True),
     )
-    def test_3_1_variant_qc(self, mock_args):
+    def stub_3_1_variant_qc(self, mock_args):
         qc_step_3_1 = importlib.import_module("3-variant_qc.1-split_and_family_annotate")
         try:
             qc_step_3_1.main()
         except Exception as e:
             self.fail(f"Step 3.1 failed with an exception: {e}")
 
-    def test_3_2_variant_qc(self):
+    def stub_3_2_variant_qc(self):
         qc_step_3_2 = importlib.import_module("3-variant_qc.2-create_rf_ht")
         try:
             qc_step_3_2.main()
@@ -231,7 +227,7 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.2 failed with an exception: {e}")
 
     @patch("argparse.ArgumentParser.parse_args", return_value=argparse.Namespace(manual_model_id=RF_RUN_TEST_HASH))
-    def test_3_3_variant_qc(self, mock_args):
+    def stub_3_3_variant_qc(self, mock_args):
         qc_step_3_3 = importlib.import_module("3-variant_qc.3-train_rf")
         try:
             qc_step_3_3.main()
@@ -239,7 +235,7 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.3 failed with an exception: {e}")
 
     # mock cli arguments
-    def test_3_4_variant_qc(self):
+    def stub_3_4_variant_qc(self):
         qc_step_3_4 = importlib.import_module("3-variant_qc.4-apply_rf")
         try:
             qc_step_3_4.main()
@@ -247,7 +243,7 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.4 failed with an exception: {e}")
 
     # mock cli arguments
-    def test_3_5_variant_qc(self):
+    def stub_3_5_variant_qc(self):
         qc_step_3_5 = importlib.import_module("3-variant_qc.5-annotate_ht_after_rf")
         try:
             qc_step_3_5.main()
@@ -255,7 +251,7 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.5 failed with an exception: {e}")
 
     # mock cli arguments
-    def test_3_6_variant_qc(self):
+    def stub_3_6_variant_qc(self):
         qc_step_3_6 = importlib.import_module("3-variant_qc.6-rank_and_bin")
         try:
             qc_step_3_6.main()
@@ -263,7 +259,7 @@ class IntegrationTests(HailTestCase):
             self.fail(f"Step 3.6 failed with an exception: {e}")
 
     # mock cli arguments
-    def test_3_7_variant_qc(self):
+    def stub_3_7_variant_qc(self):
         qc_step_3_7 = importlib.import_module("3-variant_qc.7-plot_rf_output")
         try:
             qc_step_3_7.main()
@@ -275,7 +271,7 @@ class IntegrationTests(HailTestCase):
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(snv=92, indel=68),
     )
-    def test_3_8_variant_qc(self, mock_args):
+    def stub_3_8_variant_qc(self, mock_args):
         qc_step_3_8 = importlib.import_module("3-variant_qc.8-select_thresholds")
         try:
             qc_step_3_8.main()
@@ -287,7 +283,7 @@ class IntegrationTests(HailTestCase):
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(snv=84, indel=60),
     )
-    def test_3_9_variant_qc(self, mock_args):
+    def stub_3_9_variant_qc(self, mock_args):
         qc_step_3_9 = importlib.import_module("3-variant_qc.9-filter_mt_after_variant_qc")
         try:
             qc_step_3_9.main()
@@ -299,44 +295,67 @@ class IntegrationTests(HailTestCase):
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(prepare=True, evaluate_snv=True, evaluate_indel=True, plot=True, all=False),
     )
-    def test_4_1_genotype_qc(self, mock_args):
+    def stub_4_1_genotype_qc(self, mock_args):
         qc_step_4_1 = importlib.import_module("4-genotype_qc.1-compare_hard_filter_combinations")
         try:
             qc_step_4_1.main()
         except Exception as e:
             self.fail(f"Step 4.1 failed with an exception: {e}")
 
-    def test_4_2_genotype_qc(self):
+    def stub_4_2_genotype_qc(self):
         qc_step_4_2 = importlib.import_module("4-genotype_qc.2-apply_range_of_hard_filters")
         try:
             qc_step_4_2.main()
         except Exception as e:
             self.fail(f"Step 4.2 failed with an exception: {e}")
 
-    def test_4_3a_genotype_qc(self):
+    def stub_4_3a_genotype_qc(self):
         qc_step_4_3a = importlib.import_module("4-genotype_qc.3a-export_vcfs_range_of_hard_filters")
         try:
             qc_step_4_3a.main()
         except Exception as e:
             self.fail(f"Step 4.3a failed with an exception: {e}")
 
-    def test_4_3b_genotype_qc(self):
+    def stub_4_3b_genotype_qc(self):
         qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
         try:
             qc_step_4_3b.main()
         except Exception as e:
             self.fail(f"Step 4.3b failed with an exception: {e}")
 
-    def test_4_4_genotype_qc(self):
+    def stub_4_4_genotype_qc(self):
         qc_step_4_4 = importlib.import_module("4-genotype_qc.4-counts_per_sample")
         try:
             qc_step_4_4.main()
         except Exception as e:
             self.fail(f"Step 4.4 failed with an exception: {e}")
 
-    def test_4_5_genotype_qc(self):
+    def stub_4_5_genotype_qc(self):
         qc_step_4_5 = importlib.import_module("4-genotype_qc.5-mutation-spectra_afterqc")
         try:
             qc_step_4_5.main()
         except Exception as e:
             self.fail(f"Step 4.5 failed with an exception: {e}")
+
+
+class IntegrationTests(IntegrationTestsStub):
+    def __new__(cls, *args, **kwargs):
+        # Find all stub methods in the parent class
+        stub_methods = inspect.getmembers(
+            IntegrationTestsStub, predicate=lambda x: inspect.isfunction(x) and x.__name__.startswith("stub_")
+        )
+
+        # For each stub method, create a corresponding test method
+        for stub_name, stub_method in stub_methods:
+            test_name = stub_name.replace("stub_", "test_")
+
+            def create_test(stub):
+                def test_method(self):
+                    getattr(self, stub.__name__)()
+
+                return test_method
+
+            # Add the test method to the class
+            setattr(cls, test_name, create_test(stub_method))
+
+        return super().__new__(cls)

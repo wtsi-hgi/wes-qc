@@ -271,9 +271,9 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: null #'{metadir}/control_set_small_trios.ped'
+  pedfile: {PEDIGREE_FILE_NAME}  #'{metadir}/control_set_small_trios.ped' - put from test_integration
 
-  # --- Step 0.2 --- #
+  # --- Step 3.1 --- #
   split_multi_and_var_qc:
     mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
     varqc_mtoutfile: '{mtdir}/mt_varqc.mt' # TODO: check, do we use it in VariantQC. Disable saving and check for errors.
