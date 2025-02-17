@@ -306,7 +306,7 @@ step3:
     allele_counts_file: '{mtdir}/qc_ac.ht'
     inbreeding_file: '{mtdir}/inbreeding.ht'
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
+    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht' # TODO: remove if not used
     htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
 
   # --- Step 3.3 --- #
