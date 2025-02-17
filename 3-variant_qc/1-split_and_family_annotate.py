@@ -1,7 +1,7 @@
 # generate truth sets for variant QC random forest
 import hail as hl
 import argparse
-from typing import Tuple
+from typing import Tuple, Optional
 from utils.utils import parse_config, rm_mt, path_spark
 from gnomad.utils.filtering import filter_to_adj
 from gnomad.utils.annotations import (
@@ -16,7 +16,7 @@ from gnomad.sample_qc.relatedness import generate_trio_stats_expr
 from wes_qc import hail_utils
 
 
-def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: str) -> None:
+def split_multi_and_var_qc(mt: hl.MatrixTable, varqc_mtfile: str, varqc_mtfile_split: str) -> None:
     """
     Adapted from https://github.com/broadinstitute/gnomad_qc/blob/3d79bdf0f7049c209b4659ff8c418a1b859d7cfa/gnomad_qc/v2/annotations/generate_qc_annotations.py
     Run split_multi_hts and variant QC on inout mt after sample QC
@@ -24,7 +24,6 @@ def split_multi_and_var_qc(mtfile: str, varqc_mtfile: str, varqc_mtfile_split: s
     :param str varqc_mtfile: Output mt with adj annotation
     :param str varqc_mtfile_split: Output mt with variant QC annotation and split multiallelics
     """
-    mt = hl.read_matrix_table(path_spark(mtfile))
 
     # Before splitting annotate with sum_ad
     mt = mt.annotate_entries(sum_AD=hl.sum(mt.AD))
@@ -191,9 +190,12 @@ def trio_family_dnm_annotation(
     mt = hl.read_matrix_table(path_spark(varqc_mtfile))
 
     # filter mt to samples that are in trios only and re-run varqc
+    # TODO: can take sample list from Pedigree instead of reading as table
     trio_sample_ht = hl.import_fam(path_spark(pedfile))
-    print("=== Total pedigree records: ", trio_sample_ht.count())
     sample_list = trio_sample_ht.id.collect() + trio_sample_ht.pat_id.collect() + trio_sample_ht.mat_id.collect()
+    print("=== Total pedigree records: ", trio_sample_ht.count())
+    print("=== Total samples: ", len(sample_list))
+
     mt2 = mt.filter_cols(hl.set(sample_list).contains(mt.s))
     mt2 = hl.variant_qc(mt2, name="varqc_trios")
 
@@ -249,13 +251,17 @@ def generate_allele_data(mt: hl.MatrixTable) -> hl.Table:
     return ht
 
 
-def generate_ac(mt: hl.MatrixTable, fam_file: str) -> hl.Table:
+def generate_ac(mt: hl.MatrixTable, fam_file: Optional[str]) -> hl.Table:
     """
     Creates Table with QC samples, QC samples removing children and release samples raw and adj ACs.
     """
-    # mt = mt.filter_cols(mt.meta.high_quality)
-    fam_ht = hl.import_fam(path_spark(fam_file), delimiter="\t")
-    mt = mt.annotate_cols(unrelated_sample=hl.is_missing(fam_ht[mt.s]))
+    if fam_file is not None:
+        fam_ht = hl.import_fam(path_spark(fam_file), delimiter="\t")
+        unrelated_expr = hl.is_missing(fam_ht[mt.s])
+    else:
+        unrelated_expr = hl.literal(True)  # All samples are unrelated
+    mt = mt.annotate_cols(unrelated_sample=unrelated_expr)
+
     mt = mt.filter_rows(hl.len(mt.alleles) > 1)
     mt = mt.annotate_rows(
         ac_qc_samples_raw=hl.agg.sum(mt.GT.n_alt_alleles()),
@@ -265,7 +271,7 @@ def generate_ac(mt: hl.MatrixTable, fam_file: str) -> hl.Table:
 
 
 def create_inbreeding_ht_with_ac_and_allele_data(
-    varqc_mtfile: str, pedfile: str, inbreeding_htfile: str, qc_ac_htfile: str, allele_data_htfile: str
+    varqc_mtfile: str, pedfile: Optional[str], inbreeding_htfile: str, qc_ac_htfile: str, allele_data_htfile: str
 ):
     """
     Inbreeding, allele data and qc_ac annotations
@@ -331,12 +337,17 @@ def main():
     gnomad_htfile = config["step3"]["trio_family_dnm_annotation"]["gnomad_htfile"]
     dnm_htoutfile = config["step3"]["trio_family_dnm_annotation"]["dnm_htoutfile"]
 
+    inbreeding_htoutfile = config["step3"]["create_inbreeding_ht_with_ac_and_allele_data"]["inbreeding_htoutfile"]
+    qc_ac_htoutfile = config["step3"]["create_inbreeding_ht_with_ac_and_allele_data"]["qc_ac_htoutfile"]
+    allele_data_htoutfile = config["step3"]["create_inbreeding_ht_with_ac_and_allele_data"]["allele_data_htoutfile"]
+
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
 
     # add hail variant QC
     if args.split_qc:
-        split_multi_and_var_qc(mtfile, varqc_mtoutfile, varqc_mtoutfile_split)
+        mt = hl.read_matrix_table(path_spark(mtfile))
+        split_multi_and_var_qc(mt, varqc_mtoutfile, varqc_mtoutfile_split)
 
     if args.trios_stats:
         if pedfile is not None:
@@ -357,9 +368,6 @@ def main():
 
     if args.inbreeding:
         # create inbreeding ht
-        inbreeding_htoutfile = config["step3"]["create_inbreeding_ht_with_ac_and_allele_data"]["inbreeding_htoutfile"]
-        qc_ac_htoutfile = config["step3"]["create_inbreeding_ht_with_ac_and_allele_data"]["qc_ac_htoutfile"]
-        allele_data_htoutfile = config["step3"]["create_inbreeding_ht_with_ac_and_allele_data"]["allele_data_htoutfile"]
         create_inbreeding_ht_with_ac_and_allele_data(
             varqc_mtoutfile, pedfile, inbreeding_htoutfile, qc_ac_htoutfile, allele_data_htoutfile
         )
