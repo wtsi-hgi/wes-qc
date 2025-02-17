@@ -103,6 +103,12 @@ def main():
     config = parse_config()
     tmp_dir = config["general"]["tmp_dir"]
 
+    # = STEP PARAMETERS = #
+
+    # = STEP DEPENDENCIES = #
+
+    # = STEP OUTPUTS = #
+
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
 

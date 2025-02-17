@@ -300,7 +300,7 @@ step3:
     fail_hard_filters_FS_greater_than: 60
     fail_hard_filters_MQ_less_than: 30
 
-    truthset_file: '{resdir}/truthset_table.ht'
+    truthset_file: '{mtdir}/truthset_table.ht'
     trio_stats_file: '{mtdir}/trio_stats.ht'
     allele_data_file: '{mtdir}/allele_data.ht'
     allele_counts_file: '{mtdir}/qc_ac.ht'
