@@ -308,38 +308,48 @@ def main():
 
     # = STEP PARAMETERS = #
     model_id = config["general"]["rf_model_id"]
+    pedfile: str = config["step3"]["pedfile"]
 
     # = STEP DEPENDENCIES = #
-    rf_dir = path_spark(config["general"]["var_qc_rf_dir"])
+    rf_dir: str = path_spark(config["general"]["var_qc_rf_dir"])
     # TODO: should be in the config
-    htfile = os.path.join(rf_dir, model_id, "rf_result_final_for_ranking.ht")
+    htfile: str = os.path.join(rf_dir, model_id, "rf_result_final_for_ranking.ht")
 
     # = STEP OUTPUTS = #
-    htrankedfile = os.path.join(rf_dir, model_id, "rf_result_ranked.ht")
-    truth_htfile = config["step3"]["create_binned_data_initial"]["truth_htfile"]
+    htrankedfile: str = os.path.join(rf_dir, model_id, "rf_result_ranked.ht")
+    truth_htfile: str = config["step3"]["create_binned_data_initial"]["truth_htfile"]
     # TODO: should be in the config
-    bin_tmp_htfile = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")
-    bin_htfile = os.path.join(rf_dir, model_id, "_rf_result_ranked_BINS.ht")
+    bin_tmp_htfile: str = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")
+    bin_htfile: str = os.path.join(rf_dir, model_id, "_rf_result_ranked_BINS.ht")
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
     ht = hl.read_table(path_spark(htfile))
+    print("=== Assigning ranks ===")
+    subrank_expr = {
+        "singleton_rank": ht.transmitted_singleton,
+        "biallelic_rank": ~ht.was_split,
+        "biallelic_singleton_rank": ~ht.was_split & ht.transmitted_singleton,
+        "de_novo_high_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.9,
+        "de_novo_medium_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.5,
+        "de_novo_synonymous_rank": ht.consequence == "synonymous_variant",
+    }
+    # TODO: Trying to make the add_rank() fucntion return correct annotations for empty pedigree. Still don't work
+    if pedfile is None:
+        # We know that there will be no de-novo and singleton annotaitons: change all fields to False
+        subrank_expr["singleton_rank"] = hl.literal(False)
+        subrank_expr["biallelic_singleton_rank"] = hl.literal(False)
+        subrank_expr["de_novo_high_quality_rank"] = hl.literal(False)
+        subrank_expr["de_novo_medium_quality_rank"] = hl.literal(False)
+
     ht_ranked = add_rank(
         ht,
         score_expr=(1 - ht.rf_probability["TP"]),
-        subrank_expr={
-            "singleton_rank": ht.transmitted_singleton,
-            "biallelic_rank": ~ht.was_split,
-            "biallelic_singleton_rank": ~ht.was_split & ht.transmitted_singleton,
-            "de_novo_high_quality_rank": ht.de_novo_data.p_de_novo[0]
-            > config["step3"]["add_rank"]["subrank_expr_de_novo_high_quality_rank"],
-            "de_novo_medium_quality_rank": ht.de_novo_data.p_de_novo[0]
-            > config["step3"]["add_rank"]["subrank_expr_de_novo_medium_quality_rank"],
-            "de_novo_synonymous_rank": ht.consequence == "synonymous_variant",
-        },
+        subrank_expr=subrank_expr,
     )
     ht_ranked = ht_ranked.annotate(score=(1 - ht_ranked.rf_probability["TP"]))
     ht_ranked.write(path_spark(htrankedfile), overwrite=True)
+    print("=== Ranking results and adding bins ===")
     ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100, config=config)
     ht_bins.write(path_spark(bin_htfile), overwrite=True)
 

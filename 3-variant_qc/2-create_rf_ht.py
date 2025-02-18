@@ -102,7 +102,6 @@ def main():
     inbreeding_file = config["step3"]["create_rf_ht"]["inbreeding_file"]
 
     # = STEP OUTPUTS = #
-    # htoutfile_rf_all_cols = config["step3"]["create_rf_ht"]["htoutfile_rf_all_cols"]  # TODO: remove if not used.
     htoutfile_rf_var_type_all_cols = config["step3"]["create_rf_ht"]["htoutfile_rf_var_type_all_cols"]
 
     # = STEP LOGIC = #

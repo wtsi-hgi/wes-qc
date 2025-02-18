@@ -265,7 +265,7 @@ def plot_metric(
     return bm.Tabs(tabs=tabs)
 
 
-def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_settings: dict):
+def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_settings: dict, trios_available: bool = True):
     """
     Create variant QC plots
     :param str bin_htfile: Hail table file containing binned ranfom forest output
@@ -302,51 +302,103 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     # plots
     model = model_id
     colors = {model: "blue"}
-    # plot transmitted singletons
-    plotfile = os.path.join(plot_dir, "transmitted_singletons.html")
-    tabs = plot_metric(
-        snvs,
-        "n_trans_singletons",
-        ["n_trans_singletons_synonymous_algorithm"],
-        qc_plots_settings,
-        y_fun=lambda x: x[0],
-        plot_bi_allelics=False,
-        plot_singletons=False,
-        plot_bi_allelic_singletons=False,
-        colors=colors,
-    )
-    output_file(filename=plotfile)
-    save(tabs)
-    # plot untransmitted singletons
-    plotfile = os.path.join(plot_dir, "untransmitted_singletons.html")
-    tabs = plot_metric(
-        snvs,
-        "n_untrans_singletons",
-        ["n_untrans_singletons_synonymous_algorithm"],
-        qc_plots_settings,
-        y_fun=lambda x: x[0],
-        plot_bi_allelics=False,
-        plot_singletons=False,
-        plot_bi_allelic_singletons=False,
-        colors=colors,
-    )
-    output_file(filename=plotfile)
-    save(tabs)
-    # plot transmitted/untransmitted ratio
-    plotfile = os.path.join(plot_dir, "transmitted_untransmitted.html")
-    tabs = plot_metric(
-        snvs,
-        "trans_untrans_ratio",
-        ["n_trans_singletons_synonymous_algorithm", "n_untrans_singletons_synonymous_algorithm"],
-        qc_plots_settings,
-        y_fun=lambda x: x[0] / x[1],
-        plot_bi_allelics=False,
-        plot_singletons=False,
-        plot_bi_allelic_singletons=False,
-        colors=colors,
-    )
-    output_file(filename=plotfile)
-    save(tabs)
+
+    if trios_available:
+        # plot transmitted singletons
+        plotfile = os.path.join(plot_dir, "transmitted_singletons.html")
+        tabs = plot_metric(
+            snvs,
+            "n_trans_singletons",
+            ["n_trans_singletons_synonymous_algorithm"],
+            qc_plots_settings,
+            y_fun=lambda x: x[0],
+            plot_bi_allelics=False,
+            plot_singletons=False,
+            plot_bi_allelic_singletons=False,
+            colors=colors,
+        )
+        output_file(filename=plotfile)
+        save(tabs)
+
+        # plot untransmitted singletons
+        plotfile = os.path.join(plot_dir, "untransmitted_singletons.html")
+        tabs = plot_metric(
+            snvs,
+            "n_untrans_singletons",
+            ["n_untrans_singletons_synonymous_algorithm"],
+            qc_plots_settings,
+            y_fun=lambda x: x[0],
+            plot_bi_allelics=False,
+            plot_singletons=False,
+            plot_bi_allelic_singletons=False,
+            colors=colors,
+        )
+        output_file(filename=plotfile)
+        save(tabs)
+
+        # plot transmitted/untransmitted ratio
+        plotfile = os.path.join(plot_dir, "transmitted_untransmitted.html")
+        tabs = plot_metric(
+            snvs,
+            "trans_untrans_ratio",
+            ["n_trans_singletons_synonymous_algorithm", "n_untrans_singletons_synonymous_algorithm"],
+            qc_plots_settings,
+            y_fun=lambda x: x[0] / x[1],
+            plot_bi_allelics=False,
+            plot_singletons=False,
+            plot_bi_allelic_singletons=False,
+            colors=colors,
+        )
+        output_file(filename=plotfile)
+        save(tabs)
+
+        # plot transmitted/untransmitted from Hail's tdt test
+        # plot transmitted singletons
+        plotfile = os.path.join(plot_dir, "transmitted_singletons_tdt.html")
+        tabs = plot_metric(
+            snvs,
+            "n_trans_singletons_tdt",
+            ["n_trans_singletons_synonymous_tdt"],
+            qc_plots_settings,
+            y_fun=lambda x: x[0],
+            plot_bi_allelics=False,
+            plot_singletons=False,
+            plot_bi_allelic_singletons=False,
+            colors=colors,
+        )
+        output_file(filename=plotfile)
+        save(tabs)
+        # plot untransmitted singletons
+        plotfile = os.path.join(plot_dir, "untransmitted_singletons_tdt.html")
+        tabs = plot_metric(
+            snvs,
+            "n_untrans_singletons_tdt",
+            ["n_untrans_singletons_synonymous_tdt"],
+            qc_plots_settings,
+            y_fun=lambda x: x[0],
+            plot_bi_allelics=False,
+            plot_singletons=False,
+            plot_bi_allelic_singletons=False,
+            colors=colors,
+        )
+        output_file(filename=plotfile)
+        save(tabs)
+        # ratio
+        plotfile = os.path.join(plot_dir, "transmitted_untransmitted_tdt.html")
+        tabs = plot_metric(
+            snvs,
+            "trans_untrans_ratio_tdt",
+            ["n_trans_singletons_synonymous_tdt", "n_untrans_singletons_synonymous_tdt"],
+            qc_plots_settings,
+            y_fun=lambda x: x[0] / x[1],
+            plot_bi_allelics=False,
+            plot_singletons=False,
+            plot_bi_allelic_singletons=False,
+            colors=colors,
+        )
+        output_file(filename=plotfile)
+        save(tabs)
+
     # plot number of insertions
     plotfile = os.path.join(plot_dir, "n_insertions.html")
     tabs = plot_metric(
@@ -362,6 +414,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot number of deletions
     plotfile = os.path.join(plot_dir, "n_deletions.html")
     tabs = plot_metric(
@@ -377,6 +430,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot Ti/Tv ratio
     plotfile = os.path.join(plot_dir, "r_ti_tv.html")
     tabs = plot_metric(
@@ -392,6 +446,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot 1kg high confidence SNVs
     plotfile = os.path.join(plot_dir, "kg_snv.html")
     tabs = plot_metric(
@@ -407,6 +462,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot omni SNVs
     plotfile = os.path.join(plot_dir, "omni_snv.html")
     tabs = plot_metric(
@@ -422,6 +478,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot mills indels
     plotfile = os.path.join(plot_dir, "mills_indels.html")
     tabs = plot_metric(
@@ -437,6 +494,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot hapmap snvs
     plotfile = os.path.join(plot_dir, "hapmap_snvs.html")
     tabs = plot_metric(
@@ -452,6 +510,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot hapmap indels
     plotfile = os.path.join(plot_dir, "hapmap_indels.html")
     tabs = plot_metric(
@@ -467,6 +526,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot fail hard filters snvs
     plotfile = os.path.join(plot_dir, "fail_hard_filters_snvs.html")
     tabs = plot_metric(
@@ -482,6 +542,7 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
+
     # plot fail hard filters indels
     plotfile = os.path.join(plot_dir, "fail_hard_filters_indels.html")
     tabs = plot_metric(
@@ -497,82 +558,6 @@ def create_plots(bin_htfile: str, plot_dir: str, model_id: str, qc_plots_setting
     )
     output_file(filename=plotfile)
     save(tabs)
-    # plot transmitted/untransmitted from Hail's tdt test
-    # plot transmitted singletons
-    plotfile = os.path.join(plot_dir, "transmitted_singletons_tdt.html")
-    tabs = plot_metric(
-        snvs,
-        "n_trans_singletons_tdt",
-        ["n_trans_singletons_synonymous_tdt"],
-        qc_plots_settings,
-        y_fun=lambda x: x[0],
-        plot_bi_allelics=False,
-        plot_singletons=False,
-        plot_bi_allelic_singletons=False,
-        colors=colors,
-    )
-    output_file(filename=plotfile)
-    save(tabs)
-    # plot untransmitted singletons
-    plotfile = os.path.join(plot_dir, "untransmitted_singletons_tdt.html")
-    tabs = plot_metric(
-        snvs,
-        "n_untrans_singletons_tdt",
-        ["n_untrans_singletons_synonymous_tdt"],
-        qc_plots_settings,
-        y_fun=lambda x: x[0],
-        plot_bi_allelics=False,
-        plot_singletons=False,
-        plot_bi_allelic_singletons=False,
-        colors=colors,
-    )
-    output_file(filename=plotfile)
-    save(tabs)
-    # ratio
-    plotfile = os.path.join(plot_dir, "transmitted_untransmitted_tdt.html")
-    tabs = plot_metric(
-        snvs,
-        "trans_untrans_ratio_tdt",
-        ["n_trans_singletons_synonymous_tdt", "n_untrans_singletons_synonymous_tdt"],
-        qc_plots_settings,
-        y_fun=lambda x: x[0] / x[1],
-        plot_bi_allelics=False,
-        plot_singletons=False,
-        plot_bi_allelic_singletons=False,
-        colors=colors,
-    )
-    output_file(filename=plotfile)
-    save(tabs)
-    # #plot transmitted/untransmitted for synonymous vars with AC<10 in non-probands
-    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_10.html"
-    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_10', ['n_trans_ac_lt_10', 'n_untrans_ac_lt_10'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    # output_file(filename=plotfile)
-    # save(tabs)
-    # #plot transmitted/untransmitted for synonymous vars with AC<7 in non-probands
-    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_7.html"
-    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_7', ['n_trans_ac_lt_7', 'n_untrans_ac_lt_7'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    # output_file(filename=plotfile)
-    # save(tabs)
-    # #plot transmitted/untransmitted for synonymous vars with AC<5 in non-probands
-    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_5.html"
-    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_5', ['n_trans_ac_lt_5', 'n_untrans_ac_lt_5'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    # output_file(filename=plotfile)
-    # save(tabs)
-    # #plot transmitted/untransmitted for synonymous vars with AC<3 in non-probands
-    # plotfile = plot_dir + "transmitted_untransmitted_synonymous_ac_lt_3.html"
-    # tabs = plot_metric(snvs, 'trans_untrans_ratio_synonymous_ac_lt_3', ['n_trans_ac_lt_3', 'n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0]/x[1], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    # output_file(filename=plotfile)
-    # save(tabs)
-    # #plot transmitted AC < 3
-    # plotfile = plot_dir + "transmitted_ac_lt_3.html"
-    # tabs = plot_metric(snvs, 'n_trans_ac_lt_3', ['n_trans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    # output_file(filename=plotfile)
-    # save(tabs)
-    # #plot untransmitted AC < 3
-    # plotfile = plot_dir + "untransmitted_ac_lt_3.html"
-    # tabs = plot_metric(snvs, 'n_untrans_ac_lt_3', ['n_untrans_ac_lt_3'], qc_plots_settings, y_fun=lambda x: x[0], plot_bi_allelics=False, plot_singletons=False, plot_bi_allelic_singletons=False, colors=colors)
-    # output_file(filename=plotfile)
-    # save(tabs)
 
 
 def main():
@@ -583,6 +568,7 @@ def main():
     # = STEP PARAMETERS = #
     qc_plots_settings = config["step3"]["create_plots"]["qc_plots_settings"]
     model_id = config["general"]["rf_model_id"]
+    pedfile: str = config["step3"]["pedfile"]
 
     # = STEP DEPENDENCIES = #
     rf_dir = path_spark(config["general"]["var_qc_rf_dir"])
@@ -596,7 +582,7 @@ def main():
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
     os.makedirs(plot_dir, exist_ok=True)
-    create_plots(bin_htfile, plot_dir, model_id, qc_plots_settings)
+    create_plots(bin_htfile, plot_dir, model_id, qc_plots_settings, pedfile is not None)
 
 
 if __name__ == "__main__":
