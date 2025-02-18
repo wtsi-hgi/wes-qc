@@ -13,8 +13,8 @@ from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
 from wes_qc import hail_utils
 
 spark_local_message = """!!! WARNING !!!
-The gnomAD fucntion train_rf_model() is a bit buggy
-and can work incorrectly in the parallel SPARK environment.
+The gnomAD fucntion train_rf_model() in some cases
+could work incorrectly in the parallel SPARK environment.
 
 If the run of the function will fail with some weird message
 (no space left on device, wrong imports, etc),
