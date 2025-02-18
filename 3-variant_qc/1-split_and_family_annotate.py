@@ -201,12 +201,12 @@ def trio_family_dnm_annotation(
 
     trio_dataset = hl.trio_matrix(mt2, pedigree, complete_trios=True)
     trio_dataset.write(path_spark(trio_mtfile), overwrite=True)
-    print(f"=== Extracted {trio_dataset.count_cols()} full trios")
+    print(f"=== Extracted {trio_dataset.count_cols()} full trios ===")
 
     trio_stats_ht = generate_trio_stats(trio_dataset, autosomes_only=True, bi_allelic_only=False)
     trio_stats_ht.write(path_spark(trio_stats_htfile), overwrite=True)
 
-    print("Generating family stats")
+    print("=== Generating family stats ===")
     (ht1, famstats_ht) = generate_family_stats(mt, pedfile)
     ht1.write(path_spark(fam_stats_htfile), overwrite=True)
 
@@ -220,7 +220,7 @@ def trio_family_dnm_annotation(
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by("locus", "alleles").collect_by_key("de_novo_data")
     de_novo_table.repartition(480).write(path_spark(dnm_htfile), overwrite=True)
-
+    de_novo_table.write(dnm_htfile, overwrite=True)
     rm_mt(fam_stats_mtfile)
 
 
