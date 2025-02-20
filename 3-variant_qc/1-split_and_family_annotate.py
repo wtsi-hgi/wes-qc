@@ -31,6 +31,8 @@ def split_multi_and_var_qc(mt: hl.MatrixTable, varqc_mtfile: str, varqc_mtfile_s
     mt = mt.checkpoint(path_spark(varqc_mtfile), overwrite=True)
 
     mt = hl.split_multi_hts(mt)
+
+    # TODO: Checkpoint here can increase speed. Evaluate performance on a large dataset
     # tmp_mt = path_spark(varqc_mtfile_split + "_tmp")
     # print("writing split mt")
     # mt = mt.checkpoint(tmp_mt, overwrite=True)
@@ -54,7 +56,6 @@ def split_multi_and_var_qc(mt: hl.MatrixTable, varqc_mtfile: str, varqc_mtfile_s
 
     print("writing split mt")
     mt.write(path_spark(varqc_mtfile_split), overwrite=True)
-    # rm_mt(tmp_mt) # DEBUG: this doesn't work for me
     # hfs.rmtree(tmp_mt)
 
 
@@ -220,7 +221,6 @@ def trio_family_dnm_annotation(
     de_novo_table = hl.de_novo(mt, pedigree, mt.gnomad_maf)
     de_novo_table = de_novo_table.key_by("locus", "alleles").collect_by_key("de_novo_data")
     de_novo_table.repartition(480).write(path_spark(dnm_htfile), overwrite=True)
-    de_novo_table.write(dnm_htfile, overwrite=True)
     rm_mt(fam_stats_mtfile)
 
 

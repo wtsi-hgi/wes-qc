@@ -84,16 +84,17 @@ def dnm_and_family_annotation_with_tables(
 
 
 def dnm_and_family_annotation(
-    ht_cq: hl.Table, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, pedfile: str
+    ht: hl.Table, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, pedfile: str
 ) -> hl.Table:
     if pedfile is not None:
         # annotate with family stats and DNMs
-        ht_cq = dnm_and_family_annotation_with_tables(ht_cq, dnm_htfile, fam_stats_htfile, trio_stats_htfile)
+        ht = dnm_and_family_annotation_with_tables(ht, dnm_htfile, fam_stats_htfile, trio_stats_htfile)
     else:
-        ht_cq = dnm_and_family_annotation_with_missing(ht_cq)
-    return ht_cq
+        ht = dnm_and_family_annotation_with_missing(ht)
+    return ht
 
 
+# TODO: To messy - a good candidate for refactoring
 def count_trans_untransmitted_singletons(mt_trios: Optional[hl.MatrixTable], ht: hl.Table) -> Tuple[int, int]:
     """
     Count untransmitted and transmitted singletons
@@ -221,22 +222,22 @@ def main():
 
     # annotate with synonymous CQs
     ht = hl.read_table(path_spark(htfile))
-    ht_cq = add_cq_annotation(ht, synonymous_file)
-    ht_cq.write(path_spark(ht_cq_file), overwrite=True)
+    ht = add_cq_annotation(ht, synonymous_file)
+    ht.write(path_spark(ht_cq_file), overwrite=True)
 
-    # ht_cq = hl.read_table(path_spark(ht_cq_file))
-    ht_cq = dnm_and_family_annotation(ht_cq, dnm_htfile, fam_stats_htfile, trio_stats_htfile, pedfile)
-    ht_cq.write(path_spark(family_annot_htfile), overwrite=True)
+    # ht = hl.read_table(path_spark(ht_cq_file))
+    ht = dnm_and_family_annotation(ht, dnm_htfile, fam_stats_htfile, trio_stats_htfile, pedfile)
+    ht.write(path_spark(family_annot_htfile), overwrite=True)
 
     # annotate with transmitted singletons
     # ht = hl.read_table(path_spark(family_annot_htfile))
-    ht_cq = transmitted_singleton_annotation(ht_cq, trio_mtfile, pedfile)
-    ht_cq.write(path_spark(trans_sing_htfile), overwrite=True)
+    ht = transmitted_singleton_annotation(ht, trio_mtfile, pedfile)
+    ht.write(path_spark(trans_sing_htfile), overwrite=True)
 
     # annotate with gnomad AF
     gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
-    ht_cq = annotate_gnomad_af(ht_cq, gnomad_ht)
-    ht_cq.write(final_htfile, overwrite=True)
+    ht = annotate_gnomad_af(ht, gnomad_ht)
+    ht.write(final_htfile, overwrite=True)
 
 
 if __name__ == "__main__":

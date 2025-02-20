@@ -301,6 +301,26 @@ def fill_empty_rank_values(rank_counts: hl.Struct) -> hl.Struct:
     return hl.struct(**filled_rank_counts)
 
 
+def make_subrank_expression(ht: hl.Table, add_trios_dependent_subranks: bool) -> Dict[str, hl.expr.BooleanExpression]:
+    # TODO: Do we need to move hardcoded values to config?
+    subrank_expr = {
+        "singleton_rank": ht.transmitted_singleton,
+        "biallelic_rank": ~ht.was_split,
+        "biallelic_singleton_rank": ~ht.was_split & ht.transmitted_singleton,
+        "de_novo_high_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.9,
+        "de_novo_medium_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.5,
+        "de_novo_synonymous_rank": ht.consequence == "synonymous_variant",
+    }
+    # TODO: Trying to make the add_rank() function return correct annotations for empty pedigree. Still don't work
+    if add_trios_dependent_subranks:
+        # We know that there will be no de-novo and singleton annotaitons: change all fields to False
+        subrank_expr["singleton_rank"] = hl.literal(False)
+        subrank_expr["biallelic_singleton_rank"] = hl.literal(False)
+        subrank_expr["de_novo_high_quality_rank"] = hl.literal(False)
+        subrank_expr["de_novo_medium_quality_rank"] = hl.literal(False)
+    return subrank_expr
+
+
 def main():
     # = STEP SETUP =
     config = parse_config()
@@ -326,21 +346,9 @@ def main():
     _ = hail_utils.init_hl(tmp_dir)
     ht = hl.read_table(path_spark(htfile))
     print("=== Assigning ranks ===")
-    subrank_expr = {
-        "singleton_rank": ht.transmitted_singleton,
-        "biallelic_rank": ~ht.was_split,
-        "biallelic_singleton_rank": ~ht.was_split & ht.transmitted_singleton,
-        "de_novo_high_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.9,
-        "de_novo_medium_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.5,
-        "de_novo_synonymous_rank": ht.consequence == "synonymous_variant",
-    }
-    # TODO: Trying to make the add_rank() fucntion return correct annotations for empty pedigree. Still don't work
-    if pedfile is None:
-        # We know that there will be no de-novo and singleton annotaitons: change all fields to False
-        subrank_expr["singleton_rank"] = hl.literal(False)
-        subrank_expr["biallelic_singleton_rank"] = hl.literal(False)
-        subrank_expr["de_novo_high_quality_rank"] = hl.literal(False)
-        subrank_expr["de_novo_medium_quality_rank"] = hl.literal(False)
+
+    add_trios_dependent_subranks = pedfile is not None
+    subrank_expr = make_subrank_expression(ht, add_trios_dependent_subranks)
 
     ht_ranked = add_rank(
         ht,
@@ -349,6 +357,7 @@ def main():
     )
     ht_ranked = ht_ranked.annotate(score=(1 - ht_ranked.rf_probability["TP"]))
     ht_ranked.write(path_spark(htrankedfile), overwrite=True)
+
     print("=== Ranking results and adding bins ===")
     ht_bins = create_binned_data_initial(ht_ranked, bin_tmp_htfile, truth_htfile, n_bins=100, config=config)
     ht_bins.write(path_spark(bin_htfile), overwrite=True)

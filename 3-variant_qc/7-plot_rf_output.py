@@ -567,7 +567,7 @@ def main():
 
     # = STEP PARAMETERS = #
     qc_plots_settings = config["step3"]["create_plots"]["qc_plots_settings"]
-    model_id = config["general"]["rf_model_id"]
+    model_id: str = config["general"]["rf_model_id"]
     pedfile: str = config["step3"]["pedfile"]
 
     # = STEP DEPENDENCIES = #
@@ -582,7 +582,8 @@ def main():
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
     os.makedirs(plot_dir, exist_ok=True)
-    create_plots(bin_htfile, plot_dir, model_id, qc_plots_settings, pedfile is not None)
+    make_trios_related_plots = pedfile is not None
+    create_plots(bin_htfile, plot_dir, model_id, qc_plots_settings, make_trios_related_plots)
 
 
 if __name__ == "__main__":
