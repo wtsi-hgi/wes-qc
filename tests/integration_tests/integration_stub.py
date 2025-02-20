@@ -81,7 +81,7 @@ def render_config(
 
 class HailTestCase(unittest.TestCase):
     @classmethod
-    def setUpClass(cls, pedigree_file_path: str):
+    def setUpClass(cls):
         # get test suite path in the repo
         test_suite_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -99,6 +99,9 @@ class HailTestCase(unittest.TestCase):
 
         integration_tests_dir = os.path.dirname(os.path.realpath(__file__))
         rendered_config_savefile = os.path.join(integration_tests_dir, INTEGRATION_TESTS_CONFIG_RENDERED_SAVEFILE)
+
+        # Get pedigree file path from class variable, defaulting to None if not set
+        pedigree_file_path = getattr(cls, "pedigree_file_path", None)
 
         # # render test config from the template
         render_config(

@@ -36,4 +36,7 @@ class IntegrationTestsNonTrios(IntegrationTestsStub):
 
     @classmethod
     def setUpClass(cls):
-        return super().setUpClass(pedigree_file_path=PEDIGREE_FILE_PATH_NON_TRIOS)
+        # Store pedigree file path as class variable
+        cls.pedigree_file_path = PEDIGREE_FILE_PATH_NON_TRIOS
+        # Call parent's setUpClass without arguments
+        super().setUpClass()
