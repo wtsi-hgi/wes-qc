@@ -23,7 +23,7 @@ def get_truth_ht(omni: str, mills: str, thousand_genomes: str, hapmap: str, **kw
         .join(omni_ht.select(omni=True), how="outer")
         .join(thousand_genomes_ht.select(kgp_phase1_hc=True), how="outer")
         .join(mills_ht.select(mills=True), how="outer")
-        .repartition(200, shuffle=False)
+        .repartition(200)
     )  # TODO: I suppose this number should not be considered as a config parameter candidate, should it?
     return truth_ht
 
