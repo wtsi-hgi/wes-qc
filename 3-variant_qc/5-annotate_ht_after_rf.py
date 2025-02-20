@@ -50,15 +50,99 @@ def dnm_and_family_annotation_with_missing(ht_cq: hl.Table) -> hl.Table:
     """
     Annotates the input Hail Table with missing family annotations and returns the updated table.
     """
-    # Hail types for missing family annotations
-    # You can obtain it from any real family stats table using the .dtype property of the column
-    de_novo_data_dtype = "array<struct{id: str, prior: float64, proband: struct{s: str, batch: str, c_a_artefact_suspected: bool, assigned_pop: str}, father: struct{s: str, batch: str, c_a_artefact_suspected: bool, assigned_pop: str}, mother: struct{s: str, batch: str, c_a_artefact_suspected: bool, assigned_pop: str}, proband_entry: struct{AD: array<int32>, DP: int32, GQ: int32, GT: call, MIN_DP: int32, PGT: call, PID: str, PL: array<int32>, PS: int32, RGQ: int32, SB: array<int32>, sum_AD: int32, adj: bool, HetAB: float64}, father_entry: struct{AD: array<int32>, DP: int32, GQ: int32, GT: call, MIN_DP: int32, PGT: call, PID: str, PL: array<int32>, PS: int32, RGQ: int32, SB: array<int32>, sum_AD: int32, adj: bool, HetAB: float64}, mother_entry: struct{AD: array<int32>, DP: int32, GQ: int32, GT: call, MIN_DP: int32, PGT: call, PID: str, PL: array<int32>, PS: int32, RGQ: int32, SB: array<int32>, sum_AD: int32, adj: bool, HetAB: float64}, is_female: bool, p_de_novo: float64, confidence: str}>"
-    family_stats_dtype = "array<struct{mendel: struct{errors: int64}, tdt: struct{t: int64, u: int64, chi_sq: float64, p_value: float64}, unrelated_qc_callstats: struct{AC: array<int32>, AF: array<float64>, AN: int32, homozygote_count: array<int32>}, meta: dict<str, str>}>"
-    trio_stat_dtype = "struct{n_transmitted_raw: int64, n_untransmitted_raw: int64, n_transmitted_adj: int64, n_untransmitted_adj: int64, n_de_novos_raw: int64, n_de_novos_adj: int64, ac_parents_raw: int64, an_parents_raw: int64, ac_children_raw: int64, an_children_raw: int64, ac_parents_adj: int64, an_parents_adj: int64, ac_children_adj: int64, an_children_adj: int64}"
+    # Define Hail type objects for missing family annotations
+    de_novo_data_type = hl.tarray(
+        hl.tstruct(
+            id=hl.tstr,
+            prior=hl.tfloat64,
+            proband=hl.tstruct(s=hl.tstr, batch=hl.tstr, c_a_artefact_suspected=hl.tbool, assigned_pop=hl.tstr),
+            father=hl.tstruct(s=hl.tstr, batch=hl.tstr, c_a_artefact_suspected=hl.tbool, assigned_pop=hl.tstr),
+            mother=hl.tstruct(s=hl.tstr, batch=hl.tstr, c_a_artefact_suspected=hl.tbool, assigned_pop=hl.tstr),
+            proband_entry=hl.tstruct(
+                AD=hl.tarray(hl.tint32),
+                DP=hl.tint32,
+                GQ=hl.tint32,
+                GT=hl.tcall,
+                MIN_DP=hl.tint32,
+                PGT=hl.tcall,
+                PID=hl.tstr,
+                PL=hl.tarray(hl.tint32),
+                PS=hl.tint32,
+                RGQ=hl.tint32,
+                SB=hl.tarray(hl.tint32),
+                sum_AD=hl.tint32,
+                adj=hl.tbool,
+                HetAB=hl.tfloat64,
+            ),
+            father_entry=hl.tstruct(
+                AD=hl.tarray(hl.tint32),
+                DP=hl.tint32,
+                GQ=hl.tint32,
+                GT=hl.tcall,
+                MIN_DP=hl.tint32,
+                PGT=hl.tcall,
+                PID=hl.tstr,
+                PL=hl.tarray(hl.tint32),
+                PS=hl.tint32,
+                RGQ=hl.tint32,
+                SB=hl.tarray(hl.tint32),
+                sum_AD=hl.tint32,
+                adj=hl.tbool,
+                HetAB=hl.tfloat64,
+            ),
+            mother_entry=hl.tstruct(
+                AD=hl.tarray(hl.tint32),
+                DP=hl.tint32,
+                GQ=hl.tint32,
+                GT=hl.tcall,
+                MIN_DP=hl.tint32,
+                PGT=hl.tcall,
+                PID=hl.tstr,
+                PL=hl.tarray(hl.tint32),
+                PS=hl.tint32,
+                RGQ=hl.tint32,
+                SB=hl.tarray(hl.tint32),
+                sum_AD=hl.tint32,
+                adj=hl.tbool,
+                HetAB=hl.tfloat64,
+            ),
+            is_female=hl.tbool,
+            p_de_novo=hl.tfloat64,
+            confidence=hl.tstr,
+        )
+    )
 
-    ht_cq = ht_cq.annotate(de_novo_data=hl.missing(de_novo_data_dtype))
-    ht_cq = ht_cq.annotate(family_stats=hl.missing(family_stats_dtype))
-    ht_cq = ht_cq.annotate(fam=hl.missing(trio_stat_dtype))
+    family_stats_type = hl.tarray(
+        hl.tstruct(
+            mendel=hl.tstruct(errors=hl.tint64),
+            tdt=hl.tstruct(t=hl.tint64, u=hl.tint64, chi_sq=hl.tfloat64, p_value=hl.tfloat64),
+            unrelated_qc_callstats=hl.tstruct(
+                AC=hl.tarray(hl.tint32), AF=hl.tarray(hl.tfloat64), AN=hl.tint32, homozygote_count=hl.tarray(hl.tint32)
+            ),
+            meta=hl.tdict(hl.tstr, hl.tstr),
+        )
+    )
+
+    trio_stat_type = hl.tstruct(
+        n_transmitted_raw=hl.tint64,
+        n_untransmitted_raw=hl.tint64,
+        n_transmitted_adj=hl.tint64,
+        n_untransmitted_adj=hl.tint64,
+        n_de_novos_raw=hl.tint64,
+        n_de_novos_adj=hl.tint64,
+        ac_parents_raw=hl.tint64,
+        an_parents_raw=hl.tint64,
+        ac_children_raw=hl.tint64,
+        an_children_raw=hl.tint64,
+        ac_parents_adj=hl.tint64,
+        an_parents_adj=hl.tint64,
+        ac_children_adj=hl.tint64,
+        an_children_adj=hl.tint64,
+    )
+
+    ht_cq = ht_cq.annotate(de_novo_data=hl.missing(de_novo_data_type))
+    ht_cq = ht_cq.annotate(family_stats=hl.missing(family_stats_type))
+    ht_cq = ht_cq.annotate(fam=hl.missing(trio_stat_type))
 
     return ht_cq
 
@@ -88,8 +172,10 @@ def dnm_and_family_annotation(
 ) -> hl.Table:
     if pedfile is not None:
         # annotate with family stats and DNMs
+        print("=== Annotating with family stats and DNMs ===")
         ht = dnm_and_family_annotation_with_tables(ht, dnm_htfile, fam_stats_htfile, trio_stats_htfile)
     else:
+        print("=== No pedifree data found: annotating with missing family stats and DNMs ===")
         ht = dnm_and_family_annotation_with_missing(ht)
     return ht
 
