@@ -9,6 +9,100 @@ from gnomad.variant_qc.random_forest import median_impute_features
 from wes_qc import hail_utils
 
 
+def prepare_matrix_table(mt: hl.MatrixTable) -> hl.MatrixTable:
+    """Prepare the matrix table by setting GT and InbreedingCoeff."""
+    mt = mt.select_entries(GT=hl.unphased_diploid_gt_index_call(mt.GT.n_alt_alleles()))
+    mt = mt.annotate_rows(InbreedingCoeff=hl.or_missing(~hl.is_nan(mt.info.InbreedingCoeff), mt.info.InbreedingCoeff))
+    return mt
+
+
+def create_initial_table(mt: hl.MatrixTable) -> hl.Table:
+    """Create initial Hail table with basic features."""
+    ht = mt.rows()
+    ht = ht.transmute(**ht.info)
+    ht = ht.select("MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
+    return ht
+
+
+def annotate_with_external_data(
+    ht: hl.Table, inbreeding_ht: hl.Table, truth_data_ht: hl.Table, allele_data_ht: hl.Table, allele_counts_ht: hl.Table
+) -> hl.Table:
+    """Annotate table with external data."""
+    return ht.annotate(
+        **inbreeding_ht[ht.key],
+        **truth_data_ht[ht.key],
+        **allele_data_ht[ht.key].allele_data,
+        **allele_counts_ht[ht.key],
+    )
+
+
+def add_trio_stats(
+    ht: hl.Table,
+    trio_stats_table: Optional[hl.Table],
+    group: str = "raw",  # TODO: do we need this parameter
+) -> hl.Table:
+    """Add trio statistics to the table."""
+    if trio_stats_table is not None:
+        print("--- Annotation with trio stats ---")
+        trio_stats_ht = trio_stats_table.select(f"n_transmitted_{group}", f"ac_children_{group}")
+        return ht.annotate(**trio_stats_ht[ht.key])
+
+    print("--- No trio stats provided - skipping trio annotation ---")
+    fake_trio_dict = {f"n_transmitted_{group}": 0, f"ac_children_{group}": 0}
+    return ht.annotate(**fake_trio_dict)
+
+
+def add_CA_annotation(ht: hl.Table, annotate_CA: bool) -> hl.Table:
+    """Add C>A annotation if required."""
+    if not annotate_CA:
+        return ht
+
+    return ht.annotate(
+        is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T"))
+    )
+
+
+def add_filters_and_singletons(
+    ht: hl.Table,
+    fail_hard_filters_QD_less_than: float,
+    fail_hard_filters_FS_greater_than: float,
+    fail_hard_filters_MQ_less_than: float,
+    group: str = "raw",
+) -> hl.Table:
+    """Add hard filters and singleton annotations."""
+    ht = ht.annotate(
+        fail_hard_filters=(ht.QD < fail_hard_filters_QD_less_than)
+        | (ht.FS > fail_hard_filters_FS_greater_than)
+        | (ht.MQ < fail_hard_filters_MQ_less_than)
+    )
+    ht = ht.annotate(ac_raw=ht.ac_qc_samples_raw)
+    return ht.annotate(transmitted_singleton=(ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
+
+
+def select_final_features(
+    ht: hl.Table,
+    fail_hard_filters_QD_less_than: float,
+    fail_hard_filters_FS_greater_than: float,
+    fail_hard_filters_MQ_less_than: float,
+    group: str = "raw",
+) -> hl.Table:
+    """Select final features for the random forest."""
+    # TODO: are these thresholds separate from the ones above?
+
+    return ht.select(
+        "a_index",
+        *constants.FEATURES,
+        *constants.TRUTH_DATA,
+        **{
+            "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2),
+            "fail_hard_filters": (ht.QD < fail_hard_filters_QD_less_than)
+            | (ht.FS > fail_hard_filters_FS_greater_than)
+            | (ht.MQ < fail_hard_filters_MQ_less_than),
+        },
+        ac_raw=ht.ac_qc_samples_raw,
+    )
+
+
 def create_rf_ht(
     mt: hl.MatrixTable,
     truth_data_ht: hl.Table,
@@ -26,66 +120,26 @@ def create_rf_ht(
     Load input mt and training data to create an input for random forest
     """
     n_partitions = 200
-
+    group = "raw"
+    # Prepare input data
     allele_counts_ht = allele_counts_ht.select(*["ac_qc_samples_raw", "ac_qc_samples_adj"])
 
-    # mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
-    mt = mt.select_entries(GT=hl.unphased_diploid_gt_index_call(mt.GT.n_alt_alleles()))
-    mt = mt.annotate_rows(InbreedingCoeff=hl.or_missing(~hl.is_nan(mt.info.InbreedingCoeff), mt.info.InbreedingCoeff))
+    mt = prepare_matrix_table(mt)
 
-    ht = mt.rows()
-    ht = ht.transmute(**ht.info)
-    ht = ht.select("MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
-    ht = ht.annotate(
-        **inbreeding_ht[ht.key],
-        **truth_data_ht[ht.key],
-        **allele_data_ht[ht.key].allele_data,
-        **allele_counts_ht[ht.key],
-    )
-    group = "raw"
-    if trio_stats_table is not None:  # Annotating the whole table with the trios information
-        print("--- Annotation with trio stats ---")
-        trio_stats_ht = trio_stats_table.select(f"n_transmitted_{group}", f"ac_children_{group}")
-        ht = ht.annotate(**trio_stats_ht[ht.key])
-    else:
-        print("--- No trio stats provided - skipping tiro annotation ---")
-        fake_trio_dict = {f"n_transmitted_{group}": 0, f"ac_children_{group}": 0}
-        ht = ht.annotate(**fake_trio_dict)
+    # Create and annotate table
+    ht = create_initial_table(mt)
+    ht = annotate_with_external_data(ht, inbreeding_ht, truth_data_ht, allele_data_ht, allele_counts_ht)
+    ht = add_trio_stats(ht, trio_stats_table, group)
 
     # TODO: do we need this for regular datasets? If yes, generalize
-    # Optionally annotate with C>A based on configuration
-    if annotate_CA:
-        ht = ht.annotate(
-            is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T"))
-        )
-        # annotate with all other possible SNPs
-        # ht = ht.annotate(is_AC=((ht.alleles[0] == "A") & (ht.alleles[1] == "C")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "G")))
-        # ht = ht.annotate(is_AG=((ht.alleles[0] == "A") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "C")))
-        # ht = ht.annotate(is_AT=((ht.alleles[0] == "A") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "T") & (ht.alleles[1] == "A")))
-        # ht = ht.annotate(is_CG=((ht.alleles[0] == "C") & (ht.alleles[1] == "G")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "C")))
-        # ht = ht.annotate(is_CT=((ht.alleles[0] == "C") & (ht.alleles[1] == "T")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "A")))
+    # TODO: The previous code version contained commented lines for other artifacts. Do we need it?
+    ht = add_CA_annotation(ht, annotate_CA)
 
-    ht = ht.annotate(
-        fail_hard_filters=(ht.QD < fail_hard_filters_QD_less_than)
-        | (ht.FS > fail_hard_filters_FS_greater_than)
-        | (ht.MQ < fail_hard_filters_MQ_less_than)
+    ht = add_filters_and_singletons(
+        ht, fail_hard_filters_QD_less_than, fail_hard_filters_FS_greater_than, fail_hard_filters_MQ_less_than, group
     )
-    ht = ht.annotate(ac_raw=ht.ac_qc_samples_raw)
-    ht = ht.annotate(transmitted_singleton=(ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2))
-
-    # TODO: are these thresholds separate from the ones above?
-    ht = ht.select(
-        "a_index",
-        # "was_split",
-        *constants.FEATURES,
-        *constants.TRUTH_DATA,
-        **{
-            "transmitted_singleton": (ht[f"n_transmitted_{group}"] == 1) & (ht[f"ac_qc_samples_{group}"] == 2),
-            "fail_hard_filters": (ht.QD < fail_hard_filters_QD_less_than)
-            | (ht.FS > fail_hard_filters_FS_greater_than)
-            | (ht.MQ < fail_hard_filters_MQ_less_than),
-        },
-        ac_raw=ht.ac_qc_samples_raw,
+    ht = select_final_features(
+        ht, fail_hard_filters_QD_less_than, fail_hard_filters_FS_greater_than, fail_hard_filters_MQ_less_than, group
     )
 
     ht = ht.repartition(n_partitions, shuffle=False)
@@ -120,6 +174,10 @@ def main():
 
     mt = hl.read_matrix_table(path_spark(mtfile))
     truth_data_ht = hl.read_table(path_spark(truthset_file))
+    print(
+        "pedfile: ",
+        pedfile,
+    )
     trio_stats_table = hl.read_table(path_spark(trio_stats_file)) if pedfile is not None else None
     allele_data_ht = hl.read_table(path_spark(allele_data_file))
     allele_counts_ht = hl.read_table(path_spark(allele_counts_file))
