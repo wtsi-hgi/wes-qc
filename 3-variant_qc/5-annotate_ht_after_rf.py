@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Optional
 
 import hail as hl
 import os.path
@@ -95,7 +95,7 @@ def dnm_and_family_annotation(
 
 
 # TODO: To messy - a good candidate for refactoring
-def count_trans_untransmitted_singletons(mt_trios: Optional[hl.MatrixTable], ht: hl.Table) -> Tuple[int, int]:
+def count_trans_untransmitted_singletons(mt_trios: Optional[hl.MatrixTable], ht: hl.Table) -> hl.Table:
     """
     Count untransmitted and transmitted singletons
     """

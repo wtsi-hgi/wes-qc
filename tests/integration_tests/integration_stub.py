@@ -81,7 +81,7 @@ def render_config(
 
 class HailTestCase(unittest.TestCase):
     @classmethod
-    def setUpClass(cls, pedifree_file_path: str):
+    def setUpClass(cls, pedigree_file_path: str):
         # get test suite path in the repo
         test_suite_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -108,7 +108,7 @@ class HailTestCase(unittest.TestCase):
             metadata_path,
             training_sets_path,
             variant_qc_random_forest_path,
-            pedigree_file_name=pedifree_file_path,
+            pedigree_file_name=pedigree_file_path,
             savefile=rendered_config_savefile,
         )
 

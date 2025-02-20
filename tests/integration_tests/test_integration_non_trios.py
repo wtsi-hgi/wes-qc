@@ -36,4 +36,4 @@ class IntegrationTestsNonTrios(IntegrationTestsStub):
 
     @classmethod
     def setUpClass(cls):
-        return super().setUpClass(pedifree_file_path=PEDIGREE_FILE_PATH_NON_TRIOS)
+        return super().setUpClass(pedigree_file_path=PEDIGREE_FILE_PATH_NON_TRIOS)
