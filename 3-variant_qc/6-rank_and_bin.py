@@ -303,6 +303,7 @@ def fill_empty_rank_values(rank_counts: hl.Struct) -> hl.Struct:
 
 def make_subrank_expression(ht: hl.Table, add_trios_dependent_subranks: bool) -> Dict[str, hl.expr.BooleanExpression]:
     # TODO: Do we need to move hardcoded values to config?
+
     subrank_expr = {
         "singleton_rank": ht.transmitted_singleton,
         "biallelic_rank": ~ht.was_split,
@@ -311,9 +312,9 @@ def make_subrank_expression(ht: hl.Table, add_trios_dependent_subranks: bool) ->
         "de_novo_medium_quality_rank": ht.de_novo_data.p_de_novo[0] > 0.5,
         "de_novo_synonymous_rank": ht.consequence == "synonymous_variant",
     }
-    # TODO: Trying to make the add_rank() function return correct annotations for empty pedigree. Still don't work
-    if add_trios_dependent_subranks:
-        # We know that there will be no de-novo and singleton annotaitons: change all fields to False
+
+    if not add_trios_dependent_subranks:
+        # We know that there will be no de-novo and singleton annotations: change all fields to False
         subrank_expr["singleton_rank"] = hl.literal(False)
         subrank_expr["biallelic_singleton_rank"] = hl.literal(False)
         subrank_expr["de_novo_high_quality_rank"] = hl.literal(False)
