@@ -173,6 +173,17 @@ Then you can reuse it with any data cohort.
 spark-submit 0-resource_preparation/1-import_1kg.py --all
 ```
 
+2. **Create the combined Truth Set table**
+
+Run this step to combine all available variation resources (1000 Genomes, Mills, Hapmap, etc)
+into a single table of truth variants.
+You need to run this step only once and then reuse the resulting table for all your analysis.
+
+```shell
+spark-submit 0-resource_preparation/2-generate-truthset-ht.py
+```
+
+
 ### 1. Load data
 
 1. **Load VCFs into Hail and save as a Hail MatrixTable**
@@ -399,23 +410,25 @@ spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
 
 ### 3. Variant QC
 
-Variant QC requires a ped file detailing any trios.
+Variant QC usees optional pedigree file detailing any trios.
 This is an unheaded, tab-delimited file that contains the following columns:
 - Family ID
 - Proband ID
 - Paternal ID
 - Maternal ID
-- Proband sex (1 or 2)
+- Proband sex (1-male, 2-female, 0-unknown)
 - Proband affected status (0 or 1)
 
+If you don't have pedigree data, several sub-steps will be skipped, and some metrics
+for the final graphs won't be calculated.
 
-The first step of variant QC produces a truth set of known true positive variants and generates annotation.
+The first step of variant QC is to split multi-allelic variants and annotate it with family statistics.
 
 ```shell
-spark-submit 3-variant_qc/1-generate_truth_sets.py --all
+spark-submit 3-variant_qc/1-split_and_family_annotate.py --all
 ```
 
-Next an input table is generated to run the random forest on.
+Next, an input table is generated to run the random forest on.
 
 ```shell
 spark-submit 3-variant_qc/2-create_rf_ht.py

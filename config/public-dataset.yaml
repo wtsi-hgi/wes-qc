@@ -69,7 +69,7 @@ general:
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
   # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
-  rf_model_id: test-run-model
+  rf_model_id: 'test-run-model'
 
 step0:
   # --- Step 0.1 --- #
@@ -96,6 +96,13 @@ step0:
       statistics: "kin2"
     pca_components: 10
     kin_threshold: 0.125
+
+  generate_truthset_ht:
+    omni: '{traindir}/1000G_omni2.5.hg38.ht'
+    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
+    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+    truth_ht_outfile: '{mtdir}/truthset_table.ht'
 
 step1:
   # --- Step 1.1 --- #
@@ -264,16 +271,9 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: '{metadir}/test_1000g_v2.triosonly.ped'
+  pedfile: null #'{metadir}/test_1000g_v2.triosonly.ped'
 
   # --- Step 3.1 --- #
-  get_truth_ht:
-    truth_ht_outfile: '{resdir}/truthset_table.ht'
-    omni: '{traindir}/1000G_omni2.5.hg38.ht'
-    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
-    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
-
   split_multi_and_var_qc:
     mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
     varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
@@ -300,13 +300,12 @@ step3:
     fail_hard_filters_FS_greater_than: 60
     fail_hard_filters_MQ_less_than: 30
 
-    truthset_file: '{resdir}/truthset_table.ht'
+    truthset_file: '{mtdir}/truthset_table.ht'
     trio_stats_file: '{mtdir}/trio_stats.ht'
     allele_data_file: '{mtdir}/allele_data.ht'
     allele_counts_file: '{mtdir}/qc_ac.ht'
     inbreeding_file: '{mtdir}/inbreeding.ht'
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
     htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
 
   # --- Step 3.3 --- #
@@ -345,7 +344,7 @@ step3:
     subrank_expr_de_novo_medium_quality_rank: 0.5
 
   create_binned_data_initial:
-    truth_htfile: '{resdir}/truthset_table.ht'
+    truth_htfile: '{mtdir}/truthset_table.ht'
 
     high_quality_p_de_novo: 0.99
     medium_quality_p_de_novo: 0.5

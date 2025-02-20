@@ -1,4 +1,6 @@
 # create hail table for random forest
+from typing import Optional
+
 import hail as hl
 import utils.constants as constants
 from utils.utils import parse_config, path_spark
@@ -10,7 +12,7 @@ from wes_qc import hail_utils
 def create_rf_ht(
     mt: hl.MatrixTable,
     truth_data_ht: hl.Table,
-    trio_stats_table: hl.Table,
+    trio_stats_table: Optional[hl.Table],
     allele_data_ht: hl.Table,
     allele_counts_ht: hl.Table,
     inbreeding_ht: hl.Table,
@@ -26,8 +28,6 @@ def create_rf_ht(
     n_partitions = 200
 
     allele_counts_ht = allele_counts_ht.select(*["ac_qc_samples_raw", "ac_qc_samples_adj"])
-    group = "raw"
-    trio_stats_ht = trio_stats_table.select(f"n_transmitted_{group}", f"ac_children_{group}")
 
     # mt = mt.key_rows_by('locus').distinct_by_row().key_rows_by('locus', 'alleles')
     mt = mt.select_entries(GT=hl.unphased_diploid_gt_index_call(mt.GT.n_alt_alleles()))
@@ -38,11 +38,20 @@ def create_rf_ht(
     ht = ht.select("MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
     ht = ht.annotate(
         **inbreeding_ht[ht.key],
-        **trio_stats_ht[ht.key],
         **truth_data_ht[ht.key],
         **allele_data_ht[ht.key].allele_data,
         **allele_counts_ht[ht.key],
     )
+    group = "raw"
+    if trio_stats_table is not None:  # Annotating the whole table with the trios information
+        print("--- Annotation with trio stats ---")
+        trio_stats_ht = trio_stats_table.select(f"n_transmitted_{group}", f"ac_children_{group}")
+        ht = ht.annotate(**trio_stats_ht[ht.key])
+    else:
+        print("--- No trio stats provided - skipping tiro annotation ---")
+        fake_trio_dict = {f"n_transmitted_{group}": 0, f"ac_children_{group}": 0}
+        ht = ht.annotate(**fake_trio_dict)
+
     # TODO: do we need this for regular datasets? If yes, generalize
     # Optionally annotate with C>A based on configuration
     if annotate_CA:
@@ -81,6 +90,7 @@ def create_rf_ht(
 
     ht = ht.repartition(n_partitions, shuffle=False)
     # ht = ht.checkpoint(path_spark(htfile_rf_all_cols), overwrite=True) # TODO: check do we need this matrixtable. Remove if not used
+    # TODO: doublecheck is it methodologically correct to impute features used for model training
     ht = median_impute_features(ht, strata={"variant_type": ht.variant_type})
 
     return ht
@@ -92,6 +102,7 @@ def main():
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
+    pedfile = config["step3"]["pedfile"]
 
     # = STEP DEPENDENCIES = #
     truthset_file = config["step3"]["create_rf_ht"]["truthset_file"]
@@ -109,7 +120,7 @@ def main():
 
     mt = hl.read_matrix_table(path_spark(mtfile))
     truth_data_ht = hl.read_table(path_spark(truthset_file))
-    trio_stats_table = hl.read_table(path_spark(trio_stats_file))
+    trio_stats_table = hl.read_table(path_spark(trio_stats_file)) if pedfile is not None else None
     allele_data_ht = hl.read_table(path_spark(allele_data_file))
     allele_counts_ht = hl.read_table(path_spark(allele_counts_file))
     inbreeding_ht = hl.read_table(path_spark(inbreeding_file))
