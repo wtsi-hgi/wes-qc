@@ -12,6 +12,17 @@ from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
 from wes_qc import hail_utils
 
+spark_local_message = """!!! WARNING !!!
+The gnomAD fucntion train_rf_model() in some cases
+could work incorrectly in the parallel SPARK environment.
+
+If the run of the function will fail with some weird message
+(no space left on device, wrong imports, etc),
+try running model training on the master node only:
+
+PYTHONPATH=$(pwd):$PYTHONPATH PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit --master local[*]  3-variant_qc/3-train_rf.py
+"""
+
 
 def get_options():
     """
@@ -136,14 +147,22 @@ def get_run_data(
 def main():
     # set up
     args = get_options()
-
     config = parse_config()
+    tmp_dir = config["general"]["tmp_dir"]
+
+    # = STEP PARAMETERS = #
+    test_interval = config["step3"]["rf_test_interval"]  # used in multiple functions
+    runs_json = config["step3"]["runs_json"]
+
+    # = STEP DEPENDENCIES = #
+    input_ht_file = config["step3"]["train_rf"]["input_ht_file"]
+
+    # = STEP OUTPUTS = #
     rf_dir = path_spark(config["general"]["var_qc_rf_dir"])
 
-    test_interval = config["step3"]["rf_test_interval"]  # used in multiple functions
+    # = STEP LOGIC = #
 
     # initialise hail
-    tmp_dir = config["general"]["tmp_dir"]
     _ = hail_utils.init_hl(tmp_dir)
 
     # use manual hash value if provided to control the output folder name
@@ -160,9 +179,8 @@ def main():
             model_id = str(uuid.uuid4())[:8]
 
     # train RF
-    input_ht_file = config["step3"]["train_rf"]["input_ht_file"]
     input_ht = hl.read_table(path_spark(input_ht_file))
-    runs_json = config["step3"]["runs_json"]
+
     ht_result, rf_model = train_rf(input_ht, test_interval, config)
     print("Writing out ht_training data")
     ht_result = ht_result.checkpoint(
@@ -179,17 +197,19 @@ def main():
     )
     rf_runs[model_id]["features_importance"] = dict(
         rf_runs[model_id]["features_importance"]
-    )  # convert featues importance frozendict to dict for dumping to json
+    )  # convert feature importance frozendict to dict for dumping to json
 
     print(f"Saving runs info in {runs_json}")
     # TODO: not sure if this works as intended. Shouldn't the run info json file be saved in the corresponding run folder?
     # If not, run info has to be appended, rather than overwriting existing runs.
     #
-    with hl.hadoop_open(path_spark(runs_json), "w") as f:
+    with open(runs_json, "w") as f:
         json.dump(rf_runs, f)
     pretty_print_runs(rf_runs)
+
     save_model(rf_model, get_rf(path_spark(rf_dir), data="model", model_id=model_id), overwrite=True)
 
 
 if __name__ == "__main__":
+    print(spark_local_message)
     main()

@@ -1,10 +1,13 @@
+from typing import Optional
+
 import hail as hl
 import os.path
+
 from wes_qc import hail_utils
-from utils.utils import parse_config, rm_mt, path_spark
+from utils.utils import parse_config, path_spark
 
 
-def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
+def add_cq_annotation(ht: hl.Table, synonymous_file: str) -> hl.Table:
     """
     Add annotation for synonymous variants
     ;param str htfile: Random forest hail table file
@@ -39,132 +42,239 @@ def add_cq_annotation(htfile: str, synonymous_file: str, ht_cq_file: str):
     )
     synonymous_ht = synonymous_ht.key_by(synonymous_ht.locus, synonymous_ht.alleles)
 
-    ht = hl.read_table(path_spark(htfile))
-    ht = ht.annotate(consequence=synonymous_ht[ht.key].consequence)
-    ht.write(path_spark(ht_cq_file), overwrite=True)
+    ht_cq = ht.annotate(consequence=synonymous_ht[ht.key].consequence)
+    return ht_cq
 
 
-def dnm_and_family_annotation(
-    ht_cq_fle: str, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, family_annot_htfile: str
+def dnm_and_family_annotation_with_missing(ht_cq: hl.Table) -> hl.Table:
+    """
+    Annotates the input Hail Table with missing family annotations and returns the updated table.
+    """
+    # Define Hail type objects for missing family annotations
+    de_novo_data_type = hl.tarray(
+        hl.tstruct(
+            id=hl.tstr,
+            prior=hl.tfloat64,
+            proband=hl.tstruct(s=hl.tstr, batch=hl.tstr, c_a_artefact_suspected=hl.tbool, assigned_pop=hl.tstr),
+            father=hl.tstruct(s=hl.tstr, batch=hl.tstr, c_a_artefact_suspected=hl.tbool, assigned_pop=hl.tstr),
+            mother=hl.tstruct(s=hl.tstr, batch=hl.tstr, c_a_artefact_suspected=hl.tbool, assigned_pop=hl.tstr),
+            proband_entry=hl.tstruct(
+                AD=hl.tarray(hl.tint32),
+                DP=hl.tint32,
+                GQ=hl.tint32,
+                GT=hl.tcall,
+                MIN_DP=hl.tint32,
+                PGT=hl.tcall,
+                PID=hl.tstr,
+                PL=hl.tarray(hl.tint32),
+                PS=hl.tint32,
+                RGQ=hl.tint32,
+                SB=hl.tarray(hl.tint32),
+                sum_AD=hl.tint32,
+                adj=hl.tbool,
+                HetAB=hl.tfloat64,
+            ),
+            father_entry=hl.tstruct(
+                AD=hl.tarray(hl.tint32),
+                DP=hl.tint32,
+                GQ=hl.tint32,
+                GT=hl.tcall,
+                MIN_DP=hl.tint32,
+                PGT=hl.tcall,
+                PID=hl.tstr,
+                PL=hl.tarray(hl.tint32),
+                PS=hl.tint32,
+                RGQ=hl.tint32,
+                SB=hl.tarray(hl.tint32),
+                sum_AD=hl.tint32,
+                adj=hl.tbool,
+                HetAB=hl.tfloat64,
+            ),
+            mother_entry=hl.tstruct(
+                AD=hl.tarray(hl.tint32),
+                DP=hl.tint32,
+                GQ=hl.tint32,
+                GT=hl.tcall,
+                MIN_DP=hl.tint32,
+                PGT=hl.tcall,
+                PID=hl.tstr,
+                PL=hl.tarray(hl.tint32),
+                PS=hl.tint32,
+                RGQ=hl.tint32,
+                SB=hl.tarray(hl.tint32),
+                sum_AD=hl.tint32,
+                adj=hl.tbool,
+                HetAB=hl.tfloat64,
+            ),
+            is_female=hl.tbool,
+            p_de_novo=hl.tfloat64,
+            confidence=hl.tstr,
+        )
+    )
+
+    family_stats_type = hl.tarray(
+        hl.tstruct(
+            mendel=hl.tstruct(errors=hl.tint64),
+            tdt=hl.tstruct(t=hl.tint64, u=hl.tint64, chi_sq=hl.tfloat64, p_value=hl.tfloat64),
+            unrelated_qc_callstats=hl.tstruct(
+                AC=hl.tarray(hl.tint32), AF=hl.tarray(hl.tfloat64), AN=hl.tint32, homozygote_count=hl.tarray(hl.tint32)
+            ),
+            meta=hl.tdict(hl.tstr, hl.tstr),
+        )
+    )
+
+    trio_stat_type = hl.tstruct(
+        n_transmitted_raw=hl.tint64,
+        n_untransmitted_raw=hl.tint64,
+        n_transmitted_adj=hl.tint64,
+        n_untransmitted_adj=hl.tint64,
+        n_de_novos_raw=hl.tint64,
+        n_de_novos_adj=hl.tint64,
+        ac_parents_raw=hl.tint64,
+        an_parents_raw=hl.tint64,
+        ac_children_raw=hl.tint64,
+        an_children_raw=hl.tint64,
+        ac_parents_adj=hl.tint64,
+        an_parents_adj=hl.tint64,
+        ac_children_adj=hl.tint64,
+        an_children_adj=hl.tint64,
+    )
+
+    ht_cq = ht_cq.annotate(de_novo_data=hl.missing(de_novo_data_type))
+    ht_cq = ht_cq.annotate(family_stats=hl.missing(family_stats_type))
+    ht_cq = ht_cq.annotate(fam=hl.missing(trio_stat_type))
+
+    return ht_cq
+
+
+def dnm_and_family_annotation_with_tables(
+    ht_cq: hl.Table, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str
 ):
     """
     Annotate RF result hail table with DNMs and family stats
-    ;param str ht_cq_fle: Input hail table file annotated with synonymous variants
-    :param str dnm_htfile: De novo hail table file
-    :param str fam_stats_htfile: Family stats hail table file
-    :param str trio_stats_htfile: Trio stats hail table file
-    :param str family_annot_htfile: Output hail table annotated with DNMs and family stats file
     """
-    ht = hl.read_table(path_spark(ht_cq_fle))
-    dnm_ht = hl.read_table(path_spark(dnm_htfile))
-    fam_stats_ht = hl.read_table(path_spark(fam_stats_htfile))
-    trio_stats_ht = hl.read_table(path_spark(trio_stats_htfile))
-    ht = ht.annotate(de_novo_data=dnm_ht[ht.key].de_novo_data)
-    ht = ht.annotate(family_stats=fam_stats_ht[ht.key].family_stats)
-    ht = ht.annotate(fam=trio_stats_ht[ht.key])
-    ht.write(path_spark(family_annot_htfile), overwrite=True)
+
+    # Reading annotations or mocking it
+    de_novo_annot = hl.read_table(path_spark(dnm_htfile))[ht_cq.key].de_novo_data
+    ht_cq = ht_cq.annotate(de_novo_data=de_novo_annot)
+
+    family_stat_annot = hl.read_table(path_spark(fam_stats_htfile))[ht_cq.key].family_stats
+    ht_cq = ht_cq.annotate(family_stats=family_stat_annot)
+
+    trio_stat_annot = hl.read_table(path_spark(trio_stats_htfile))[ht_cq.key]
+    ht_cq = ht_cq.annotate(fam=trio_stat_annot)
+
+    return ht_cq
 
 
-def count_trans_untransmitted_singletons(mt_filtered: hl.MatrixTable, ht: hl.Table) -> hl.Table:
+def dnm_and_family_annotation(
+    ht: hl.Table, dnm_htfile: str, fam_stats_htfile: str, trio_stats_htfile: str, pedfile: str
+) -> hl.Table:
+    if pedfile is not None:
+        # annotate with family stats and DNMs
+        print("=== Annotating with family stats and DNMs ===")
+        ht = dnm_and_family_annotation_with_tables(ht, dnm_htfile, fam_stats_htfile, trio_stats_htfile)
+    else:
+        print("=== No pedifree data found: annotating with missing family stats and DNMs ===")
+        ht = dnm_and_family_annotation_with_missing(ht)
+    return ht
+
+
+# TODO: To messy - a good candidate for refactoring
+def count_trans_untransmitted_singletons(mt_trios: Optional[hl.MatrixTable], ht: hl.Table) -> hl.Table:
     """
     Count untransmitted and transmitted singletons
-    :param hl.MatrixTable mt_filtered: Filtered trio matrixtable
-    :param hl.Table ht: Output hail table
     """
+    if mt_trios is not None:
+        # Filtering trios matrixtable
+        mt_trios = mt_trios.annotate_rows(consequence=ht[mt_trios.row_key].consequence)
 
-    # mt_trans = mt_filtered.filter_entries(mt_filtered.variant_qc.AC[1] == 2)
-    # mt_untrans = mt_filtered.filter_entries(mt_filtered.variant_qc.AC[1] == 1)
-    mt_trans = mt_filtered.filter_entries(mt_filtered.varqc_trios.AC[1] == 2)
-    mt_untrans = mt_filtered.filter_entries(mt_filtered.varqc_trios.AC[1] == 1)
+        # TODO: there is a save step here in Pavlos file, is it needed?
+        # mt_filtered = mt_trios.filter_rows((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
+        # mt_filtered = mt_trios.filter_entries((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
+        # TODO: unused step - was not commented out - probably incorrect
+        # mt_filtered = mt_trios.filter_rows(
+        #     (mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant")
+        # )
 
-    mt_trans_count = mt_trans.group_cols_by(mt_trans.id).aggregate(
-        transmitted_singletons_count=hl.agg.count_where(
-            # (mt_trans.info.AC[0] == 2) &
-            (mt_trans.proband_entry.GT.is_non_ref())
-            & ((mt_trans.father_entry.GT.is_non_ref()) | (mt_trans.mother_entry.GT.is_non_ref()))
+        mt_filtered = mt_trios.filter_entries(
+            (mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant")
         )
-    )
 
-    Total_transmitted_singletons = mt_trans_count.aggregate_entries(
-        hl.agg.count_where(mt_trans_count.transmitted_singletons_count > 0)
-    )
-    print(Total_transmitted_singletons)
+        mt_trans = mt_filtered.filter_entries(mt_filtered.varqc_trios.AC[1] == 2)
+        mt_untrans = mt_filtered.filter_entries(mt_filtered.varqc_trios.AC[1] == 1)
 
-    mt_untrans_count = mt_untrans.group_cols_by(mt_untrans.id).aggregate(
-        untransmitted_singletons_count=hl.agg.count_where(
-            # (mt_untrans.info.AC[0] == 1) &
-            (mt_untrans.proband_entry.GT.is_hom_ref())
-            & ((mt_untrans.father_entry.GT.is_non_ref()) | (mt_untrans.mother_entry.GT.is_non_ref()))
+        mt_trans_count = mt_trans.group_cols_by(mt_trans.id).aggregate(
+            transmitted_singletons_count=hl.agg.count_where(
+                # (mt_trans.info.AC[0] == 2) &
+                (mt_trans.proband_entry.GT.is_non_ref())
+                & ((mt_trans.father_entry.GT.is_non_ref()) | (mt_trans.mother_entry.GT.is_non_ref()))
+            )
         )
-    )
-    Total_untransmitted_singletons = mt_untrans_count.aggregate_entries(
-        hl.agg.count_where(mt_untrans_count.untransmitted_singletons_count > 0)
-    )
-    print(Total_untransmitted_singletons)
 
-    print(f"\nTransmitted singletons:{Total_transmitted_singletons}\n")
-    print(f"\nUntransmitted singletons:{Total_untransmitted_singletons}")
+        total_transmitted_singletons = mt_trans_count.aggregate_entries(
+            hl.agg.count_where(mt_trans_count.transmitted_singletons_count > 0)
+        )
 
-    if Total_untransmitted_singletons > 0:
-        Ratio_transmitted_untransmitted = Total_transmitted_singletons / Total_untransmitted_singletons
-        print(f"\nRatio:{Ratio_transmitted_untransmitted}\n")
-    mt2 = mt_trans_count.annotate_rows(
-        variant_transmitted_singletons=hl.agg.count_where(mt_trans_count.transmitted_singletons_count == 1)
-    )
-    mt2.variant_transmitted_singletons.summarize()
+        mt_untrans_count = mt_untrans.group_cols_by(mt_untrans.id).aggregate(
+            untransmitted_singletons_count=hl.agg.count_where(
+                # (mt_untrans.info.AC[0] == 1) &
+                (mt_untrans.proband_entry.GT.is_hom_ref())
+                & ((mt_untrans.father_entry.GT.is_non_ref()) | (mt_untrans.mother_entry.GT.is_non_ref()))
+            )
+        )
+        total_untransmitted_singletons = mt_untrans_count.aggregate_entries(
+            hl.agg.count_where(mt_untrans_count.untransmitted_singletons_count > 0)
+        )
 
-    mt3 = mt_untrans_count.annotate_rows(
-        variant_untransmitted_singletons=hl.agg.count_where(mt_untrans_count.untransmitted_singletons_count == 1)
-    )
-    mt3.variant_untransmitted_singletons.summarize()
+        print(f"\nTransmitted singletons:{total_transmitted_singletons}\n")
+        print(f"\nUntransmitted singletons:{total_untransmitted_singletons}\n")
 
-    ht = ht.annotate(variant_transmitted_singletons=mt2.rows()[ht.key].variant_transmitted_singletons)
-    ht = ht.annotate(variant_untransmitted_singletons=mt3.rows()[ht.key].variant_untransmitted_singletons)
+        if total_untransmitted_singletons > 0:
+            ratio_transmitted_untransmitted = total_transmitted_singletons / total_untransmitted_singletons
+            print(f"\nTrans/Untrans ratio:{ratio_transmitted_untransmitted}\n")
+        mt2 = mt_trans_count.annotate_rows(
+            variant_transmitted_singletons=hl.agg.count_where(mt_trans_count.transmitted_singletons_count == 1)
+        )
+        mt2.variant_transmitted_singletons.summarize()
+
+        mt3 = mt_untrans_count.annotate_rows(
+            variant_untransmitted_singletons=hl.agg.count_where(mt_untrans_count.untransmitted_singletons_count == 1)
+        )
+        mt3.variant_untransmitted_singletons.summarize()
+
+        variant_transmitted_annot = mt2.rows()[ht.key].variant_transmitted_singletons
+        ht = ht.annotate(variant_transmitted_singletons=variant_transmitted_annot)
+
+        variant_untransmitted_annot = mt3.rows()[ht.key].variant_untransmitted_singletons
+        ht = ht.annotate(variant_untransmitted_singletons=variant_untransmitted_annot)
+    else:
+        print("=== No pedifree data found: skipping transmitted/untransmitted calculations")
+        ht = ht.annotate(variant_transmitted_singletons=0, variant_untransmitted_singletons=0)
     return ht
 
 
 def transmitted_singleton_annotation(
-    family_annot_htfile: str, trio_mtfile: str, trio_filtered_mtfile: str, trans_sing_htfile: str
-):
+    ht: hl.Table,
+    trio_mtfile: str,
+    pedfile: str,
+) -> hl.Table:
     """
     Annotate MT with transmited singletons and create final variant QC HT for ranking
-    :param str family_annot_htfile: Family annotation hail table file
-    :param str trio_mtfile: Trio annotation hail matrixtable file
-    :param str trio_filtered_mtfile: Trio filtered hail matrixtable file
-    :param str trans_sing_htfile: Variant QC hail table file with transmitted singleton annotation
     """
     print("Annotating with transmitted singletons")
-    ht = hl.read_table(path_spark(family_annot_htfile))
-    mt_trios = hl.read_matrix_table(path_spark(trio_mtfile))
-    mt_trios = mt_trios.annotate_rows(consequence=ht[mt_trios.row_key].consequence)
-    # there is a save step here in Pavlos file, is it needed?
-    # mt_filtered = mt_trios.filter_rows((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    # mt_filtered = mt_trios.filter_entries((mt_trios.variant_qc.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant"))
-    mt_filtered = mt_trios.filter_rows(
-        (mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant")
-    )
-    mt_filtered = mt_trios.filter_entries(
-        (mt_trios.varqc_trios.AC[1] <= 2) & (mt_trios.consequence == "synonymous_variant")
-    )
-    mt_filtered = mt_filtered.checkpoint(path_spark(trio_filtered_mtfile), overwrite=True)
-
-    ht = count_trans_untransmitted_singletons(mt_filtered, ht)
-    ht.write(path_spark(trans_sing_htfile), overwrite=True)
-    rm_mt(trio_filtered_mtfile)
+    mt_trios = hl.read_matrix_table(path_spark(trio_mtfile)) if pedfile is not None else None
+    ht = count_trans_untransmitted_singletons(mt_trios, ht)
+    return ht
 
 
-def annotate_gnomad(tdt_htfile: str, gnomad_htfile: str, final_htfile: str):
+def annotate_gnomad_af(ht: hl.Table, gnomad_ht: hl.Table) -> hl.Table:
     """
     Annotate with gnomad allele frequencies
-    :param str tdt_htfile: Htfile with transmitted/untransmitted counts
-    :param str gnomad_htfile: Gnomad annotation hail table file
-    :param str final_htfile: Final RF htfile for ranking and binning
     """
-    print("Annotating with gnomad AF")
-    ht = hl.read_table(path_spark(tdt_htfile))
-    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
+    print("=== Annotating with gnomad AF ===")
     ht = ht.annotate(gnomad_af=gnomad_ht[ht.key].freq[0].AF)
-    ht.write(final_htfile, overwrite=True)
+    return ht
 
 
 def main():
@@ -173,42 +283,47 @@ def main():
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
-    model_id = config["general"]["rf_model_id"]
-    synonymous_file = config["step3"]["add_cq_annotation"]["synonymous_file"]
-    gnomad_htfile = config["step3"]["annotate_gnomad"]["gnomad_htfile"]
+    pedfile: str = config["step3"]["pedfile"]
+    model_id: str = config["general"]["rf_model_id"]
+    synonymous_file: str = config["step3"]["add_cq_annotation"]["synonymous_file"]
+    gnomad_htfile: str = config["step3"]["annotate_gnomad"]["gnomad_htfile"]
 
     # = STEP DEPENDENCIES = #
     rf_dir = path_spark(config["general"]["var_qc_rf_dir"])
-    # TODO: should be in the config
-    htfile = os.path.join(rf_dir, model_id, "rf_result.ht")
+    htfile: str = os.path.join(rf_dir, model_id, "rf_result.ht")
 
     # = STEP OUTPUTS = #
-    dnm_htfile = config["step3"]["dnm_and_family_annotation"]["dnm_htfile"]
-    fam_stats_htfile = config["step3"]["dnm_and_family_annotation"]["fam_stats_htfile"]
-    trio_stats_htfile = config["step3"]["dnm_and_family_annotation"]["trio_stats_htfile"]
-    family_annot_htfile = os.path.join(rf_dir, model_id, "rf_result_denovo_family_stats.ht")
-    trio_mtfile = config["step3"]["transmitted_singleton_annotation"]["trio_mtfile"]
-    trio_filtered_mtfile = config["step3"]["transmitted_singleton_annotation"]["trio_filtered_mtfile"]
-    trans_sing_htfile = os.path.join(rf_dir, model_id, "rf_result_trans_sing.ht")
-    # TODO: should be in the config
-    ht_cq_file = os.path.join(rf_dir, model_id, "rf_result_with_synonymous.ht")
-    # TODO: should be in the config
-    final_htfile = os.path.join(rf_dir, model_id, "rf_result_final_for_ranking.ht")
+    dnm_htfile: str = config["step3"]["dnm_and_family_annotation"]["dnm_htfile"]
+    fam_stats_htfile: str = config["step3"]["dnm_and_family_annotation"]["fam_stats_htfile"]
+    trio_stats_htfile: str = config["step3"]["dnm_and_family_annotation"]["trio_stats_htfile"]
+    family_annot_htfile: str = os.path.join(rf_dir, model_id, "rf_result_denovo_family_stats.ht")
+    trio_mtfile: str = config["step3"]["transmitted_singleton_annotation"]["trio_mtfile"]
+    # trio_filtered_mtfile:str = config["step3"]["transmitted_singleton_annotation"]["trio_filtered_mtfile"] # TODO: remove form config if not needed
+    trans_sing_htfile: str = os.path.join(rf_dir, model_id, "rf_result_trans_sing.ht")
+    ht_cq_file: str = os.path.join(rf_dir, model_id, "rf_result_with_synonymous.ht")
+    final_htfile: str = os.path.join(rf_dir, model_id, "rf_result_final_for_ranking.ht")
 
     # = STEP LOGIC = #
     _ = hail_utils.init_hl(tmp_dir)
 
     # annotate with synonymous CQs
-    add_cq_annotation(htfile, synonymous_file, ht_cq_file)
+    ht = hl.read_table(path_spark(htfile))
+    ht = add_cq_annotation(ht, synonymous_file)
+    ht.write(path_spark(ht_cq_file), overwrite=True)
 
-    # annotate with family stats and DNMs
-    dnm_and_family_annotation(ht_cq_file, dnm_htfile, fam_stats_htfile, trio_stats_htfile, family_annot_htfile)
+    # ht = hl.read_table(path_spark(ht_cq_file))
+    ht = dnm_and_family_annotation(ht, dnm_htfile, fam_stats_htfile, trio_stats_htfile, pedfile)
+    ht.write(path_spark(family_annot_htfile), overwrite=True)
 
     # annotate with transmitted singletons
-    transmitted_singleton_annotation(family_annot_htfile, trio_mtfile, trio_filtered_mtfile, trans_sing_htfile)
+    # ht = hl.read_table(path_spark(family_annot_htfile))
+    ht = transmitted_singleton_annotation(ht, trio_mtfile, pedfile)
+    ht.write(path_spark(trans_sing_htfile), overwrite=True)
 
     # annotate with gnomad AF
-    annotate_gnomad(trans_sing_htfile, gnomad_htfile, final_htfile)
+    gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
+    ht = annotate_gnomad_af(ht, gnomad_ht)
+    ht.write(final_htfile, overwrite=True)
 
 
 if __name__ == "__main__":
