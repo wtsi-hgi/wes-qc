@@ -563,71 +563,15 @@ def calculate_normalized_mendel_errors_proband(mt: hl.MatrixTable, ped: hl.Pedig
     return stats.mean, stats.std_dev
 
 
-def write_snv_filter_metrics(results: dict, outfile: str):
+def write_filter_metrics(results: dict, outfile: str, var_type: str):
     """
-    Write SNV filtering metrics to a tab-delimited file, including true/false positive rates,
-    precision/recall, and transmission/untransmission ratio.
+    Write filtering metrics to a tab-delimited file for either SNVs or indels.
 
-    :param dict results: Dictionary containing filtering results and metrics for each SNV filter combination
+    :param dict results: Dictionary containing filtering results and metrics for each filter combination
     :param str outfile: Path to output TSV file
+    :param str var_type: Type of variant ('snv' or 'indel')
     """
-    header = [
-        "filter",
-        "bin",
-        "DP",
-        "GQ",
-        "AB",
-        "call_rate",
-        "TP",
-        "FP",
-        "t_u_ratio",
-        "mendelian_error_mean",
-        "mendelian_error_std",
-        "precision",
-        "recall",
-    ]
-
-    with open(outfile, "w") as o:
-        o.write("\t".join(header))
-        o.write("\n")
-
-        for var_f in results["snv"].keys():
-            bin_val, dp, gq, ab, call_rate = parse_hard_filter_values(var_f)
-            tp = str((results["snv"][var_f]["TP"] / results["snv_total_tp"]) * 100)
-            fp = str((results["snv"][var_f]["FP"] / results["snv_total_fp"]) * 100)
-            tu = str(results["snv"][var_f]["t_u_ratio"])
-            p = str(results["snv"][var_f].get("prec", ""))
-            r = str(results["snv"][var_f].get("recall", ""))
-            mendelian_error_mean = str(results["snv"][var_f].get("mendelian_error_mean", ""))
-            mendelian_error_std = str(results["snv"][var_f].get("mendelian_error_std", ""))
-
-            outline = [
-                var_f,
-                bin_val,
-                dp,
-                gq,
-                ab,
-                call_rate,
-                tp,
-                fp,
-                tu,
-                mendelian_error_mean,
-                mendelian_error_std,
-                p,
-                r,
-            ]
-            o.write("\t".join(outline))
-            o.write("\n")
-
-
-def write_indel_filter_metrics(results: dict, outfile: str):
-    """
-    Write indel filtering metrics to a tab-delimited file, including true/false positive rates,
-    precision/recall for all indels, frameshift indels, and inframe indels.
-
-    :param dict results: Dictionary containing filtering results and metrics for each indel filter combination
-    :param str outfile: Path to output TSV file
-    """
+    # Common header fields for both SNVs and indels
     header = [
         "filter",
         "bin",
@@ -641,47 +585,41 @@ def write_indel_filter_metrics(results: dict, outfile: str):
         "mendelian_error_std",
         "precision",
         "recall",
-        "precision_frameshift",
-        "recall_frameshift",
-        "precision_inframe",
-        "recall_inframe",
     ]
+
+    # Add indel-specific fields if processing indels
+    if var_type == "indel":
+        header.extend(["precision_frameshift", "recall_frameshift", "precision_inframe", "recall_inframe"])
+    elif var_type == "snv":
+        header.append("t_u_ratio")
 
     with open(outfile, "w") as o:
         o.write("\t".join(header))
         o.write("\n")
 
-        for var_f in results["indel"].keys():
+        for var_f in results[var_type].keys():
             bin_val, dp, gq, ab, call_rate = parse_hard_filter_values(var_f)
-            tp = str((results["indel"][var_f]["TP"] / results["indel_total_tp"]) * 100)
-            fp = str((results["indel"][var_f]["FP"] / results["indel_total_fp"]) * 100)
-            p = str(results["indel"][var_f].get("prec", ""))
-            r = str(results["indel"][var_f].get("recall", ""))
-            p_f = str(results["indel"][var_f].get("prec_frameshift", ""))
-            r_f = str(results["indel"][var_f].get("recall_frameshift", ""))
-            p_if = str(results["indel"][var_f].get("prec_inframe", ""))
-            r_if = str(results["indel"][var_f].get("recall_inframe", ""))
-            mendelian_error_mean = str(results["indel"][var_f].get("mendelian_error_mean", ""))
-            mendelian_error_std = str(results["indel"][var_f].get("mendelian_error_std", ""))
+            tp = str((results[var_type][var_f]["TP"] / results[f"{var_type}_total_tp"]) * 100)
+            fp = str((results[var_type][var_f]["FP"] / results[f"{var_type}_total_fp"]) * 100)
+            p = str(results[var_type][var_f].get("prec", ""))
+            r = str(results[var_type][var_f].get("recall", ""))
+            mendelian_error_mean = str(results[var_type][var_f].get("mendelian_error_mean", ""))
+            mendelian_error_std = str(results[var_type][var_f].get("mendelian_error_std", ""))
 
-            outline = [
-                var_f,
-                bin_val,
-                dp,
-                gq,
-                ab,
-                call_rate,
-                tp,
-                fp,
-                mendelian_error_mean,
-                mendelian_error_std,
-                p,
-                r,
-                p_f,
-                r_f,
-                p_if,
-                r_if,
-            ]
+            # Common fields for both types
+            outline = [var_f, bin_val, dp, gq, ab, call_rate, tp, fp, mendelian_error_mean, mendelian_error_std, p, r]
+
+            # Add type-specific fields
+            if var_type == "indel":
+                p_f = str(results[var_type][var_f].get("prec_frameshift", ""))
+                r_f = str(results[var_type][var_f].get("recall_frameshift", ""))
+                p_if = str(results[var_type][var_f].get("prec_inframe", ""))
+                r_if = str(results[var_type][var_f].get("recall_inframe", ""))
+                outline.extend([p_f, r_f, p_if, r_if])
+            elif var_type == "snv":
+                tu = str(results[var_type][var_f]["t_u_ratio"])
+                outline.append(tu)
+
             o.write("\t".join(outline))
             o.write("\n")
 
@@ -991,7 +929,7 @@ def main():
         )
 
         os.makedirs(os.path.dirname(outfile_snv), exist_ok=True)
-        write_snv_filter_metrics(results, outfile_snv)
+        write_filter_metrics(results, outfile_snv, "snv")
         end_time = time.time()
         print(f"=== SNV evaluation competed successfully.\nExecution time: {end_time - start_time:.2f} seconds ===")
 
@@ -1010,7 +948,7 @@ def main():
         )
 
         os.makedirs(os.path.dirname(outfile_indel), exist_ok=True)
-        write_indel_filter_metrics(results, outfile_indel)
+        write_filter_metrics(results, outfile_indel, "indel")
         end_time = time.time()
         print(f"=== INDEL evaluation competed successfully.\nExecution time: {end_time - start_time:.2f} seconds ===")
 
