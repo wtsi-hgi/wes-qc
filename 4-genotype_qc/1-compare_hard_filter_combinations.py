@@ -157,7 +157,7 @@ def process_filter_combination(
     ab: float,
     call_rate: float,
     ht_giab_control: hl.Table,
-    pedigree: hl.Pedigree,
+    pedigree: Optional[hl.Pedigree],
     var_type: str,
     mtdir: str,
     giab_sample_id: Optional[str] = None,
@@ -181,25 +181,40 @@ def process_filter_combination(
     """
     # Applying the combination of hard filters
     mt_hard_path = os.path.join(mtdir, f"tmp.hard_filters_combs.{var_type}-hard.mt")
-    mt_hard = apply_hard_filters(mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate, checkpoint_path=mt_hard_path)
+    mt_hard_filtered = apply_hard_filters(
+        mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate, checkpoint_path=mt_hard_path
+    )
 
-    var_counts = {}
+    var_counts: dict[str, Any] = {}
     # Counting TP and FP
-    var_counts["TP"], var_counts["FP"] = count_tp_fp(mt_hard)
+    var_counts["TP"], var_counts["FP"] = count_tp_fp(mt_hard_filtered)
+
+    if pedigree is not None:
+        mendelian_error_mean, mendelian_error_std = calculate_normalized_mendel_errors_proband(
+            mt_hard_filtered, pedigree
+        )
+        var_counts["mendelian_error_mean"], var_counts["mendelian_error_std"] = (
+            mendelian_error_mean,
+            mendelian_error_std,
+        )
+    else:
+        var_counts["mendelian_error_mean"], var_counts["mendelian_error_std"] = -1.0, -1.0
 
     # Counting transmitted/untransmitted ratio - for SNPs only
-    if var_type == "snv":
+    if var_type == "snv" and pedigree is not None:
         # Extracting synonymous for transmitted/unstransmitted calculation
-        mt_syn = mt_hard.filter_rows(mt_hard.consequence == "synonymous_variant")
+        mt_syn = mt_hard_filtered.filter_rows(mt_hard_filtered.consequence == "synonymous_variant")
         ratio = count_trans_untrans(mt_syn, pedigree)
         var_counts["t_u_ratio"] = ratio
+    else:
+        var_counts["t_u_ratio"] = -2.0
 
     # Calculating precision/recall - possible only if we have GIAB sample
     if giab_sample_id is not None:
         # Extracting GIAB sample for precision/recall calculation
         tmp_ht_giab_dataset_path = os.path.join(mtdir, "pr.ht")
         ht_giab_dataset = get_giab_sample_from_dataset(
-            giab_sample_id, mt_hard, checkpoint_path=tmp_ht_giab_dataset_path
+            giab_sample_id, mt_hard_filtered, checkpoint_path=tmp_ht_giab_dataset_path
         )
 
         if var_type == "snv":
@@ -245,7 +260,7 @@ def get_giab_sample_from_dataset(giab_sample_id: str, mt_hard: hl.MatrixTable, c
 def filter_and_count(
     mt: hl.MatrixTable,
     ht_giab_control: hl.Table,
-    pedigree: hl.Pedigree,
+    pedigree: Optional[hl.Pedigree],
     mtdir: str,
     var_type: str,
     hardfilter_combinations: dict[str, Union[int, float]],
@@ -509,6 +524,45 @@ def count_trans_untrans(mt_syn: hl.MatrixTable, pedigree: hl.Pedigree) -> float:
     return ratio
 
 
+def calculate_normalized_mendel_errors_proband(mt: hl.MatrixTable, ped: hl.Pedigree) -> (float, float):
+    """
+    Calculate normalized Mendelian errors for probands in a dataset.
+
+    Args:
+        mt: Hail MatrixTable containing genetic data
+        ped: Hail Pedigree object containing family relationships
+
+    Returns:
+        Tuple containing:
+        - Mean normalized Mendelian error rate across all probands
+        - Table with per-proband Mendelian error counts and rates
+    """
+    # Get the list of probands (individuals with both parents in pedigree)
+    trios = ped.complete_trios()
+    proband_ids = [trio.s for trio in trios]
+
+    # Calculate Mendelian errors
+    _, _, per_sample, _ = hl.mendel_errors(mt.GT, ped)
+
+    # Filter to probands only
+    proband_errors = per_sample.filter(hl.set(proband_ids).contains(per_sample.s))
+
+    # Get the total number of variants in the dataset
+    total_variants = mt.count_rows()
+
+    # Calculate normalized error rate
+    proband_errors = proband_errors.annotate(normalized_errors=proband_errors.errors / float(total_variants))
+
+    # Calculate mean normalized error rate across all probands
+    stats = proband_errors.aggregate(
+        hl.struct(
+            mean=hl.agg.stats(proband_errors.normalized_errors).mean,
+            std_dev=hl.agg.stats(proband_errors.normalized_errors).stdev,
+        )
+    )
+    return stats.mean, stats.std_dev
+
+
 def write_snv_filter_metrics(results: dict, outfile: str):
     """
     Write SNV filtering metrics to a tab-delimited file, including true/false positive rates,
@@ -517,7 +571,21 @@ def write_snv_filter_metrics(results: dict, outfile: str):
     :param dict results: Dictionary containing filtering results and metrics for each SNV filter combination
     :param str outfile: Path to output TSV file
     """
-    header = ["filter", "bin", "DP", "GQ", "AB", "call_rate", "TP", "FP", "t_u_ratio", "precision", "recall"]
+    header = [
+        "filter",
+        "bin",
+        "DP",
+        "GQ",
+        "AB",
+        "call_rate",
+        "TP",
+        "FP",
+        "t_u_ratio",
+        "mendelian_error_mean",
+        "mendelian_error_std",
+        "precision",
+        "recall",
+    ]
 
     with open(outfile, "w") as o:
         o.write("\t".join(header))
@@ -530,8 +598,24 @@ def write_snv_filter_metrics(results: dict, outfile: str):
             tu = str(results["snv"][var_f]["t_u_ratio"])
             p = str(results["snv"][var_f].get("prec", ""))
             r = str(results["snv"][var_f].get("recall", ""))
+            mendelian_error_mean = str(results["snv"][var_f].get("mendelian_error_mean", ""))
+            mendelian_error_std = str(results["snv"][var_f].get("mendelian_error_std", ""))
 
-            outline = [var_f, bin_val, dp, gq, ab, call_rate, tp, fp, tu, p, r]
+            outline = [
+                var_f,
+                bin_val,
+                dp,
+                gq,
+                ab,
+                call_rate,
+                tp,
+                fp,
+                tu,
+                mendelian_error_mean,
+                mendelian_error_std,
+                p,
+                r,
+            ]
             o.write("\t".join(outline))
             o.write("\n")
 
@@ -553,6 +637,8 @@ def write_indel_filter_metrics(results: dict, outfile: str):
         "call_rate",
         "TP",
         "FP",
+        "mendelian_error_mean",
+        "mendelian_error_std",
         "precision",
         "recall",
         "precision_frameshift",
@@ -575,8 +661,27 @@ def write_indel_filter_metrics(results: dict, outfile: str):
             r_f = str(results["indel"][var_f].get("recall_frameshift", ""))
             p_if = str(results["indel"][var_f].get("prec_inframe", ""))
             r_if = str(results["indel"][var_f].get("recall_inframe", ""))
+            mendelian_error_mean = str(results["indel"][var_f].get("mendelian_error_mean", ""))
+            mendelian_error_std = str(results["indel"][var_f].get("mendelian_error_std", ""))
 
-            outline = [var_f, bin_val, dp, gq, ab, call_rate, tp, fp, p, r, p_f, r_f, p_if, r_if]
+            outline = [
+                var_f,
+                bin_val,
+                dp,
+                gq,
+                ab,
+                call_rate,
+                tp,
+                fp,
+                mendelian_error_mean,
+                mendelian_error_std,
+                p,
+                r,
+                p_f,
+                r_f,
+                p_if,
+                r_if,
+            ]
             o.write("\t".join(outline))
             o.write("\n")
 
@@ -828,31 +933,32 @@ def main():
     tmp_dir = config["general"]["tmp_dir"]
 
     # = STEP PARAMETERS = #
-    model_id = config["general"]["rf_model_id"]
-    mtdir = config["general"]["matrixtables_dir"]
-    rf_dir = config["general"]["var_qc_rf_dir"]
+    model_id: str = config["general"]["rf_model_id"]
+    mtdir: str = config["general"]["matrixtables_dir"]
+    rf_dir: str = config["general"]["var_qc_rf_dir"]
 
     hardfilter_evaluate_workdir = os.path.join(mtdir, model_id)
 
     # = STEP DEPENDENCIES = #
     # GIAB sample to compare
-    giab_vcf = config["step4"]["evaluation"]["giab_vcf"]
-    giab_cqfile = config["step4"]["evaluation"]["giab_cqfile"]
+    giab_vcf: str = config["step4"]["evaluation"]["giab_vcf"]
+    giab_cqfile: str = config["step4"]["evaluation"]["giab_cqfile"]
 
     # Files from VariantQC
-    mtfile = config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"]
-    cqfile = config["step3"]["annotate_mt_with_cq_rf_score_and_bin"]["cqfile"]
-    pedfile = config["step3"]["pedfile"]
-    rf_htfile = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")
+    mtfile: str = config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"]
+    cqfile: str = config["step3"]["annotate_mt_with_cq_rf_score_and_bin"]["cqfile"]
+    pedfile: str = config["step3"]["pedfile"]
+    rf_htfile: str = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")
 
     # = STEP OUTPUTS = #
-    mt_annot_path = os.path.join(hardfilter_evaluate_workdir, "tmp.hard_filters_combs.mt")
-    outfile_snv = config["step4"]["evaluation"]["snp_tsv"]
-    outfile_indel = config["step4"]["evaluation"]["indel_tsv"]
-    giab_ht_file = config["step4"]["evaluation"]["giab_ht_file"]
+    mt_annot_path: str = os.path.join(hardfilter_evaluate_workdir, "tmp.hard_filters_combs.mt")
+    outfile_snv: str = config["step4"]["evaluation"]["snp_tsv"]
+    outfile_indel: str = config["step4"]["evaluation"]["indel_tsv"]
+    giab_ht_file: str = config["step4"]["evaluation"]["giab_ht_file"]
 
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
+    pedigree = hl.Pedigree.read(path_spark(pedfile)) if pedfile is not None else None
 
     if args.prepare:
         print("=== Preparing control GIAB sample ===")
@@ -868,12 +974,13 @@ def main():
         mt_annot = annotate_cq(mt_annot, cqfile)
         mt_annot.write(path_spark(mt_annot_path), overwrite=True)
 
+    ht_giab_control = hl.read_table(path_spark(giab_ht_file))
+
     if args.evaluate_snv:
         print("=== Calculating hard filter evaluation for SNV ===")
         start_time = time.time()
+
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
-        ht_giab_control = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
-        pedigree = hl.Pedigree.read(path_spark(pedfile))
         results = filter_and_count(
             mt,
             ht_giab_control,
@@ -891,9 +998,8 @@ def main():
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
         start_time = time.time()
+        ht_giab_control = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
-        ht_giab_control = hl.read_table(path_spark(giab_ht_file))
-        pedigree = hl.Pedigree.read(path_spark(pedfile))
         results = filter_and_count(
             mt,
             ht_giab_control,
