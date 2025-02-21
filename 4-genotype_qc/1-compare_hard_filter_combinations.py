@@ -645,6 +645,7 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
     """
     # Create the data source
     # Convert DP to string for factor mapping
+    print(f"--- Generating interactive plot {y} vs {x} in {outfile}, ---")
     df["DP"] = df["DP"].astype(str)
     source = bokeh.models.ColumnDataSource(df)
     filtered_source = bokeh.models.ColumnDataSource(data=source.data)

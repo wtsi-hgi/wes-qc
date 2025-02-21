@@ -271,6 +271,7 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
+  # To skip all trios-related computations, put here the `null` value
   pedfile: {PEDIGREE_FILE_NAME}  #'{metadir}/control_set_small_trios.ped' - put from test_integration
 
   # --- Step 3.1 --- #

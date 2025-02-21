@@ -271,7 +271,8 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
-  pedfile: null #'{metadir}/test_1000g_v2.triosonly.ped'
+  # To skip all trios-related computations, put here the `null` value
+  pedfile: '{metadir}/test_1000g_v2.triosonly.ped'
 
   # --- Step 3.1 --- #
   split_multi_and_var_qc:
