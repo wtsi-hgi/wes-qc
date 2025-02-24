@@ -16,7 +16,7 @@ class IntegrationTests(IntegrationTestsStub):
 
         # For each stub method, create a corresponding test method
         for stub_name, stub_method in stub_methods:
-            test_name = stub_name.replace("stub_", "test_")
+            test_name = stub_name.replace("stub_", "test_trios_")
 
             def create_test(stub):
                 def test_method(self):

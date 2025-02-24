@@ -1,6 +1,6 @@
 import inspect
 
-from tests.integration_tests.test_integration import IntegrationTestsStub
+from tests.integration_tests.integration_stub import IntegrationTestsStub
 
 # TODO: this approach doesn't work. Leave as is. Find a netter way to parametrize tests: HSH-254
 # INTEGRATION_TESTS_CONFIG_TEMPLATE = "config_test_template.yaml"

@@ -17,12 +17,15 @@ test-it-one-step-profile: clear-hard-filter-checkpoints
 	python -m cProfile -o profile.stats -m pytest -vv -s -k $(test) && \
 	snakeviz --hostname 0.0.0.0 $(shell pwd)/tests/integration_tests/profile.stats
 
-integration-test: clear-ht clear-logs
-	cd tests/integration_tests && pytest
+integration-test-trios: clear-ht clear-logs
+	cd tests/integration_tests && pytest -k test_trios_
+
+integration-test-non-trios: clear-ht clear-logs
+	cd tests/integration_tests && pytest -k test_non_trios_
 
 
 integration-test-coverage: clear-ht clear-logs
-	cd tests/integration_tests && pytest --cov=../..
+	cd tests/integration_tests && pytest -k test_trios_ --cov=../..
 
 
 unit-test:
