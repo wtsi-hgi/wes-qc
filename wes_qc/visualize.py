@@ -6,6 +6,24 @@ import math
 
 import pandas as pd
 
+# Define color mapping for symmetric pairs ijn mutation spectra
+color_mapping = {
+    # A<->T base pairs
+    "A>C": "#1f77b4",  # blue
+    "T>G": "#1f77b4",  # blue (symmetric with A>C)
+    "A>G": "#2ca02c",  # green
+    "T>C": "#2ca02c",  # green (symmetric with A>G)
+    "A>T": "#d62728",  # red
+    "T>A": "#d62728",  # red (symmetric with A>T)
+    # G<->C base pairs
+    "G>A": "#ff7f0e",  # orange
+    "C>T": "#ff7f0e",  # orange (symmetric with G>A)
+    "G>C": "#9467bd",  # purple
+    "C>G": "#9467bd",  # purple (symmetric with G>C)
+    "G>T": "#8c564b",  # brown
+    "C>A": "#8c564b",  # brown (symmetric with G>T)
+}
+
 
 def plot_pop_pca(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Optional[str] = None) -> None:
     """
@@ -64,11 +82,7 @@ def calculate_mutation_spectra(mt):
     return fraction_mutation_df
 
 
-def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=800, height=600, **kwargs):
-    """
-    Plot mutation spectra by calculated table
-    """
-    # Prepare the data
+def mutation_spectra_stats(df: pd.DataFrame, iqr_multiplier: float = 1.5):
     df_copy = df.copy()
     df_copy["samples"] = df_copy.index
     df_melted = df_copy.melt(id_vars=["samples"], var_name="mutation_type", value_name="Proportion")
@@ -82,8 +96,32 @@ def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=8
     stats["lower"] = stats["25%"] - iqr_multiplier * iqr
     stats["upper"] = stats["75%"] + iqr_multiplier * iqr
 
+    # Identify outliers
+    is_outlier = df_melted.apply(
+        lambda row: (row["Proportion"] < stats.at[row["mutation_type"], "lower"])
+        | (row["Proportion"] > stats.at[row["mutation_type"], "upper"]),
+        axis=1,
+    )
+    outliers = df_melted[is_outlier]
+
+    return stats, outliers
+
+
+def plot_mutation_spectra_boxplots(stats: pd.DataFrame, outliers: pd.DataFrame, width=800, height=600, **kwargs):
+    """
+    Plot mutation spectra by calculated table
+    """
     mutation_types = stats.index.tolist()
-    source = bokeh.models.ColumnDataSource(stats)
+    # Create the source for plotting
+    source_data = {
+        "mutation_type": mutation_types,
+        "mean": stats["mean"],
+        "q25": stats["25%"],
+        "q75": stats["75%"],
+        "upper": stats["upper"],
+        "lower": stats["lower"],
+    }
+    source = bokeh.models.ColumnDataSource(source_data)
 
     # Create the figure
     p = bokeh.plotting.figure(
@@ -92,10 +130,10 @@ def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=8
 
     # quantile boxes
     p.vbar(
-        x="mutation_type", width=0.7, bottom="25%", top="50%", source=source, line_color="black", fill_color="skyblue"
+        x="mutation_type", width=0.7, bottom="q25", top="mean", source=source, line_color="black", fill_color="skyblue"
     )
     p.vbar(
-        x="mutation_type", width=0.7, bottom="50%", top="75%", source=source, line_color="black", fill_color="skyblue"
+        x="mutation_type", width=0.7, bottom="mean", top="q75", source=source, line_color="black", fill_color="skyblue"
     )
 
     # outlier range
@@ -103,16 +141,8 @@ def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=8
     whisker.upper_head.size = whisker.lower_head.size = 20
     p.add_layout(whisker)
 
-    # Identify outliers
-    is_outlier = df_melted.apply(
-        lambda row: (row["Proportion"] < stats.at[row["mutation_type"], "lower"])
-        | (row["Proportion"] > stats.at[row["mutation_type"], "upper"]),
-        axis=1,
-    )
-    outliers = df_melted[is_outlier]
     # Plot outliers
     outlier_glyphs = p.scatter("mutation_type", "Proportion", source=outliers, size=6, color="black", alpha=0.3)
-
     outlier_hover = bokeh.models.HoverTool(
         renderers=[outlier_glyphs], tooltips=[("Sample", "@samples"), ("Proportion", "@Proportion")]
     )
@@ -129,55 +159,12 @@ def plot_mutation_spectra(df: pd.DataFrame, iqr_multiplier: float = 1.5, width=8
     return p
 
 
-def plot_simplified_mutation_spectra(df: pd.DataFrame, width=800, height=600, **kwargs):
+def plot_mutation_spectra_hist(stats: pd.DataFrame, width=800, height=600, **kwargs):
     """
-    Plot mutation spectra as a histogram with error whiskers showing quartiles
-
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        DataFrame containing mutation spectra data with mutation types as columns
-    width : int
-        Width of the plot in pixels
-    height : int
-        Height of the plot in pixels
+    Plot mutation spectra as a histogram from mutations pectra stats
     """
-    # Define color mapping for symmetric pairs
-    color_mapping = {
-        # A<->T base pairs
-        "A>C": "#1f77b4",  # blue
-        "T>G": "#1f77b4",  # blue (symmetric with A>C)
-        "A>G": "#2ca02c",  # green
-        "T>C": "#2ca02c",  # green (symmetric with A>G)
-        "A>T": "#d62728",  # red
-        "T>A": "#d62728",  # red (symmetric with A>T)
-        # G<->C base pairs
-        "G>A": "#ff7f0e",  # orange
-        "C>T": "#ff7f0e",  # orange (symmetric with G>A)
-        "G>C": "#9467bd",  # purple
-        "C>G": "#9467bd",  # purple (symmetric with G>C)
-        "G>T": "#8c564b",  # brown
-        "C>A": "#8c564b",  # brown (symmetric with G>T)
-    }
-
-    # Prepare the data
-    df_copy = df.copy()
-    df_copy["samples"] = df_copy.index
-    df_melted = df_copy.melt(id_vars=["samples"], var_name="mutation_type", value_name="Proportion")
-    df_melted["Proportion"] = df_melted["Proportion"].astype(
-        "float64"
-    )  # For some samples Hail returns NaN that Pandas do not recognize
-
-    # Calculate statistics for box plot
-    stats = df_melted.groupby("mutation_type").Proportion.describe()
     mutation_types = stats.index.tolist()
-
-    # Create the figure
-    p = bokeh.plotting.figure(
-        width=width, height=height, x_range=mutation_types, title="Mutation Spectrum", toolbar_location="above"
-    )
-
-    # Create source for plotting
+    # Create the source for plotting
     source_data = {
         "mutation_type": mutation_types,
         "mean": stats["mean"],
@@ -186,6 +173,11 @@ def plot_simplified_mutation_spectra(df: pd.DataFrame, width=800, height=600, **
         "color": [color_mapping.get(mut, "#e377c2") for mut in mutation_types],  # default to pink if type not found
     }
     source = bokeh.models.ColumnDataSource(source_data)
+
+    # Create the figure
+    p = bokeh.plotting.figure(
+        width=width, height=height, x_range=mutation_types, title="Mutation Spectrum", toolbar_location="above"
+    )
 
     # Plot mean values as bars
     p.vbar(x="mutation_type", top="mean", width=0.5, source=source, fill_color="color", line_color="black")
@@ -217,3 +209,17 @@ def plot_simplified_mutation_spectra(df: pd.DataFrame, width=800, height=600, **
     p.add_tools(hover)
 
     return p
+
+
+def plot_mutation_spectra_combined(mut_spectra, iqr_multiplier: float = 1.5, **kwargs):
+    stats, outliers = mutation_spectra_stats(mut_spectra, iqr_multiplier)
+    # Make and save the plot
+
+    p_box_whiskers = plot_mutation_spectra_boxplots(stats, outliers, **kwargs)
+    p_hist = plot_mutation_spectra_hist(stats, **kwargs)
+    # Create two panels, one for each plot
+    tab_boxplot = bokeh.models.TabPanel(child=p_box_whiskers, title="Boxplot")
+    tab_histogram = bokeh.models.TabPanel(child=p_hist, title="Histogram")
+    # Combine the panels into mut_spectra_plot
+    mut_spectra_plot = bokeh.models.Tabs(tabs=[tab_boxplot, tab_histogram])
+    return mut_spectra_plot
