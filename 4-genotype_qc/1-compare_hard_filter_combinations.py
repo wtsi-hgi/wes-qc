@@ -937,7 +937,7 @@ def main():
     if args.evaluate_indel:
         print("=== Calculating hard filter evaluation for InDels ===")
         start_time = time.time()
-        ht_giab_control = hl.read_table(path_spark(giab_ht_file)) if giab_vcf is not None else None
+
         mt = hl.read_matrix_table(path_spark(mt_annot_path))
         results = filter_and_count(
             mt,
