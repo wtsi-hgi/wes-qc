@@ -410,7 +410,21 @@ spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
 
 ### 3. Variant QC
 
-Variant QC usees optional pedigree file detailing any trios.
+The VariantQC steps trains and runs a random forest model to estimate variation quality
+and rank all variations by this estimation.
+
+To train the predicting model, we need a set of True-Positive (TP) and False-positive (FP) variations.
+Because for a new dataset we don't have the real TP and FP, we use the following approach:
+
+* For likely-true-positive variants, we use all variations that were found and reported
+  in public databases: 1000 genomes, HapMap, Mills, etc (see the full list of sources on the step 0.2)
+* For likely-false-positive variants, we use variants with the lowest quality scores, provided py the variant caller.
+
+In this documentation the TP and FP abbreviations stand for likely-true-positive and likely-false-positive.
+
+Variant QC uses the optional pedigree file detailing trios existing in the dataset.
+The file should follow the [FAM file](https://www.cog-genomics.org/plink/1.9/formats#fam)
+notation from PLINK utility.
 This is an unheaded, tab-delimited file that contains the following columns:
 - Family ID
 - Proband ID
@@ -444,6 +458,8 @@ The random forest model ID (called _runhash_ previously, so you can find this te
 will be printed to STDOUT.
 It is an 8-character string consisting of letters and numbers.
 Put this ID in the config file in the `rf_model_id:` parameter under the `general` section.
+
+You can specify the model ID manually using the command line argument `--manual-model-id`.
 
 **Note:**
 In old _gnomAD_ releases, the function `train_rf_model()`
@@ -486,16 +502,27 @@ Create plots of the binned random forest output to use in the selection of thres
 spark-submit 3-variant_qc/7-plot_rf_output.py
 ```
 
-After examining the plots and selecting suitable thresholds for SNPs and indels,
-you can calculate the number of true positive and false positive variants
-remaining at your chosen thresholds and at the bins surrounding it using the following
-(where snv_bin and indel_bin are the thresholds selected for SNVs and indels respectively).
+The Variant QC is always a trading between sensitivity and quality.
+Examine the plots and choose the near-optimal region for RF bin,
+that preserves as many TP variants as possible and at the same time eliminating most part of FP variants.
+You can refer to other graphs to ensure that the chosen region anso has the expected metrics
+
+At the GenotypeQC step we run the evaluation of different hardfilter combinations
+that allows you to improve the results.
+Therefore, at this point you don't need to make a final decision.
+You only need to choose a provisional RF bin interval to analyze it on the next steps.
+
+However, if you want, you can calculate the number of true positive and false positive variants
+remaining at your chosen thresholds using the optional scripts
+(where `snv_bin` and `indel_bin` are the thresholds selected for SNVs and indels respectively).
+This scripts uses only RF bin filtering and runs faster than the full hardfilter evaluation.
 
 ```shell
 spark-submit 3-variant_qc/8-select_thresholds.py --snv snv_bin --indel indel_bin
 ```
 
-Filter the variants in the Hail MatrixTable based on the selected threshold for SNVs and indels
+If you want to manually explore remaining variations,
+you can filter the variants in the Hail MatrixTable based on the selected threshold for SNVs and indels.
 
 ```shell
 spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel indel_bin
@@ -519,15 +546,19 @@ For example:
 ```yaml
     snp_bins: [ 60, 75, 90 ]
     indel_bins: [ 25, 50, 75 ]
+```
+
+The values for the Genotype quality (gq), read depth (dp), allele balance (ab),
+and missingness
+(also can be found in the code as **call rate** - the minimal percentage of genotypes where this variation is defined)
+are typical, so you can start with the following values.
+
+```yaml
     gq_vals: [ 10, 15 ]
     dp_vals: [ 5, 10 ]
     ab_vals: [ 0.2, 0.3 ]
     missing_vals: [0.0, 0.5]
 ```
-
-The values for the Genotype quality (gq), read depth (dp), allele balance (ab),
-and missingness (minimal percentage of genotypes where this variation is defined)
-are typical, so you can start with the provided values.
 
 If your dataset contains a control sample with known high-confident variations
 (usually one of the [GIAB](https://www.nist.gov/programs-projects/genome-bottle) samples),
@@ -562,12 +593,38 @@ Also, the script saves results in the subfolder in `annotation` folder, named by
 
 **At this step, you MUST review and analyze the results to choose correct values for hardfilter combinations**.
 The values for the public datasets are not suitable for your data.
+Choosing the correct combination requires professional knowledge and could be tricky.
+For more detailed explanation of this process you could review some relevant publications,
+(for example https://pmc.ncbi.nlm.nih.gov/articles/PMC11747307/).
+
+**Evaluation step outputs:**
+For each hardfilter combination, the script calculates the following metrics:
+* Percentage of likely-true-positives (TP) and likely-false-positives (FP) variants
+  (see the explanation above in the the VariantQC step description).
+* Precision and Recall, calculated on the GIAB sample (if it is present in the data).
+  For GIAB sample, we can calculate the real true-positive, false-positive, and false-negative variations.
+  Therefore, we assume these data as more confident for choosing the optimal hardfilter evaluation
+  The TP/FP values should be generally consistent with precision/recall.
+  If the GIAB sample is not available, the script outputs -1.0 both for precision and recall
+  * For Indels, the script additionally calculates the precision/recall values separately for in-frame and frameshift indels.
+* If trios are available, the script also calculates the following values (if trios are not available, script outputs -1):
+  * Transmitted/untransmitted SNV ratio — the ration of transmitted/untransmitted singleton variants across trio. Should be close to 1
+  * The rate of mendelian errors: variations where the child's genotype does not match any of the possible expected combinations based on the parents' genotypes.
+
+For these data, the script makes the following set of plots:
+* FP vs TP
+* recall vs precision
+* transmitted/untransmitted ratio vs TP
+* Mendelian error rate vs TP.
+
+_Note_: currently, the script outputs all the graphs, even if the corresponding data are not available.
+You can ignore graphs for the skipped parameters.
 
 All plots are interactive, and you can use the following options to explode your data:
 * Zoom in/out
 * Move to a specific location by dragging a graph content.
-* Use Checkboxes to filter data by DP, GQ AB, and call_rate hardfilters.
-  This option is especially useful when you select/deselect a checkbox and observe how your data are changed.
+* Use checkboxes to filter data by `DP`, `GQ` `AB`, and `call_rate` hardfilters.
+  This option is especially useful when you select/deselect a checkbox and observe how your data change.
 * Use sliders to filter by minimum/maximum bin value.
 * Change between several available color maps using the dropdown menu.
 

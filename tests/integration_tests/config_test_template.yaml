@@ -271,6 +271,7 @@ step2:
 
 step3:
   # Parameters used in multiple functions #
+  # To skip all trios-related computations, put here the `null` value
   pedfile: {PEDIGREE_FILE_NAME}  #'{metadir}/control_set_small_trios.ped' - put from test_integration
 
   # --- Step 3.1 --- #
@@ -403,9 +404,11 @@ step4:
   plot:
     snv-precision-recall: '{pltdir}/hard_filter_evaluation.snv.precision_recall.html'
     snv-TP-FP: '{pltdir}/hard_filter_evaluation.snv.tp_fp.html'
-    snv-t_u_ratio-TP: '{pltdir}/hard_filter_evaluation.snv.t_u_ratio_tp.html'
-    indel-precision-recall: '{pltdir}/hard_filter_evaluation.indel.precision_recall.html'
+    snv-TP-mendelian_error_mean: '{pltdir}/hard_filter_evaluation.snv.tp_mendel.html'
+    snv-TP-t_u_ratio: '{pltdir}/hard_filter_evaluation.snv.tp_t_u_ratio.html'
     indel-TP-FP: '{pltdir}/hard_filter_evaluation.indel.tp_fp.html'
+    indel-TP-mendelian_error_mean: '{pltdir}/hard_filter_evaluation.indel.tp_mendel.html'
+    indel-precision-recall: '{pltdir}/hard_filter_evaluation.indel.precision_recall.html'
 
 
   # --- Step 4.2 --- #

@@ -123,6 +123,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 .vscode/
+.cursorrules
 
 .snakemake
 
@@ -141,11 +142,6 @@ tests/integration_tests/*
 # except the test_*.py files
 !tests/integration_tests/test_*.py
 !tests/integration_tests/config_test_template.yaml
-
-# ignore the pyproject.toml and poetry.lock files for now
-# TODO: add these files after implementing the local running tests
-pyproject.old.toml
-poetry.lock
 
 
 # All userprovided notebooks with temporary code
