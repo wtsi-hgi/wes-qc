@@ -26,9 +26,28 @@ def main():
     mut_spectra.to_csv(mut_spectra_path, sep="\t")
 
     # Make and save the plot
-    p = visualize.plot_mutation_spectra(mut_spectra, **config["step1"]["plot_mutation_spectra_preqc"])
+    p_box_whiskers = visualize.plot_mutation_spectra(mut_spectra, **config["step1"]["plot_mutation_spectra_preqc"])
+    p_hist = visualize.plot_simplified_mutation_spectra(
+        df=mut_spectra, **config["step1"]["plot_mutation_spectra_preqc"]
+    )
+
+    from bokeh.models import Tabs, TabPanel
+
+    # Assuming p_box_whiskers and p_hist are your Bokeh plot objects
+
+    # Create two panels, one for each plot
+    tab1 = TabPanel(child=p_box_whiskers, title="Boxplot")
+    tab2 = TabPanel(child=p_hist, title="Histogram")
+
+    # Combine the panels into tabs
+    tabs = Tabs(tabs=[tab1, tab2])
+
+    # Save the combined plot
     bokeh.io.output_file(mut_spectra_plot_path)
-    bokeh.io.save(p)
+    bokeh.io.save(tabs)
+
+    # bokeh.io.output_file(mut_spectra_plot_path)
+    # bokeh.io.save(p_box_whiskers)
 
 
 if __name__ == "__main__":
