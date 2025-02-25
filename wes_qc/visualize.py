@@ -129,12 +129,24 @@ def plot_mutation_spectra_boxplots(stats: pd.DataFrame, outliers: pd.DataFrame, 
     )
 
     # quantile boxes
-    p.vbar(
-        x="mutation_type", width=0.7, bottom="q25", top="mean", source=source, line_color="black", fill_color="skyblue"
+    boxplot_glyphs = p.vbar(
+        x="mutation_type", width=0.7, bottom="q25", top="q75", source=source, line_color="black", fill_color="skyblue"
     )
+    # Median line
     p.vbar(
-        x="mutation_type", width=0.7, bottom="mean", top="q75", source=source, line_color="black", fill_color="skyblue"
+        x="mutation_type", width=0.7, bottom="mean", top="mean", source=source, line_color="black", fill_color="skyblue"
     )
+
+    boxplot_hover = bokeh.models.HoverTool(
+        renderers=[boxplot_glyphs],
+        tooltips=[
+            ("Mutation Type", "@mutation_type"),
+            ("Mean", "@mean{0.000}"),
+            ("Q25", "@q25{0.000}"),
+            ("Q75", "@q75{0.000}"),
+        ],
+    )
+    p.add_tools(boxplot_hover)
 
     # outlier range
     whisker = bokeh.models.Whisker(base="mutation_type", upper="upper", lower="lower", source=source)
@@ -144,7 +156,7 @@ def plot_mutation_spectra_boxplots(stats: pd.DataFrame, outliers: pd.DataFrame, 
     # Plot outliers
     outlier_glyphs = p.scatter("mutation_type", "Proportion", source=outliers, size=6, color="black", alpha=0.3)
     outlier_hover = bokeh.models.HoverTool(
-        renderers=[outlier_glyphs], tooltips=[("Sample", "@samples"), ("Proportion", "@Proportion")]
+        renderers=[outlier_glyphs], tooltips=[("Sample", "@samples"), ("Proportion", "@Proportion{0.0000}")]
     )
     p.add_tools(outlier_hover)
 
@@ -219,7 +231,7 @@ def plot_mutation_spectra_combined(mut_spectra, iqr_multiplier: float = 1.5, **k
     p_hist = plot_mutation_spectra_hist(stats, **kwargs)
     # Create two panels, one for each plot
     tab_boxplot = bokeh.models.TabPanel(child=p_box_whiskers, title="Boxplot")
-    tab_histogram = bokeh.models.TabPanel(child=p_hist, title="Histogram")
+    tab_histogram = bokeh.models.TabPanel(child=p_hist, title="Barplot")
     # Combine the panels into mut_spectra_plot
     mut_spectra_plot = bokeh.models.Tabs(tabs=[tab_boxplot, tab_histogram])
     return mut_spectra_plot
