@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import hail as hl
 import bokeh
@@ -64,7 +64,7 @@ def calculate_mutation_spectra(mt):
     return fraction_mutation_df
 
 
-def mutation_spectra_stats(df: pd.DataFrame, iqr_multiplier: float) -> (pd.DataFrame, pd.DataFrame):
+def mutation_spectra_stats(df: pd.DataFrame, iqr_multiplier: float) -> Tuple[pd.DataFrame, pd.DataFrame]:
     df_copy = df.copy()
     df_copy["samples"] = df_copy.index
     df_melted = df_copy.melt(id_vars=["samples"], var_name="mutation_type", value_name="Proportion")
@@ -187,10 +187,10 @@ def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **
     # Create the source for plotting
     source_data = {
         "mutation_type": mutation_types,
-        "median": stats["50%"],
+        "mean": stats["mean"],
         "std": stats["std"],
-        "q25": stats["25%"],
-        "q75": stats["75%"],
+        "lower": stats["mean"] - stats["std"],
+        "upper": stats["mean"] + stats["std"],
         "color": [
             MUTATION_SPECTRA_COLOR_MAPPING.get(mut, MUT_SPECTRA_NON_MAPPED_COLOR) for mut in mutation_types
         ],  # default to pink if type not found
@@ -203,11 +203,11 @@ def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **
     )
 
     # Plot median values as bars
-    p.vbar(x="mutation_type", top="median", width=0.5, source=source, fill_color="color", line_color="black")
+    p.vbar(x="mutation_type", top="mean", width=0.5, source=source, fill_color="color", line_color="black")
 
     # Add error whiskers for quartiles
     error_whisker = bokeh.models.Whisker(
-        base="mutation_type", upper="std", lower="std", source=source, line_color="black"
+        base="mutation_type", upper="upper", lower="lower", source=source, line_color="black"
     )
     error_whisker.upper_head.size = error_whisker.lower_head.size = 10
     p.add_layout(error_whisker)
@@ -224,10 +224,8 @@ def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **
     hover = bokeh.models.HoverTool(
         tooltips=[
             ("Mutation Type", "@mutation_type"),
-            ("Median", "@median{0.000}"),
+            ("Mean", "@mean{0.000}"),
             ("Standard Deviation", "@std{0.000}"),
-            ("Q25", "@q25{0.000}"),
-            ("Q75", "@q75{0.000}"),
         ]
     )
     p.add_tools(hover)

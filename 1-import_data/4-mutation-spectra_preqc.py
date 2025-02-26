@@ -1,4 +1,3 @@
-import bokeh
 import bokeh.io
 import hail as hl
 
