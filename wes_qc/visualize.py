@@ -203,7 +203,9 @@ def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **
     )
 
     # Plot median values as bars
-    p.vbar(x="mutation_type", top="mean", width=0.5, source=source, fill_color="color", line_color="black")
+    p.vbar(
+        x="mutation_type", top="mean", width=0.5, source=source, fill_color="color", line_color="black", fill_alpha=0.7
+    )
 
     # Add error whiskers for quartiles
     error_whisker = bokeh.models.Whisker(
