@@ -57,17 +57,7 @@ All other paths are specified as relatives, so you won't need to edit it.
 If you have to make any dataset-specific operations, you can create your own branch
 and add all the code you need to it.
 
-## How to run the code (tmux)
-
-Start a new tmux session and modify environment variables
-to include the directory you originally cloned the git repo into.
-To get a correct Python path, you need to have the virtual environment activated.
-
-```shell
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-export PYSPARK_PYTHON=$(which python)
-export PYSPARK_DRIVER_PYTHON=$(which python)
-```
+## How to run the code
 
 ### Manually running the code on a local machine
 
@@ -78,20 +68,34 @@ run the Python and provide the path to the pipeline script:
 python 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
-### Manually run the code on a Hail cluster
+### Manually running the code on a Hail cluster
 
-To submit the jobs on a Hai cluster, you need to run the pipeline script via `spark-submit`.
+To submit the jobs on a Hai cluster, you need to set up environment variables
+to include the directory you originally cloned the git repo into.
+To get a correct Python path, you need to have the virtual environment activated.
+
+```shell
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+export PYSPARK_PYTHON=$(which python)
+export PYSPARK_DRIVER_PYTHON=$(which python)
+```
+
+No you can run the pipeline script via `spark-submit`.
 For example:
 
 ```shell
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
-### Automatically sync and run the code on the cluster from a local machine
+We suggest running al code on a cluster in `tmux`/`screen` session to avoid
+script termintaion in case of any network issues.
+
+
+### Automatically syncing and running the code on the cluster from a local machine
 
 If you want to modify the code on your local machine,
-and then run it on the cluster, you can use two scripts
-in the `scripts`
+and then run it on the cluster, you can use two scripts provided
+in the `scripts` folder.
 
 * `hlrun_local` - runs the Python script via `spark-submit`. You need to run it on the spark master node on your cluster.
 * `hlrun_remote` - runs the code on the Spark cluster form your local machine.
@@ -102,62 +106,25 @@ in the `scripts`
   * Run the Python script via `hlrun_local`
   * Attach to the tmux session to monitor the progress
 
-
 **Warning**
 
 The `hlrun_remote` is designed to work with only one tmux session.
 To start a new task via `hlrun_remote`, first end the existing tmux session, if it exists.
 
 
-## How to run the code (jupyter notebook)
-Alternatively, you can run the code in a jupyter notebook where all the steps are arranged in a sequence and divided into sections (e.g. 0-resource_preparation, 1-import_data, 2-sample_qc, 3-variant_qc, 4-genotype_qc).
+### Running the code via Jupyter notebook
+
+You can run the code in the provided Jupyter notebook
+where all the steps are arranged in a sequence and divided into sections
+(e.g. 0-resource_preparation, 1-import_data, 2-sample_qc, 3-variant_qc, 4-genotype_qc).
 
 The notebook is located as `scripts/run-wes-qc-pipeline-all-steps.ipynb`.
 
-It uses hlrun_local to run the code, which will output the log file to the current directory, with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
+It uses `hlrun_local` to run the code, which will output the log file to the current directory,
+with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
 
-To run with jupyter notebook, you could either run the notebook on the cluster or on your local machine. By default, it will run on the local machine,
+For details, refer to the Markdown comments in the notebook.
 
-### Run with jupyter notebook on the local machine
-Note if you are doing this on a local machine, you may need to keep your laptop on for a long time. Running on a virtual machine is recommended.
-
-1. First, prepare a python environment with jupyter notebook installed. There is no additional dependency to install.
-A quick way to do this is to install `uv` - `curl -LsSf https://astral.sh/uv/install.sh | sh`, see [uv](https://astral.sh/uv/) for more details.
-Then run `uv add jupyterlab`, the `jupyter` executable will be installed in `.venv/bin/jupyter`.
-
-2. Then, set up a SSH connection to the cluster, for example, if the cluster IP address is `172.27.1.1`, add the following to your `~/.ssh/config` file:
-```
-Host wes
-    HostName 172.27.1.1
-    User ubuntu
-    IdentityFile ~/.ssh/id_rsa
-```
-id_rsa is the private key for accessing the cluster when the cluster was created.
-
-3. Then, in the python environment, run the following command to start the notebook:
-```
-jupyter notebook scripts/run-wes-qc-pipeline-all-steps.ipynb
-```
-or if you are using VSCode, you can open the notebook directly in VSCode and set the python interpreter to the one with the Jupyter notebook installed.
-
-4. Follow the instructions in the notebook to run the pipeline.
-Note that the variable `jupyter_notebook_on_cluster` needs to be set to `False` in the notebook.
-
-### Run with jupyter notebook on the cluster
-1. First, prepare a python environment with jupyter notebook installed. There is no additional dependency to install.
-See the above [Run with jupyter notebook on the local machine](#run-with-jupyter-notebook-on-the-local-machine) section for more details.
-
-2. Then, start a jupyter notebook server on the cluster:
-```
-jupyter notebook --no-browser --port=8889 scripts/run-wes-qc-pipeline-all-steps.ipynb
-```
-Note you cannot use the default port 8888 because it is already used by the built-in notebook server on the master node.
-The built-in notebook server on the master node is not suitable because its Spark will claim all the resources and the pipeline will not be able to run.
-
-If you are using VSCode, you can open the notebook directly in VSCode and set the python interpreter to the system python.
-
-3. Follow the instructions in the notebook to run the pipeline.
-Note that the variable `jupyter_notebook_on_cluster` needs to be set to `True` in the notebook.
 
 ## Analyze your data
 
