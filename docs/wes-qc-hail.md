@@ -65,7 +65,8 @@ Create a folder and place in it your input pre-QC VCFs.
 Currently, gathering the 1000G data for population clustering is a manual process
 (automation is being developed).
 To gather the data, you need to do the following:
-1. Download per-chromosome 1000G dataset from
+1. Download per-chromosome 1000G dataset. HGI uses release taken from here:
+   ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/
 2. (Optional) - run BCFTools to remove structural variations and keep only SNVs and small indels
 3. Put the data in the folder specified under `` in the `general` config section (see below).
 
