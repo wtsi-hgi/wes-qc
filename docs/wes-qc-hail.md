@@ -395,6 +395,15 @@ Also, you can specify the IQR range for outliers and change the plot size if nee
 spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
 ```
 
+The script imputes genetic sex for all samples, and saves the results in the
+`sex_annotated.sex_check.tsv.bgz` table in the annotation folder.
+Then the script identifies F-stat outliers, and saves it in the
+`sex_annotation_f_stat_outliers.tsv` table.
+Finally, if self-reported sex is available, the script identifies samples that have
+a conflict between self-reported sex and genetically imputed sex, and saves it in the table
+`conflicting_sex.tsv`.
+
+
 2. **Identify samples from related individuals with PCRelate**
 This step outputs a relatedness graph, a table of total statistics of relatedness and a list of related samples.
 Please see config files "prune_pc_relate" for more details.
@@ -614,14 +623,22 @@ spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel 
 
 ### 4. Genotype QC
 
-Genotype QC are performed using a range of filters defined in `config/inputs.yaml`.
+On the GenotypeQc step we need to remove genotypes that ane not quality enough.
+However, by removing genotypes that don't match certain filter thresholds,
+we always remove some percentage of real existing genotypes.
 
-To perform genotype QC, you need to determine the best combination of hard filters,
+To obtain good results, we need to determine the best combination of hard filters,
 to save "good" variations as much as possible,
 and get rid of all "bad" variants and genotypes at the same time.
 
 The first script of the genotype QC helps you to analyze different combinations of hard filters
 and choose optimal values.
+
+First hard filter that we use, if the random forest bin,
+determined on the VariantQC step.
+This filter applies on the variation level, removing
+all genotyped for the variation above the threshold
+(for RFB bin smaller values are better)
 
 Based on the results of the VariantQC step populate the provisional values
 for the SNV and indel random forest bins in the `evaluation` part of the config file.
@@ -632,10 +649,13 @@ For example:
     indel_bins: [ 25, 50, 75 ]
 ```
 
-The values for the Genotype quality (gq), read depth (dp), allele balance (ab),
-and missingness
-(also can be found in the code as **call rate** - the minimal percentage of genotypes where this variation is defined)
-are typical, so you can start with the following values.
+On the genotype level, we use the set of per-genotype hardfilters:
+Genotype quality (gq), read depth (dp), and allele balance (ab).
+Finally, we calculate missingness (also can be found in the code as **call rate**) —
+the minimal percentage of genotypes where this variation remains defined
+after applying per-genotype hard filters. This filter also applies on the variant-level.
+
+For all these parameters you can start with the following default values:
 
 ```yaml
     gq_vals: [ 10, 15 ]
@@ -655,11 +675,15 @@ Add the sample control name, the corresponding VCF file, and the VEP annotation 
     giab_sample: 'NA12878.alt_bwamem_GRCh38DH.20120826.exome'
 ```
 
-If you don't have a GIAB sample, put null in the `giab_sample` section.
-The precision/recall calculations will be skipped in this case.
+Data files for the `GIAB HG001/NA12878` sample are available in the resource data
+downloaded by the testing script
+(see the [Obtain resource files](#obtain-resource-files) section).
 
-_Note_: For now, you still need to specify the GIAB VCF and cqfile, even if you're skipping
-the precision calculation.
+_Note_: For now, you still have to specify the correct GIAB VCF and cqfile,
+even if you're skipping the precision calculation.
+
+If you don't have a GIAB sample, put `null` in the `giab_sample` section.
+The precision/recall calculations will be skipped in this case.
 
 Run the hard-filter evaluation step:
 
@@ -727,27 +751,15 @@ relaxed, medium, and stringent.
 Fill in the values in the `apply_hard_filters` part of the config.
 If needed, add more values to evaluate in the config and rerun the hard filter evaluation.
 
-Run the Genotype QC with the chosen set of filters:
+2. **Run the Genotype QC with the chosen set of filters:**
+
+Now you can apply your custom thresholds and make variants with corresponding filters.
 
 ```shell
 spark-submit 4-genotype_qc/2-apply_range_of_hard_filters.py
 ```
 
-4. **Plot mutations spectra**
-
-Plotting the mutation spectra can help you to identify batch-level artifacts.
-To do it, run the calculation script:
-
-```shell
-spark-submit 1-import_data/4-mutation-spectra_preqc.py
-```
-
-The script saves the plot in the html file specified under the
-`plot_mutation_spectra_preqc`:`mut_spectra_path` config section.
-Also, you can specify the IQR range for outliers and change the plot size if needed.
-
-
-Export the filtered variants to VCF.
+3. **Export the filtered variants to VCF.**
 Script 3a tags all variations with the corresponding filter (relaxed, medium, stringent)
 removes all variants not passing the relaxed filter, and saves the resulting data to VCF files.
 
@@ -761,6 +773,7 @@ Alternatively, to export VCFs with only passing stringent hard filter, use the 3
 spark-submit 4-genotype_qc/3b-export_vcfs_stingent_filters.py
 ```
 
+4. **(Optional) - calculate-per-sample statistics**
 If you want to additionally evaluate the filter statistics
 (variant counts per consequence per sample and
 transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data))
