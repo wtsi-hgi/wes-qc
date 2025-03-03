@@ -68,7 +68,7 @@ To gather the data, you need to do the following:
 1. Download per-chromosome 1000G dataset. HGI uses release taken from here:
    ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/
 2. (Optional) - run BCFTools to remove structural variations and keep only SNVs and small indels
-3. Put the data in the folder specified under `` in the `general` config section (see below).
+3. Put the data in the folder specified under `onekg_resource_dir` in the `general` config section (see below).
 
 The easiest way to obtain training set data and other resources is to run any integration test.
 The testing code automatically downloads all training set matrixtables.
