@@ -87,7 +87,7 @@ For example:
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
-We suggest running al code on a cluster in `tmux`/`screen` session to avoid
+We suggest running all code on a cluster in `tmux`/`screen` session to avoid
 script termintaion in case of any network issues.
 
 
