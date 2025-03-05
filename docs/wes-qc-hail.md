@@ -77,7 +77,7 @@ To do it:
 
 * Upload wes_qc code to your computation environment
 * Run a short integration test using the provided Makefile:
-  `make test-it-one-step test=test_1_1`
+  `make test-it-one-step test=test_trios_1_1`
   **Note:** - the training set data include very big (about 90Gb) gnomAD matrixtable,
   so downloading resources can take up to 6-10 hours depending on your connection speed.
 
