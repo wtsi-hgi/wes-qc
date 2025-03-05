@@ -72,9 +72,10 @@ To gather the data, you need to do the following:
 
 The easiest way to obtain training set data and other resources is to run any integration test.
 The testing code automatically downloads all training set matrixtables.
+
 To do it:
+
 * Upload wes_qc code to your computation environment
-* Install pytest in your environment `uv pip install pytest`
 * Run a short integration test using the provided Makefile:
   `make test-it-one-step test=test_1_1`
   **Note:** - the training set data include very big (about 90Gb) gnomAD matrixtable,
