@@ -125,10 +125,6 @@ Here is the list of fields that you need to modify to start processing your data
 All other files and resources you need are described in the corresponding sections
 of this manual.
 
-*
-* `step1 -> validate_verifybamid -> verifybamid_selfsm`
-All other paths are specified as relatives, so you won't need to edit it.
-
 If you have to make any dataset-specific operations, you can create your own branch
 and add all the code you need to it.
 
