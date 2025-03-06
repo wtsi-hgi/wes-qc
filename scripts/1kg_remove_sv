@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+chr=${1:-$LSB_JOBINDEX}
+echo "Processing chr$chr"
+vcf_in="1kGP_high_coverage_Illumina.chr$chr.filtered.SNV_INDEL_SV_phased_panel.vcf.gz"
+vcf_out="1kGP_chr$chr.nosv.vcf.gz"
+bcftools filter -O z -i 'type="snp" | type="indel"' $vcf_in | bcftools annotate --threads 1 -x "INFO/END2" -O z -o $vcf_out
+echo "Processing chr$chr done"
