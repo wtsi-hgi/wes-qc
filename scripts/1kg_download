@@ -1,16 +1,5 @@
 #!/bin/sh
+set -e
 
 kg_source="ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/"
-kg_dir="/lustre/scratch126/teams/hgi/gz3-fenland/resources/1kg_vcf"
-kg_dir_no_sv="/lustre/scratch126/teams/hgi/gz3-fenland/resources/1kg_vcf_no_sv"
-
-cd "$kg_dir"
 wget -c -r --no-parent --no-directories "$kg_source"
-
-
-
-
-
-
-bsubrun -q small -n 4 ./vcf_filter_sv X
-bsubrun -q small -n 4 -J [1-22] ./vcf_filter_sv
