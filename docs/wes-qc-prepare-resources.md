@@ -2,13 +2,14 @@
 
 ## Preparing the 1000 Genomes sample data
 
-The SampleQC stage of the WES-QC pipline uses data from 1000 genomes
+The SampleQC stage of the WES-QC pipeline uses data from 1000 genomes
 to run clustering and form super populations.
 
 ### Prerequisites
 - Access to a Linux/Unix environment
 - `wget` installed
 - `bcftools` installed
+- `bgzip` and `tabix` installed (you can install it with `samtools` package)
 - (optional) Cluster with LSF job scheduling system (`bsub` commands)
 - Sufficient storage space for genomic data
 
@@ -26,19 +27,19 @@ cd $KG_DIR
 The `1kg_download` script downloads VCF files from the 1000 Genomes Project:
 
 ```bash
-/wes_qc_root_folder/scripts/1kg_download
+/wes/qc/root/folder/scripts/1kg_download
 ```
 
 ### Remove structural variants
 The downloaded 1000 genomes VCFs contain some structural variation.
-We nned to remove it and keep only SNVs and short indels.
+We need to remove it and keep only SNVs and short indels.
 
 The `1kg_remove_sv` script removes structural variants from VCF files.
 You need to run the script from the 1000 genomes data folder with the chromosome name as argument.
 
 ```bash
 # To process all chromosomes sequentially
-for chr in {1..22} X Y; do /wes_qc_root_folder/scripts/1kg_remove_sv $chr; done
+for chr in {1..22} X Y; do /wes/qc/root/folder/scripts/1kg_remove_sv $chr; done
 ```
 
 If you work on a cluster with the installed IBM LSF job scheduling system,
