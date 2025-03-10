@@ -97,6 +97,13 @@ step0:
     pca_components: 10
     kin_threshold: 0.125
 
+  generate_truthset_ht:
+    omni: '{traindir}/1000G_omni2.5.hg38.ht'
+    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
+    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
+    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+    truth_ht_outfile: '{mtdir}/truthset_table.ht'
+
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
@@ -227,7 +234,7 @@ step2:
     pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
 
   plot_pop_pca_assigned:
-    pca_components: 10
+    pca_components: 3
     pop_assigned_pca_dataset_graph: '{pltdir}/pop_pca_assigned_scores_dataset.html'
     pop_assigned_pca_union_graph: '{pltdir}/pop_pca_assigned_scores_union.html'
 
@@ -263,17 +270,11 @@ step2:
 
 
 step3:
-  # Parameters used in multiple functions #
+  # Parameters used in multiple functions
+  # To skip all trios-related computations, put here the `null` value
   pedfile: '{metadir}/fenland.giab.ped'
 
   # --- Step 3.1 --- #
-  get_truth_ht:
-    truth_ht_outfile: '{resdir}/truthset_table.ht'
-    omni: '{traindir}/1000G_omni2.5.hg38.ht'
-    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
-    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
-
   split_multi_and_var_qc:
     mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
     varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
@@ -306,7 +307,6 @@ step3:
     allele_counts_file: '{mtdir}/qc_ac.ht'
     inbreeding_file: '{mtdir}/inbreeding.ht'
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    htoutfile_rf_all_cols: '{mtdir}/ht_for_RF_all_cols.ht'
     htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
 
   # --- Step 3.3 --- #
@@ -404,8 +404,10 @@ step4:
   plot:
     snv-precision-recall: '{pltdir}/hard_filter_evaluation.snv.precision_recall.html'
     snv-TP-FP: '{pltdir}/hard_filter_evaluation.snv.tp_fp.html'
+    snv-TP-mendelian_error_mean: '{pltdir}/hard_filter_evaluation.snv.tp_mendel.html'
     snv-t_u_ratio-TP: '{pltdir}/hard_filter_evaluation.snv.t_u_ratio_tp.html'
     indel-precision-recall: '{pltdir}/hard_filter_evaluation.indel.precision_recall.html'
+    indel-TP-mendelian_error_mean: '{pltdir}/hard_filter_evaluation.indel.tp_mendel.html'
     indel-TP-FP: '{pltdir}/hard_filter_evaluation.indel.tp_fp.html'
 
 
