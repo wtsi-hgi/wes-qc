@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+
+kg_source="ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/"
+wget -c -r --no-parent --no-directories "$kg_source"
