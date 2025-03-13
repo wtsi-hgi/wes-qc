@@ -45,12 +45,14 @@ def filter_vars_for_quality(
     """
     Keeps "good" variants passing the thresholds for QC metrics
     """
+    print(f"\nDEBUG === Total variants: {mt.count_rows()}\n")
     mt_vqc = hl.variant_qc(mt, name="variant_QC_Hail")
     mt_vqc_filtered = mt_vqc.filter_rows(
         (mt_vqc.variant_QC_Hail.call_rate >= call_rate_threshold)
         & (mt_vqc.variant_QC_Hail.AF[1] >= af_threshold)
         & (mt_vqc.variant_QC_Hail.p_value_hwe >= hwe_threshold)
     )
+    print(f"\nDEBUG === Total variants survived after quality filtering: {mt_vqc_filtered.count_rows()}\n")
     return mt_vqc_filtered
 
 

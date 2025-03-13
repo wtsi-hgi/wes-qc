@@ -62,6 +62,7 @@ def kg_filter_and_ldprune(
     """
     long_range_ld_file = path_spark(long_range_ld_file)
     # Filtering for good variations to make LD prune
+    print(f"\n=== Filtering variants with hwe_threshold={hwe_threshold}\n")
     kg_mt_filtered = filtering.filter_matrix_for_ldprune(
         kg_unprocessed_mt, long_range_ld_file, call_rate_threshold, af_threshold, hwe_threshold
     )
@@ -103,13 +104,14 @@ def run_pc_relate(
     relatedness_ht.write(relatedness_ht_file, overwrite=True)
     # prune individuals to be left with unrelated - creates a table containing one column - samples to remove
     pairs = relatedness_ht.filter(relatedness_ht["kin"] > kin_threshold)
+    print(f"\n=== Identified pairs with kin>={kin_threshold}: {pairs.count()}\n")
     related_samples_to_remove = hl.maximal_independent_set(pairs.i, pairs.j, keep=False)
     return related_samples_to_remove
 
 
 def kg_remove_related_samples(kg_mt: hl.MatrixTable, related_samples_to_remove: hl.Table) -> hl.MatrixTable:
     variants, samples = kg_mt.count()
-    print(f"=== Loaded form initial table: {samples} samples, {variants} variants.")
+    print(f"=== Loaded from initial table: {samples} samples, {variants} variants.")
     print("=== Removing related samples")
     kg_mt_remove_related = kg_mt.filter_cols(hl.is_defined(related_samples_to_remove[kg_mt.col_key]), keep=False)
     variants, samples = kg_mt_remove_related.count()
@@ -172,6 +174,7 @@ def main() -> None:
         pruned_kg_mt = hl.read_matrix_table(pruned_kg_file)
         related_samples_to_remove = run_pc_relate(pruned_kg_mt, **conf)
         related_samples_to_remove.write(samples_to_remove_file, overwrite=True)
+        print(f"\n=== Total related samples to remove: {related_samples_to_remove.count()}\n")
 
     if args.kg_remove_related_samples:
         kg_mt = hl.read_matrix_table(kg_unprocessed_mt_file)
