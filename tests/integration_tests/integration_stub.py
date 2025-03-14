@@ -145,6 +145,13 @@ class IntegrationTestsStub(HailTestCase):
         except Exception as e:
             self.fail(f"Step 0.2 failed with an exception: {e}")
 
+    def stub_0_3_import_data(self):
+        qc_step_0_3 = importlib.import_module("0-resource_preparation.3-prepare-gnomAD-table")
+        try:
+            qc_step_0_3.main()
+        except Exception as e:
+            self.fail(f"Step 0.3 failed with an exception: {e}")
+
     def stub_1_1_import_data(self):
         qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
         try:
