@@ -104,6 +104,11 @@ step0:
     hapmap: '{traindir}/hapmap_3.3.hg38.ht'
     truth_ht_outfile: '{mtdir}/truthset_table.ht'
 
+  prepare_gnomad_ht:
+    input_gnomad_htfile: '/lustre/scratch125/resources/gnomAD/release-4.1/ht/exomes/gnomad.exomes.v4.1.sites.ht'
+    #'{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    processed_gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
@@ -287,7 +292,7 @@ step3:
     fam_stats_htoutfile: '{mtdir}/family_stats.ht'
     fam_stats_mtoutfile: '{mtdir}/family_stats.mt'
     fam_stats_gnomad_mtoutfile: '{mtdir}/family_stats_gnomad.mt'
-    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
     dnm_htoutfile: '{mtdir}/denovo_table.ht'
 
   create_inbreeding_ht_with_ac_and_allele_data:
@@ -336,7 +341,7 @@ step3:
     trio_filtered_mtfile: '{mtdir}/trios_filtered_.mt'
 
   annotate_gnomad:
-    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
 
   # --- Step 3.6 --- #
@@ -459,7 +464,7 @@ step4:
   annotate_gnomad:
     # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
-    gnomad_htfile: '{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
+    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
   get_trans_untrans_synon_singleton_counts:
     pedfile: '{resdir}/trios.ped'
