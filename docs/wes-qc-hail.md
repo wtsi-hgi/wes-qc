@@ -62,6 +62,11 @@ Create a folder and place in it your input pre-QC VCFs.
 
 ### Obtain resource files
 
+The WES-QC pipeline uses a set of resource data.
+This section has a a brief description of these resources
+and how to obtain it.
+
+#### 1000 Genomes
 Currently, gathering the 1000G data for population clustering is a manual process
 (automation is being developed).
 This process is described in detail in the separate document:
@@ -74,6 +79,7 @@ Briefly, you need to do the following:
 2. (Optional) - run BCFTools to remove structural variations and keep only SNVs and small indels
 3. Put the data in the folder specified under `onekg_resource_dir` in the `general` config section (see below).
 
+#### Other resources
 
 The easiest way to obtain training set data and other resources is to run any integration test.
 The testing code automatically downloads all training set matrixtables.
@@ -96,6 +102,21 @@ _The `resources` folder also contains a small subset of 1000-Genomes data.
 However, this set is test-only, and for production run
 you should download the full-sized 1000-Genomes dataset._
 
+#### Resource data description:
+
+* `igsr_samples.tsv` -- known superpopulations for 1000 genomes dataset.
+* `long_ld_regions.hg38.bed` -- BED file containing long-range linkage disequilibrium regions for the genome version hg38
+  The rebions were obtained from the file `high-LD-regions-hg38-GRCh38.bed` in **plinkQC** github repo:
+  (https://github.com/cran/plinkQC/blob/master/inst/extdata/high-LD-regions-hg38-GRCh38.bed).
+  These coordinates are results of `liftOver` transferring original coordinates from the genome version hg36 to hg38.
+  Original coordinates are provided in supplementary files of the article
+  **Anderson, Carl A., et al. "Data quality control in genetic case-control association studies."
+  Nature protocols 5.9 (2010): 1564-1573. DOI: 10.1038/nprot.2010.116**
+* `HG001_GRCh38_benchmark.interval.illumina.vcf.gz` -- High-confidence variations for GIAB HG001 sample
+* `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample
+* `1000G_phase1.snps.high_confidence.hg38.ht`, `1000G_omni2.5.hg38.ht`,
+  `hapmap_3.3.hg38.ht`, `Mills_and_1000G_gold_standard.indels.hg38.ht` --
+  -- set of high-confident variations in Hail table format
 
 ### Make the config file for your dataset
 
