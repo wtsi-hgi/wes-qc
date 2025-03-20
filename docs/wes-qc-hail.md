@@ -63,7 +63,7 @@ Create a folder and place in it your input pre-QC VCFs.
 ### Obtain resource files
 
 The WES-QC pipeline uses a set of resource data.
-This section has a a brief description of these resources
+This section has a brief description of these resources
 and how to obtain it.
 
 #### 1000 Genomes
@@ -106,7 +106,7 @@ you should download the full-sized 1000-Genomes dataset._
 
 * `igsr_samples.tsv` -- known superpopulations for 1000 genomes dataset.
 * `long_ld_regions.hg38.bed` -- BED file containing long-range linkage disequilibrium regions for the genome version hg38
-  The rebions were obtained from the file `high-LD-regions-hg38-GRCh38.bed` in **plinkQC** github repo:
+  The regions were obtained from the file `high-LD-regions-hg38-GRCh38.bed` in **plinkQC** github repo:
   (https://github.com/cran/plinkQC/blob/master/inst/extdata/high-LD-regions-hg38-GRCh38.bed).
   These coordinates are results of `liftOver` transferring original coordinates from the genome version hg36 to hg38.
   Original coordinates are provided in supplementary files of the article
@@ -115,8 +115,7 @@ you should download the full-sized 1000-Genomes dataset._
 * `HG001_GRCh38_benchmark.interval.illumina.vcf.gz` -- High-confidence variations for GIAB HG001 sample
 * `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample
 * `1000G_phase1.snps.high_confidence.hg38.ht`, `1000G_omni2.5.hg38.ht`,
-  `hapmap_3.3.hg38.ht`, `Mills_and_1000G_gold_standard.indels.hg38.ht` --
-  -- set of high-confident variations in Hail table format
+  `hapmap_3.3.hg38.ht`, `Mills_and_1000G_gold_standard.indels.hg38.ht` - set of high-confident variations in Hail table format
 
 ### Make the config file for your dataset
 
