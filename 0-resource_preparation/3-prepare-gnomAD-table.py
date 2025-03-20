@@ -18,7 +18,7 @@ def prepare_gnomad_ht(ht: hl.Table) -> hl.Table:
     """
     ht_reduced = ht.select(freq=ht.freq[:2])
     ht_reduced = ht_reduced.select_globals(ht_reduced.freq_meta, ht_reduced.freq_index_dict)
-    ht_reduced = ht_reduced.repartition(240)
+    ht_reduced = ht_reduced.repartition(72)
     return ht_reduced
 
 
