@@ -2,6 +2,7 @@ import argparse
 import importlib
 import os
 import unittest
+import pytest
 from typing import Optional
 from unittest.mock import patch
 
@@ -145,6 +146,10 @@ class IntegrationTestsStub(HailTestCase):
         except Exception as e:
             self.fail(f"Step 0.2 failed with an exception: {e}")
 
+    @pytest.mark.skip(
+        reason="The test depends on gnomAD table, not present in downloaded test data.\n"
+        "Instead we download the resulting table from the bucket and use it as a resource.\n"
+    )
     def stub_0_3_import_data(self):
         qc_step_0_3 = importlib.import_module("0-resource_preparation.3-prepare-gnomAD-table")
         try:
