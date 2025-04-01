@@ -88,16 +88,17 @@ Technically, for this step you can use the original gnomAD exome/genome data.
 However, the full-size gnomAD dataset is very big, so we recommend you to use
 a reduced version, containing only global population frequencies.
 
-There are two ways to obtain this table.
+There are two ways to obtain this table:
 * (recommended) Run a test as described in the [next section](#other-resources).
-  This will trigger downloading all required resources, including the gnomAD 4.1 exome frequencies
+  This will trigger downloading all required resources, including the reduced gnomAD 4.1 table,
+  containing only global exome frequencies
 * If you want to use your own data (for example, for genome frequencies),
   you need to manually download the **gnomAD** data from https://gnomad.broadinstitute.org/downloads
   (use the _Sites Hail Table_ version),
   place the path to the table in the config file section `prepare_gnomad_ht -> input_gnomad_htfile`,
   and run the script to make a reduced version:
   ```shell
-  spark-submit 0-resource_preparation/3-prepare-gnomAD-table.py
+  spark-submit 0-resource_preparation/3-prepare-gnomad-table.py
   ```
 
 

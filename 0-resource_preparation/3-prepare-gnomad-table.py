@@ -10,15 +10,17 @@ from utils.config import path_spark
 from wes_qc import hail_utils
 
 
-def prepare_gnomad_ht(ht: hl.Table) -> hl.Table:
+def prepare_gnomad_ht(ht: hl.Table, n_partitions: int = 72) -> hl.Table:
     """
-    Filter the Hail Table to keep only freq[0] and freq_meta[0].
+    Filter the Hail Table to keep only global population frequencies: adjusted(freq[0]) and raw (freq[1]).
     :param ht: Input Hail Table
+    :param n_partitions: Number of partitions for the resulting reduced table
     :return: Filtered Hail Table
     """
+    # Keeping only  adjusted(freq[0]) and raw (freq[1]) population frequencies
     ht_reduced = ht.select(freq=ht.freq[:2])
     ht_reduced = ht_reduced.select_globals(ht_reduced.freq_meta, ht_reduced.freq_index_dict)
-    ht_reduced = ht_reduced.repartition(72)
+    ht_reduced = ht_reduced.repartition(n_partitions)
     return ht_reduced
 
 
