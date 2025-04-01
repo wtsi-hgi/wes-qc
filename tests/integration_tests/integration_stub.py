@@ -341,7 +341,7 @@ class IntegrationTestsStub(HailTestCase):
             self.fail(f"Step 4.3a failed with an exception: {e}")
 
     def stub_4_3b_genotype_qc(self):
-        qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
+        qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stringent_filters")
         try:
             qc_step_4_3b.main()
         except Exception as e:
