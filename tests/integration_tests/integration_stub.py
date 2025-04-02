@@ -2,6 +2,7 @@ import argparse
 import importlib
 import os
 import unittest
+import pytest
 from typing import Optional
 from unittest.mock import patch
 
@@ -144,6 +145,17 @@ class IntegrationTestsStub(HailTestCase):
             qc_step_0_2.main()
         except Exception as e:
             self.fail(f"Step 0.2 failed with an exception: {e}")
+
+    @pytest.mark.skip(
+        reason="The test depends on gnomAD table, not present in downloaded test data.\n"
+        "Instead we download the resulting table from the bucket and use it as a resource.\n"
+    )
+    def stub_0_3_import_data(self):
+        qc_step_0_3 = importlib.import_module("0-resource_preparation.3-prepare-gnomAD-table")
+        try:
+            qc_step_0_3.main()
+        except Exception as e:
+            self.fail(f"Step 0.3 failed with an exception: {e}")
 
     def stub_1_1_import_data(self):
         qc_step_1_1 = importlib.import_module("1-import_data.1-import_gatk_vcfs_to_hail")
@@ -329,7 +341,7 @@ class IntegrationTestsStub(HailTestCase):
             self.fail(f"Step 4.3a failed with an exception: {e}")
 
     def stub_4_3b_genotype_qc(self):
-        qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stingent_filters")
+        qc_step_4_3b = importlib.import_module("4-genotype_qc.3b-export_vcfs_stringent_filters")
         try:
             qc_step_4_3b.main()
         except Exception as e:

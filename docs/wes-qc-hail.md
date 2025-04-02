@@ -79,6 +79,29 @@ Briefly, you need to do the following:
 2. (Optional) - run BCFTools to remove structural variations and keep only SNVs and small indels
 3. Put the data in the folder specified under `onekg_resource_dir` in the `general` config section (see below).
 
+#### gnomAD
+
+The Variant QC part of the pipeline uses population frequencies from the
+[gnomAD project](https://gnomad.broadinstitute.org/)
+to find _de novo_ variations.
+Technically, for this step you can use the original gnomAD exome/genome data.
+However, the full-size gnomAD dataset is very big, so we recommend you to use
+a reduced version, containing only global population frequencies.
+
+There are two ways to obtain this table:
+* (recommended) Run a test as described in the [next section](#other-resources).
+  This will trigger downloading all required resources, including the reduced gnomAD 4.1 table,
+  containing only global exome frequencies
+* If you want to use your own data (for example, for genome frequencies),
+  you need to manually download the **gnomAD** data from https://gnomad.broadinstitute.org/downloads
+  (use the _Sites Hail Table_ version),
+  place the path to the table in the config file section `prepare_gnomad_ht -> input_gnomad_htfile`,
+  and run the script to make a reduced version:
+  ```shell
+  spark-submit 0-resource_preparation/3-prepare-gnomad-table.py
+  ```
+
+
 #### Other resources
 
 The easiest way to obtain training set data and other resources is to run any integration test.
@@ -104,7 +127,7 @@ you should download the full-sized 1000-Genomes dataset._
 
 #### Resource data description:
 
-* `igsr_samples.tsv` -- known superpopulations for 1000 genomes dataset.
+* `igsr_samples.tsv` -- known super populations for 1000 genomes dataset.
 * `long_ld_regions.hg38.bed` -- BED file containing long-range linkage disequilibrium regions for the genome version hg38
   The regions were obtained from the file `high-LD-regions-hg38-GRCh38.bed` in **plinkQC** github repo:
   (https://github.com/cran/plinkQC/blob/master/inst/extdata/high-LD-regions-hg38-GRCh38.bed).
@@ -116,6 +139,8 @@ you should download the full-sized 1000-Genomes dataset._
 * `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample
 * `1000G_phase1.snps.high_confidence.hg38.ht`, `1000G_omni2.5.hg38.ht`,
   `hapmap_3.3.hg38.ht`, `Mills_and_1000G_gold_standard.indels.hg38.ht` - set of high-confident variations in Hail table format
+* `gnomad.exomes.r4.1.freq_only.ht` - reduced version of **gnomAD** data containing only global population frequencies
+
 
 ### Make the config file for your dataset
 

@@ -214,6 +214,7 @@ def trio_family_dnm_annotation(
     mt = mt.annotate_rows(family_stats=ht1[mt.row_key].family_stats)
     mt = mt.checkpoint(path_spark(fam_stats_mtfile), overwrite=True)
     # add gnomad AFs
+    print("=== Annotating with gnomAD AFs ===")
     gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
     mt = mt.annotate_rows(gnomad_maf=gnomad_ht[mt.row_key].freq[0].AF)
     mt.write(path_spark(fam_stats_gnomad_mtfile), overwrite=True)
