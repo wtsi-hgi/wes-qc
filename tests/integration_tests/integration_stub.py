@@ -126,6 +126,13 @@ class HailTestCase(unittest.TestCase):
 
 
 class IntegrationTestsStub(HailTestCase):
+    def stub_0_0_create_data_folder(self):
+        qc_step_0_0 = importlib.import_module("0-resource_preparation.0-create_data_folder")
+        try:
+            qc_step_0_0.main()
+        except Exception as e:
+            self.fail(f"Step 0.0 failed with an exception: {e}")
+
     @patch(
         "argparse.ArgumentParser.parse_args",
         return_value=argparse.Namespace(
