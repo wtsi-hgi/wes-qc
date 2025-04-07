@@ -159,6 +159,7 @@ step2:
 
   f_stat_outliers:
     fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
+    fstat_hist_path: '{pltdir}/fstat_hist.html'
     fstat_low: 0.2
     fstat_high: 0.8
 
