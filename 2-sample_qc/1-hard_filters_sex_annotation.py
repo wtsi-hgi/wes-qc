@@ -71,11 +71,36 @@ def identify_inconsistencies(
 
 
 def select_fstat_outliers(sex_ht: hl.Table, fstat_low: float, fstat_high: float, **kwargs) -> hl.Table:
-    # identify samples where f stat is between fstat_low and fstat_high
+    """
+    Identify F-stat outliers.
+
+    Arguments:
+        sex_ht (hl.Table): Hail Table containing sample information with an 'f_stat'
+            field representing the F-stat values for the samples.
+        fstat_low (float): Lower bound for F-stat filtering (exclusive).
+        fstat_high (float): Upper bound for F-stat filtering (exclusive).
+
+    Returns:
+        hl.Table: A filtered Hail Table containing rows where the 'f_stat' lies between
+        the specified lower and upper bounds.
+    """
     return sex_ht.filter((sex_ht.f_stat > fstat_low) & (sex_ht.f_stat < fstat_high))
 
 
-def plot_f_stat_histogram(sex_ht: hl.Table, fstat_low, fstat_high, **kwargs):
+def plot_f_stat_histogram(sex_ht: hl.Table, fstat_low: float, fstat_high: float, **kwargs):
+    """
+    Plot a histogram of F-statistic values from a Hail Table and annotate it with thresholds
+    and the count of outliers.
+
+    Parameters:
+        sex_ht (hl.Table): Input Hail Table containing the F-statistic data.
+        fstat_low (float): Lower F-stat threshold for detecting outliers.
+        fstat_high (float): Upper F-stat threshold for detecting outliers.
+
+    Returns:
+        bokeh.plotting.figure.Figure: Bokeh figure containing the histogram with thresholds
+        and annotation.
+    """
     n_outliers = sex_ht.filter((sex_ht.f_stat > fstat_low) & (sex_ht.f_stat < fstat_high)).count()
     plot = hl.plot.histogram(sex_ht.f_stat, legend="Fstat")
     hline_lower = bokeh.models.Span(location=fstat_low, dimension="height", line_color="red", line_width=2)
