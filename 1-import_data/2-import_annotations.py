@@ -51,12 +51,16 @@ def validate_verifybamid(
         samples_failing_freemix.export(path_spark(samples_failing_freemix_tsv))
         print(f"=== {n_samples_failed_freemix} samples failed freemix")
         print(f"=== Failing samples exported to {samples_failing_freemix_tsv}")
+    else:
+        print("=== OK: All samples passed Freemix validation")
 
     samples_without_freemix = samples.filter(~hl.is_defined(samples.freemix))
     n_samples_without_freemix = samples_without_freemix.count()
     if n_samples_without_freemix > 0:
         print(f"=== WARNING: Detected {n_samples_without_freemix} samples without freemix: ", end="")
         print(" ".join(samples_without_freemix.s.collect()))
+    else:
+        print("=== OK: All samples are annotated with FreeMix scores")
 
     # Plottign freemix score
     p = hail.plot.scatter(
@@ -104,6 +108,8 @@ def annotate_self_reported_sex(mt: hl.MatrixTable, sex_metadata_file: str, **kwa
     if n_samples_no_self_reported_sex > 0:
         print(f"=== WARNING: Detected {n_samples_no_self_reported_sex} samples without self-reported sex: ", end="")
         print(" ".join(samples_without_self_reported_sex.s.collect()))
+    else:
+        print("=== OK: All samples are annotated with self-reported sex")
 
     return mt_sex_annotated
 
