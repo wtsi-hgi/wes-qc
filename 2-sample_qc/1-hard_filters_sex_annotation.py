@@ -5,7 +5,7 @@ import hail as hl
 import bokeh
 from utils.utils import parse_config, path_spark
 
-from wes_qc import hail_utils
+from wes_qc import hail_utils, hail_patches
 
 
 def apply_hard_filters(
@@ -30,7 +30,9 @@ def impute_sex(mt: hl.MatrixTable, hail_impute_sex_params: dict[str, Any], **kwa
     Imputes sex, exports data, and annotates mt with this data
     """
     print("===Imputing sex ===")
-    mt1 = hl.split_multi_hts(mt)
+    # TODO: testing and validating new fucntion here:
+    print("=== WWWW: Running modified Hail function for splitting multiallelic sites ==")
+    mt1 = hail_patches.split_multi_hts(mt, recalculate_gq=False)
     mtx_unphased = mt1.select_entries(GT=hl.unphased_diploid_gt_index_call(mt1.GT.n_alt_alleles()))
 
     # Impute sex on the unphased diploid GTs
