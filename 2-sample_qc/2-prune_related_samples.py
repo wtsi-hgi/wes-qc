@@ -5,7 +5,7 @@ import os
 from utils.utils import parse_config, path_local, path_spark
 import bokeh.plotting as bkplt
 import bokeh.layouts as bklayouts
-from wes_qc import hail_utils
+from wes_qc import hail_utils, hail_patches
 
 
 def prune_mt(mt: hl.MatrixTable, ld_prune_args, **kwargs) -> hl.MatrixTable:
@@ -25,7 +25,9 @@ def prune_mt(mt: hl.MatrixTable, ld_prune_args, **kwargs) -> hl.MatrixTable:
     print("=== Filtering to autosomes")
     mt = mt.filter_rows(mt.locus.in_autosome())
     print("=== Splitting multiallelic sites")
-    mt = hl.split_multi_hts(mt)  # this shouldn't do anything as only biallelic sites are used
+    mt = hail_patches.split_multi_hts(
+        mt, recalculate_gq=False
+    )  # this shouldn't do anything as only biallelic sites are used
     print("=== Performing LD pruning")
     pruned_ht = hl.ld_prune(mt.GT, **ld_prune_args)
     pruned_mt = mt.filter_rows(hl.is_defined(pruned_ht[mt.row_key]))

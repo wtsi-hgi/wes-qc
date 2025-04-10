@@ -13,7 +13,7 @@ from gnomad.utils.annotations import (
 )
 from gnomad.sample_qc.relatedness import generate_trio_stats_expr
 
-from wes_qc import hail_utils
+from wes_qc import hail_utils, hail_patches
 
 
 def split_multi_and_var_qc(mt: hl.MatrixTable, varqc_mtfile: str, varqc_mtfile_split: str) -> None:
@@ -30,7 +30,7 @@ def split_multi_and_var_qc(mt: hl.MatrixTable, varqc_mtfile: str, varqc_mtfile_s
     mt = annotate_adj(mt)
     mt = mt.checkpoint(path_spark(varqc_mtfile), overwrite=True)
 
-    mt = hl.split_multi_hts(mt)
+    mt = hail_patches.split_multi_hts(mt, recalculate_gq=False)
 
     # TODO: Checkpoint here can increase speed. Evaluate performance on a large dataset
     # tmp_mt = path_spark(varqc_mtfile_split + "_tmp")
@@ -238,7 +238,7 @@ def generate_allele_data(mt: hl.MatrixTable) -> hl.Table:
     allele_data = hl.struct(nonsplit_alleles=ht.alleles, has_star=hl.any(lambda a: a == "*", ht.alleles))
     ht = ht.annotate(allele_data=allele_data.annotate(**add_variant_type(ht.alleles)))
 
-    ht = hl.split_multi_hts(ht)
+    ht = hail_patches.split_multi_hts(ht, recalculate_gq=False)
     allele_type = (
         hl.case()
         .when(hl.is_snp(ht.alleles[0], ht.alleles[1]), "snv")
