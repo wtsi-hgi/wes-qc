@@ -216,5 +216,4 @@ def main():
 
 
 if __name__ == "__main__":
-    print(spark_local_message)
     main()
