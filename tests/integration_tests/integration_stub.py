@@ -158,7 +158,7 @@ class IntegrationTestsStub(HailTestCase):
         "Instead we download the resulting table from the bucket and use it as a resource.\n"
     )
     def stub_0_3_import_data(self):
-        qc_step_0_3 = importlib.import_module("0-resource_preparation.3-prepare-gnomAD-table")
+        qc_step_0_3 = importlib.import_module("0-resource_preparation.3-prepare-gnomad-table")
         try:
             qc_step_0_3.main()
         except Exception as e:

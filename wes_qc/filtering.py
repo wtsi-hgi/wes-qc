@@ -4,6 +4,8 @@ All fucntions used to filter samples/variants
 
 import hail as hl  # type: ignore
 
+from wes_qc import hail_patches
+
 
 def filter_matrix_for_ldprune(
     mt: hl.MatrixTable,
@@ -32,7 +34,9 @@ def filter_mt_autosome_biallelic_snvs(mt: hl.MatrixTable) -> hl.MatrixTable:
     """
     mt = mt.filter_rows(mt.locus.in_autosome())
     # split multiallelic variants and remove them
-    mt = hl.split_multi_hts(mt)  # this shouldn't do anything as only biallelic sites are used
+    mt = hail_patches.split_multi_hts(
+        mt, recalculate_gq=False
+    )  # this shouldn't do anything as only biallelic sites are used
     mt = mt.filter_rows(mt.was_split is True, keep=False)
     # keep only SNVs
     mt = mt.filter_rows(hl.is_snp(mt.alleles[0], mt.alleles[1]))
