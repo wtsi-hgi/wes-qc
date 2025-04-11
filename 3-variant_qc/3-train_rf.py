@@ -13,11 +13,13 @@ from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
 from wes_qc import hail_utils
 
 spark_local_message = """!!! WARNING !!!
-The gnomAD fucntion train_rf_model() in some cases
-could work incorrectly in the parallel SPARK environment.
+The gnomAD fucntion train_rf_model()
+could work incorrectly in the parallel SPARK environment,
+depending on Hail and gnomad library library versions and other factors.
 
-If the run of the function will fail with some weird message
-(no space left on device, wrong imports, etc),
+If the run of the function will fail with some weird messages
+(no space left on device, wrong imports,
+not found table in the temporary folder, etc),
 try running model training on the master node only:
 
 PYTHONPATH=$(pwd):$PYTHONPATH PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit --master local[*]  3-variant_qc/3-train_rf.py
