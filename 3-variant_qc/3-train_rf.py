@@ -12,17 +12,19 @@ from gnomad.variant_qc.pipeline import train_rf_model
 from gnomad.variant_qc.random_forest import pretty_print_runs, save_model
 from wes_qc import hail_utils
 
-spark_local_message = """!!! WARNING !!!
+spark_local_message = """\n===== WARNING =====
 The gnomAD fucntion train_rf_model()
 could work incorrectly in the parallel SPARK environment,
-depending on Hail and gnomad library library versions and other factors.
+depending on Hail and gnomAD library versions and other factors.
 
-If the run of the function will fail with some weird messages
+If this step fails with some weird messages
 (no space left on device, wrong imports,
 not found table in the temporary folder, etc),
-try running model training on the master node only:
+update Hail and gnomAD libraries.
+Alternatively, try running this step on the master node only:
 
 PYTHONPATH=$(pwd):$PYTHONPATH PYSPARK_DRIVER_PYTHON=/home/ubuntu/venv/bin/python spark-submit --master local[*]  3-variant_qc/3-train_rf.py
+--------------------------------
 """
 
 
@@ -148,6 +150,7 @@ def get_run_data(
 
 def main():
     # set up
+    print(spark_local_message)
     args = get_options()
     config = parse_config()
     tmp_dir = config["general"]["tmp_dir"]
