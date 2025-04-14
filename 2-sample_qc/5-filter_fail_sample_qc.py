@@ -8,8 +8,20 @@ from wes_qc import hail_utils
 def remove_sample_qc_fails(
     mt: hl.MatrixTable,
     sample_qc_ht: hl.Table,
-):
-    """ """
+) -> tuple[hl.MatrixTable, hl.Table]:
+    """
+    Removes samples from the MatrixTable that fail quality control (QC) checks based on a sample QC Hail Table.
+    Additionally, returns a Table of failed samples.
+
+    Args:
+        mt (hl.MatrixTable): Input MatrixTable containing genomic data.
+        sample_qc_ht (hl.Table): Table containing sample QC metrics and filters used for
+            determining sample failures.
+
+    Returns:
+        hl.MatrixTable: MatrixTable with samples failing QC removed.
+        hl.Table: Table of samples that failed QC.
+    """
 
     # identify samples which have failed any of the metrics tested
     sample_qc_ht = sample_qc_ht.annotate(filter_fail_count=(hl.len(sample_qc_ht.qc_metrics_filters)))
