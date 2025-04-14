@@ -5,6 +5,7 @@
 ./metadata/control_set_small.microarray_samples.txt
 ./metadata/control_set_small.combined.gtcheck.txt
 ./metadata/mlwh_sample_and_sex.txt
+./metadata/control_set_small_samples_to_remove_after_sampleqc.tsv
 # Small control set VCFs
 ./control_set_small/.control_set_small_chr7.vcf.bgz.crc
 ./control_set_small/control_set_small_chr17.vcf.bgz
