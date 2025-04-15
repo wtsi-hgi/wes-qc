@@ -209,120 +209,6 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
     return counts_all, counts_rare
 
 
-def get_ca_fractions(mt_in: hl.MatrixTable, outfile: str):
-    """
-    Get fraction CA per sample
-    :param hl.MatrixTable mt_in: Input MatrixTable
-    :param str outfile: output text file path
-    """
-    # filter to SNVs and to rare
-    snv_mt = mt_in.filter_rows(hl.is_snp(mt_in.alleles[0], mt_in.alleles[1]))
-    snv_mt_rare = snv_mt.filter_rows(snv_mt.gnomad_AC < 5)  # TODO: to config?
-
-    # total_ca_frac = get_median_ca_per_sample(snv_mt)
-    # rare_ca_frac = get_median_ca_per_sample(snv_mt_rare)
-    total_ca_frac = get_ca_per_sample(snv_mt)
-    rare_ca_frac = get_ca_per_sample(snv_mt_rare)
-
-    # print("Median fraction CA per sample total: " + "{:.5f}".format(total_ca_frac))
-    # print("Median fraction CA per sample rare: " + "{:.5f}".format(rare_ca_frac))
-    outdata = list(zip(total_ca_frac, rare_ca_frac))
-
-    header = ["total_ca_fraction", "rare_ca_fraction"]
-    n_rows = len(outdata)
-    n_cols = len(header)
-
-    with open(path_local(outfile), "w") as o:
-        o.write(("\t").join(header))
-        o.write("\n")
-        for i in range(0, n_rows):
-            linedata = []
-            for j in range(0, n_cols):
-                n = "{:.5f}".format(outdata[i][j])
-                linedata.append(n)
-            o.write(("\t").join(linedata))
-            o.write("\n")
-
-
-def get_ca_per_sample(mt_in: hl.MatrixTable) -> list:
-    """
-    Get fraction CA for each sample in a matrixtable
-    :param hl.MatrixTable mt_in: Input MatrixTable
-    :return: list of C>A fractions
-    """
-    mt_in = mt_in.annotate_rows(
-        is_CA=((mt_in.alleles[0] == "C") & (mt_in.alleles[1] == "A"))
-        | ((mt_in.alleles[0] == "G") & (mt_in.alleles[1] == "T"))
-    )
-    ca_mt = mt_in.filter_rows(mt_in.is_CA)
-    # run sample qc and extract cols
-    mt_in = hl.sample_qc(mt_in)
-    ca_mt = hl.sample_qc(ca_mt)
-
-    # TODO: refactor this
-    # #remove aggregate intermediates from tmp - this is a hack as this dir fills up and causes this to exit
-    # aggdir = "/lustre/scratch123/qc/tmp/aggregate_intermediates/"
-    # aggfiles = os.listdir(aggdir)
-    # for af in aggfiles:
-    #     aggpath = aggdir + af
-    #     os.remove(aggpath)
-
-    snv_qc = mt_in.cols()
-    ca_qc = ca_mt.cols()
-
-    snv_count = snv_qc.sample_qc.n_non_ref.collect()
-    ca_count = ca_qc.sample_qc.n_non_ref.collect()
-    fracs = []
-    for i in range(0, len(snv_count)):
-        if snv_count[i] > 0:
-            f = ca_count[i] / snv_count[i]
-            fracs.append(f)
-        else:
-            fracs.append(0.0)
-
-    return fracs
-
-
-def get_median_ca_per_sample(mt_in: hl.MatrixTable) -> float:
-    """
-    Get fraction CA per sample
-    :param hl.MatrixTable mt_in: Input MatrixTable
-    :return: float
-    """
-    # annotate SNVs with is_CA
-    mt_in = mt_in.annotate_rows(
-        is_CA=((mt_in.alleles[0] == "C") & (mt_in.alleles[1] == "A"))
-        | ((mt_in.alleles[0] == "G") & (mt_in.alleles[1] == "T"))
-    )
-    ca_mt = mt_in.filter_rows(mt_in.is_CA)
-    # run sample qc and extract cols
-    mt_in = hl.sample_qc(mt_in)
-    ca_mt = hl.sample_qc(ca_mt)
-    snv_qc = mt_in.cols()
-    ca_qc = ca_mt.cols()
-
-    snv_samples = snv_qc.s.collect()
-    ca_samples = ca_qc.s.collect()
-    snv_count = snv_qc.sample_qc.n_non_ref.collect()
-    ca_count = ca_qc.sample_qc.n_non_ref.collect()
-    snv_count_sample = {snv_samples[i]: snv_count[i] for i in range(len(snv_samples))}
-    ca_count_sample = {ca_samples[i]: ca_count[i] for i in range(len(ca_samples))}
-
-    sample_fracs = []
-    for s in snv_count_sample.keys():
-        tot_vars = int(snv_count_sample[s])
-        ca_vars = int(ca_count_sample[s])
-        if tot_vars > 0:
-            s_frac = ca_vars / tot_vars
-            sample_fracs.append(s_frac)
-        else:
-            sample_fracs.append(0.0)
-
-    median_ca = np.median(sample_fracs)
-
-    return median_ca
-
-
 def main():
     # set up
     config = parse_config()
@@ -342,10 +228,7 @@ def main():
     # get_trans_untrans_synon_singleton_counts(mt, pedfile) # test data has no trios
 
     cqfile = config["step4"]["get_counts_per_cq"]["cqfile"]
-    cafile = config["step4"]["get_ca_fractions"]["cafile"]
-
     get_counts_per_cq(mt, cqfile)
-    get_ca_fractions(mt, cafile)
 
 
 if __name__ == "__main__":
