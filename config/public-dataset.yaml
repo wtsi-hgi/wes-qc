@@ -464,22 +464,7 @@ step4:
   # used as an output of the whole step
   mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'
 
-  # --- Step 4.2 --- #
-  annotate_gnomad:
-    # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
-    mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
-    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
-
-  get_trans_untrans_synon_singleton_counts:
-    pedfile: '{resdir}/trios.ped'
-
-  get_counts_per_cq:
-    cqfile: '{pltdir}/variant_counts_per_cq_post_qc.txt'
-
-  get_ca_fractions:
-    cafile: '{pltdir}/frac_ca_per_sample_post_qc_snv.txt'
-
-  # --- Step 4.3a --- #
+    # --- Step 4.3a --- #
   export_vcfs_a:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
     vcf_output_dir: '{vcf_export_dir}/filtered_vcfs_combinations/'
@@ -489,6 +474,19 @@ step4:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
     filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'
 
+  # --- Step 4.4 --- #
+  annotate_gnomad:
+    # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
+    mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
+    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+
+  get_trans_untrans_synon_singleton_counts:
+    pedfile: '{resdir}/trios.ped'
+
+  get_counts_per_cq:
+    cqfile: '{anndir}/variant_counts_per_cq_post_qc.txt'
+
+  # --- Step 4.5 --- #
   plot_mutation_spectra_afterqc:
     mut_spectra_path: '{anndir}/mutation_spectra_afterqc.tsv'
     mut_spectra_plot_path: '{pltdir}/mutation_spectra_afterqc.html'

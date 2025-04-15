@@ -52,16 +52,6 @@ def add_trio_stats(
     return ht.annotate(**fake_trio_dict)
 
 
-def add_CA_annotation(ht: hl.Table, annotate_CA: bool) -> hl.Table:
-    """Add C>A annotation if required."""
-    if not annotate_CA:
-        return ht
-
-    return ht.annotate(
-        is_CA=((ht.alleles[0] == "C") & (ht.alleles[1] == "A")) | ((ht.alleles[0] == "G") & (ht.alleles[1] == "T"))
-    )
-
-
 def add_filters_and_singletons(
     ht: hl.Table,
     fail_hard_filters_QD_less_than: float,
@@ -113,7 +103,6 @@ def create_rf_ht(
     fail_hard_filters_QD_less_than: float,
     fail_hard_filters_FS_greater_than: float,
     fail_hard_filters_MQ_less_than: float,
-    annotate_CA=False,
     **kwargs,
 ) -> hl.Table:
     """
@@ -130,10 +119,6 @@ def create_rf_ht(
     ht = create_initial_table(mt)
     ht = annotate_with_external_data(ht, inbreeding_ht, truth_data_ht, allele_data_ht, allele_counts_ht)
     ht = add_trio_stats(ht, trio_stats_table, group)
-
-    # TODO: do we need this for regular datasets? If yes, generalize
-    # TODO: The previous code version contained commented lines for other artifacts. Do we need it?
-    ht = add_CA_annotation(ht, annotate_CA)
 
     ht = add_filters_and_singletons(
         ht, fail_hard_filters_QD_less_than, fail_hard_filters_FS_greater_than, fail_hard_filters_MQ_less_than, group
