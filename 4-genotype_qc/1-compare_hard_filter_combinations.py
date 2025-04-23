@@ -679,7 +679,7 @@ def plot_hard_filter_combinations(df: pd.DataFrame, x: str, y: str, outfile: str
         y_axis_label=y,
         x_range=(min_x, max_x),
         y_range=(min_y, max_y),
-        tools=[hover, "pan", "box_zoom", "wheel_zoom", "reset"],
+        tools=[hover, "pan", "box_zoom", "wheel_zoom", "zoom_in", "zoom_out", "reset", "save"],
     )
 
     bin_min = df["bin"].min()
