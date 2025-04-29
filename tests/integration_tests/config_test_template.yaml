@@ -427,39 +427,44 @@ step4:
 
   apply_hard_filters:
     hard_filters:
-      missingness: 0.5
       snp:
         relaxed:
           bin: 92
           dp: 5
           gq: 10
           ab: 0.2
+          call_rate: 0.0
         medium:
           bin: 88
           dp: 5
           gq: 10
           ab: 0.2
+          call_rate: 0.5
         stringent:
           bin: 84
           dp: 5
           gq: 15
           ab: 0.2
+          call_rate: 0.5
       indel:
         relaxed:
           bin: 68
           dp: 5
           gq: 10
           ab: 0.2
+          call_rate: 0.0
         medium:
           bin: 66
           dp: 5
           gq: 15
           ab: 0.2
+          call_rate: 0.0
         stringent:
           bin: 58
           dp: 5
           gq: 20
           ab: 0.3
+          call_rate: 0.5
 
   # used as an output of the whole step
   mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'

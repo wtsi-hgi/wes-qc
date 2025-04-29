@@ -1,34 +1,24 @@
 # export to VCF after annotating with a range of hard filters - stringent filters only, remove other gts
+from typing import Union
+
 import hail as hl
 import os.path
 from utils.utils import parse_config, path_spark
 from wes_qc import hail_utils
 
 
-def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash: str):
+def export_vcfs(
+    mtfile: str, filtered_vcf_dir: str, hard_filters: dict[str, dict[str, dict[str : Union[int, float]]]], model_id: str
+):
     """
     Export VCFs annotated with a range of hard filters
     :param str mtfile: matrixtable file
     :param str filtered_vcf_dir: output directory for VCFs
     :param dict hard_filters: details of all sets of filters
-    :param str run_hash: random forest run hash used
+    :param str model_id: random forest run hash used
     """
     mt = hl.read_matrix_table(path_spark(mtfile))
-    # remove control samples
-    samples_to_exclude = [
-        "EGAN00003332049",
-        "EGAN00003332050",
-        "EGAN00003332051",
-        "EGAN00003332052",
-        "EGAN00003332053",
-        "EGAN00003332049_remapped",
-        "EGAN00003332050_remapped",
-        "EGAN00003332051_remapped",
-        "EGAN00003332052_remapped",
-        "EGAN00003332053_remapped",
-    ]
-    set_to_remove = hl.literal(samples_to_exclude)
-    mt = mt.filter_cols(~set_to_remove.contains(mt["s"]))
+
     # filter to remove rows where all variants fail the most stringent filters,
     mt = mt.filter_rows(mt.info.fraction_pass_stringent_filters > 0)
     mt = mt.filter_entries(mt.stringent_filters == "Pass")
@@ -57,6 +47,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["snp"]["stringent"]["gq"])
         + " & HetAB>="
         + str(hard_filters["snp"]["stringent"]["ab"])
+        + " & Call_Rate>="
+        + str(hard_filters["snp"]["stringent"]["call_rate"])
         + ", Indels: RF bin<="
         + str(hard_filters["indel"]["stringent"]["bin"])
         + " & DP>="
@@ -65,6 +57,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["indel"]["stringent"]["gq"])
         + " & HetAB>="
         + str(hard_filters["indel"]["stringent"]["ab"])
+        + " & Call_Rate>="
+        + str(hard_filters["indel"]["stringent"]["call_rate"])
     )
 
     metadata = {
@@ -83,12 +77,12 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                 "Type": "Float",
             },
             "rf_score": {
-                "Description": "Variant QC random forest score, model id " + run_hash,
+                "Description": "Variant QC random forest score, model id " + model_id,
                 "Number": "A",
                 "Type": "Float",
             },
             "rf_bin": {
-                "Description": "Variant QC random forest bin, model id " + run_hash,
+                "Description": "Variant QC random forest bin, model id " + model_id,
                 "Number": "A",
                 "Type": "Integer",
             },
