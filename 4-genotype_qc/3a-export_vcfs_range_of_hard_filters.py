@@ -1,5 +1,7 @@
 # export to VCF after annotating with a range of hard filters
 import os.path
+from typing import Union
+
 import hail as hl
 from utils.utils import parse_config, path_spark
 from wes_qc import hail_utils
@@ -11,13 +13,15 @@ pass_medium_string = "PASS_MEDIUM"
 pass_stringent_string = "PASS_STRINGENT"
 
 
-def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash: str):
+def export_vcfs(
+    mtfile: str, filtered_vcf_dir: str, hard_filters: dict[str, dict[str, dict[str : Union[int, float]]]], model_id: str
+):
     """
     Export VCFs annotated with a range of hard filters
     :param str mtfile: matrixtable file
     :param str filtered_vcf_dir: output directory for VCFs
     :param dict hard_filters: details of all sets of filters
-    :param str run_hash: random forest run hash used
+    :param str model_id: random forest run hash used
     """
     mt = hl.read_matrix_table(path_spark(mtfile))
 
@@ -54,6 +58,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["snp"]["stringent"]["gq"])
         + " & HetAB>="
         + str(hard_filters["snp"]["stringent"]["ab"])
+        + " & Call_Rate>="
+        + str(hard_filters["snp"]["stringent"]["call_rate"])
         + ", Indels: RF bin<="
         + str(hard_filters["indel"]["stringent"]["bin"])
         + " & DP>="
@@ -62,8 +68,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["indel"]["stringent"]["gq"])
         + " & HetAB>="
         + str(hard_filters["indel"]["stringent"]["ab"])
-        + " & Call Rate>="
-        + str(hard_filters["missingness"])
+        + " & Call_Rate>="
+        + str(hard_filters["indel"]["stringent"]["call_rate"])
     )
 
     medium_filters = (
@@ -75,6 +81,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["snp"]["medium"]["gq"])
         + " & HetAB>="
         + str(hard_filters["snp"]["medium"]["ab"])
+        + " & Call_Rate>="
+        + str(hard_filters["snp"]["medium"]["call_rate"])
         + ", Indels: RF bin<="
         + str(hard_filters["indel"]["medium"]["bin"])
         + " & DP>="
@@ -83,8 +91,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["indel"]["medium"]["gq"])
         + " & HetAB>="
         + str(hard_filters["indel"]["medium"]["ab"])
-        + " & Call Rate>="
-        + str(hard_filters["missingness"])
+        + " & Call_Rate>="
+        + str(hard_filters["indel"]["medium"]["call_rate"])
     )
 
     relaxed_filters = (
@@ -96,6 +104,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["snp"]["relaxed"]["gq"])
         + " & HetAB>="
         + str(hard_filters["snp"]["relaxed"]["ab"])
+        + " & Call_Rate>="
+        + str(hard_filters["snp"]["relaxed"]["call_rate"])
         + ", Indels: RF bin<="
         + str(hard_filters["indel"]["relaxed"]["bin"])
         + " & DP>="
@@ -104,8 +114,8 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
         + str(hard_filters["indel"]["relaxed"]["gq"])
         + " & HetAB>="
         + str(hard_filters["indel"]["relaxed"]["ab"])
-        + " & Call Rate>="
-        + str(hard_filters["missingness"])
+        + " & Call_Rate>="
+        + str(hard_filters["indel"]["relaxed"]["call_rate"])
     )
 
     metadata = {
@@ -154,12 +164,12 @@ def export_vcfs(mtfile: str, filtered_vcf_dir: str, hard_filters: dict, run_hash
                 "Type": "Float",
             },
             "rf_bin": {
-                "Description": "Variant QC random forest bin, model id " + run_hash,
+                "Description": "Variant QC random forest bin, model id " + model_id,
                 "Number": "A",
                 "Type": "Integer",
             },
             "rf_score": {
-                "Description": "Variant QC random forest score, model id " + run_hash,
+                "Description": "Variant QC random forest score, model id " + model_id,
                 "Number": "A",
                 "Type": "Float",
             },

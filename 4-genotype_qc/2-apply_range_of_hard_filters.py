@@ -1,5 +1,7 @@
 # apply a range of different hard filters (RF bin and genotype) to SNPs and indels, also add gene and consequence
 # removes samples which fail identity checks
+from typing import Union
+
 import hail as hl
 import os.path
 from utils.utils import parse_config, path_spark
@@ -92,14 +94,16 @@ def annotate_ac(mt: hl.MatrixTable, filter_name: str) -> hl.MatrixTable:
     return mt
 
 
-def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable:
+def apply_hard_filters(
+    mt: hl.MatrixTable, hard_filters: dict[str, dict[str, dict[str : Union[int, float]]]]
+) -> hl.MatrixTable:
     """
     Apply hard filters and annotate missingness
     :param hl.MatrixTable mt: Input MatrixTable
     :param dict hard_filters: Filters to apply
     :return hl.MatrixTable:
     """
-
+    # Expressions for Pass/Fail conditions for individual genotypes -
     stringent_condition = (
         (hl.is_snp(mt.alleles[0], mt.alleles[1]))
         & (mt.info.rf_bin <= hard_filters["snp"]["stringent"]["bin"])
@@ -165,7 +169,7 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
             | (mt.GT.is_hom_var())
         )
     )
-
+    # Adding pass/fail tags to all genotypes
     mt = mt.annotate_entries(
         stringent_filters=hl.if_else(stringent_condition, "Pass", "Fail"),
         medium_filters=hl.if_else(medium_condition, "Pass", "Fail"),
@@ -173,10 +177,13 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
     )
 
     mt = apply_missingness(
-        mt=mt,
-        call_rate_relaxed=hard_filters["missingness"],
-        call_rate_medium=hard_filters["missingness"],
-        call_rate_stringent=hard_filters["missingness"],
+        mt,
+        snv_call_rate_stringent=hard_filters["snp"]["stringent"]["call_rate"],
+        snv_call_rate_medium=hard_filters["snp"]["medium"]["call_rate"],
+        snv_call_rate_relaxed=hard_filters["snp"]["relaxed"]["call_rate"],
+        indel_call_rate_stringent=hard_filters["indel"]["stringent"]["call_rate"],
+        indel_call_rate_medium=hard_filters["indel"]["medium"]["call_rate"],
+        indel_call_rate_relaxed=hard_filters["indel"]["relaxed"]["call_rate"],
     )
 
     # annotate variants with fraction passing/failing each set of filters
@@ -197,20 +204,40 @@ def apply_hard_filters(mt: hl.MatrixTable, hard_filters: dict) -> hl.MatrixTable
 
 
 def apply_missingness(
-    mt: hl.MatrixTable, call_rate_stringent: float, call_rate_medium: float, call_rate_relaxed: float
+    mt: hl.MatrixTable,
+    snv_call_rate_stringent: float,
+    snv_call_rate_medium: float,
+    snv_call_rate_relaxed: float,
+    indel_call_rate_stringent: float,
+    indel_call_rate_medium: float,
+    indel_call_rate_relaxed: float,
 ) -> hl.MatrixTable:
-    n = mt.count_cols()
+    n = mt.count_cols()  # Count of samples
 
+    # Calculating for each variant the counts of passed/failed genopytes
     mt = mt.annotate_rows(
         stringent_pass_count=hl.agg.count_where(mt.stringent_filters == "Pass"),
         medium_pass_count=hl.agg.count_where(mt.medium_filters == "Pass"),
         relaxed_pass_count=hl.agg.count_where(mt.relaxed_filters == "Pass"),
     )
 
+    # Annotating filters for SNVs
+    is_stringent_filters_pass = (
+        (hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.stringent_pass_count > n * snv_call_rate_stringent)
+    ) | ((hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.stringent_pass_count > n * indel_call_rate_stringent))
+
+    is_medium_filters_pass = (
+        (hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.medium_pass_count > n * snv_call_rate_medium)
+    ) | ((hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.medium_pass_count > n * indel_call_rate_medium))
+
+    is_relaxed_filters_pass = (
+        (hl.is_snp(mt.alleles[0], mt.alleles[1])) & (mt.relaxed_pass_count > n * snv_call_rate_relaxed)
+    ) | ((hl.is_indel(mt.alleles[0], mt.alleles[1])) & (mt.relaxed_pass_count > n * indel_call_rate_relaxed))
+
     mt = mt.annotate_entries(
-        stringent_filters=hl.if_else(mt.stringent_pass_count > n * call_rate_stringent, mt.stringent_filters, "Fail"),
-        medium_filters=hl.if_else(mt.medium_pass_count > n * call_rate_medium, mt.medium_filters, "Fail"),
-        relaxed_filters=hl.if_else(mt.relaxed_pass_count > n * call_rate_relaxed, mt.relaxed_filters, "Fail"),
+        stringent_filters=hl.if_else(is_stringent_filters_pass, mt.stringent_filters, "Fail"),
+        medium_filters=hl.if_else(is_medium_filters_pass, mt.medium_filters, "Fail"),
+        relaxed_filters=hl.if_else(is_relaxed_filters_pass, mt.relaxed_filters, "Fail"),
     )
 
     mt = mt.drop(mt.stringent_pass_count, mt.medium_pass_count, mt.relaxed_pass_count)
