@@ -6,6 +6,9 @@
 ./metadata/control_set_small.combined.gtcheck.txt
 ./metadata/mlwh_sample_and_sex.txt
 ./metadata/control_set_small_samples_to_remove_after_sampleqc.tsv
+./metadata/control_set_small.all_consequences.tsv.bgz
+./metadata/control_set_small.all_consequences_with_gene_and_csq.tsv.bgz
+./metadata/control_set_small.synonymous_variants.tsv.bgz
 # Small control set VCFs
 ./control_set_small/.control_set_small_chr7.vcf.bgz.crc
 ./control_set_small/control_set_small_chr17.vcf.bgz
@@ -55,13 +58,10 @@
 ./control_set_small/.control_set_small_chr21.vcf.bgz.crc
 ./control_set_small/.control_set_small_chr16.vcf.bgz.crc
 ./control_set_small/control_set_small_chr4.vcf.bgz
-./resources/all_consequences_with_gene_and_csq.txt
 ./resources/mini_1000G/chr21.1000g.vcf.gz.tbi
 ./resources/mini_1000G/chr21.1000g.vcf.gz
 ./resources/long_ld_regions.hg38.bed
-./resources/synonymous_variants.txt
 ./resources/igsr_samples.tsv
-./resources/all_consequences.txt
 ./resources/HG001_GRCh38_benchmark.interval.illumina.vcf.gz
 ./resources/HG001_GRCh38_benchmark.interval.illumina.vcf.gz.tbi
 ./resources/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt
