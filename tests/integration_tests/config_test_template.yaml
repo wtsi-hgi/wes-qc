@@ -333,7 +333,7 @@ step3:
 
   # --- Step 3.5 --- #
   add_cq_annotation:
-    synonymous_file: '{resdir}/synonymous_variants.txt'
+    synonymous_file: '{metadir}/control_set_small.synonymous_variants.tsv.bgz'
 
   dnm_and_family_annotation:
     dnm_htfile: '{mtdir}/denovo_table.ht'
@@ -384,7 +384,7 @@ step3:
   # --- Step 3.9 --- #
   annotate_mt_with_cq_rf_score_and_bin:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{resdir}/all_consequences.txt'
+    cqfile: '{metadir}/control_set_small.all_consequences.tsv.bgz'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
 step4:
@@ -423,7 +423,7 @@ step4:
   # --- Step 4.2 --- #
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{resdir}/all_consequences_with_gene_and_csq.txt'
+    cqfile: '{metadir}/control_set_small.all_consequences_with_gene_and_csq.tsv.bgz'
 
   apply_hard_filters:
     hard_filters:

@@ -22,7 +22,7 @@ The brief howto for the QC process is available in the
 The code is designed to run on the SPARK cluster with the
 [Hail library](https://hail.is/) installed.
 The manual for the cluster setting up is
-[here](docs/hail-on-spark.md).
+[here](https://hgi-projects.pages.internal.sanger.ac.uk/documentation/docs/tutorials/hail-on-spark/).
 
 # How to get the latest changes from main
 
