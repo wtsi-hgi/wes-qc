@@ -1,15 +1,30 @@
 [project]
-name = "wes-qc"
-version = "0.1.0"
-description = "QC of human exome cohorts"
+name = "wxs-qc"
+version = "0.2.0"
+description = "Quality control pipeline for human exome/genome cohorts"
 readme = "README.md"
-requires-python = "~=3.9"
+requires-python = ">=3.9"
+
+classifiers = [
+    "Development Status :: Beta",
+    "License :: OSI Approved :: ",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+]
+
 dependencies = [
-    "gnomad==0.8.1",
     "hail>=0.2.133",
-    "jupyterlab>=3.5.3",
-    "onnxruntime<1.20.0 ; python_version <= '3.9'",
+    "gnomad>=0.8.1",
+    #"onnxruntime<1.20.0 ; python_version <= '3.9'", # For pyhton 3.9 on cluster
+]
+
+dev = [
     "pre-commit>=4.0.1",
+    "jupyterlab>=3.5.3", # For cluster installation
+]
+
+test = [
     "pytest>=8.3.3",
     "pytest-cov>=6.0.0",
     "pytest-it>=0.1.5",
