@@ -1,7 +1,7 @@
 # WxS-QC resources howto
 
-This document describes resource files used by WxS-QC pipeline, and how to obtain them.
-We expect that you have already set up work mackine/cluster and
+This document describes resource files used by WxS-QC pipeline and how to obtain them.
+We expect that you have already set up a work machine / cluster and
 cloned the pipeline repository to it.
 
 All resources used by WxS-QC pipeline stored in two folders:
@@ -44,7 +44,7 @@ The `1kg_download` script downloads VCF files from the 1000 Genomes Project:
 ```
 
 ### Remove structural variants
-The downloaded 1000 genome VCFs contain some structural variation.
+The downloaded 1000 genomes VCFs contain some structural variation.
 We need to remove it and keep only SNVs and short indels.
 
 The `1kg_remove_sv` script removes structural variants from VCF files.
@@ -123,6 +123,15 @@ and use it on step 1 of the resource preparation stage.
 
 ## gnomAD and other resources
 
+The Variant QC part of the pipeline uses population frequencies from the
+[gnomAD project](https://gnomad.broadinstitute.org/)
+to find _de novo_ variations.
+Technically, for this step you can use the original gnomAD exome/genome data.
+However, the full-size gnomAD dataset is very big, so we recommend you use
+a reduced version, containing only global population frequencies.
+
+Also, the pipeline uses a set of high-quality variations to train the random forest model
+
 The easiest way to obtain gnomAD frequencies and all other resources is to run any integration test.
 The testing code automatically downloads all required data.
 
@@ -148,15 +157,8 @@ you should download the full-sized 1000-Genomes dataset._
 
 ### Using original gnomAD data
 
-The Variant QC part of the pipeline uses population frequencies from the
-[gnomAD project](https://gnomad.broadinstitute.org/)
-to find _de novo_ variations.
-Technically, for this step you can use the original gnomAD exome/genome data.
-However, the full-size gnomAD dataset is very big, so we recommend you to use
-a reduced version, containing only global population frequencies.
-
-If you want to use your own data (for example, for genome frequencies),
-  you need to manually download the **gnomAD** data from https://gnomad.broadinstitute.org/downloads
+If you want to use your own gnomAD data (for example, for genome frequencies),
+  you need to manually download it from https://gnomad.broadinstitute.org/downloads
   (use the _Sites Hail Table_ version),
   place the path to the table in the config file section `prepare_gnomad_ht -> input_gnomad_htfile`,
   and run the script to make a reduced version:
@@ -169,6 +171,7 @@ If you want to use your own data (for example, for genome frequencies),
 ### `resources` folder
 
 * `igsr_samples.tsv` -- known super populations for 1000 genomes dataset.
+  Available here: https://www.internationalgenome.org/data-portal/sample (press the 'Download the list' button)
 * `long_ld_regions.hg38.bed` -- BED file containing long-range linkage disequilibrium regions for the genome version hg38
   The regions were obtained from the file `high-LD-regions-hg38-GRCh38.bed` in **plinkQC** github repo:
   (https://github.com/cran/plinkQC/blob/master/inst/extdata/high-LD-regions-hg38-GRCh38.bed).
@@ -176,13 +179,17 @@ If you want to use your own data (for example, for genome frequencies),
   Original coordinates are provided in supplementary files of the article
   **Anderson, Carl A., et al. "Data quality control in genetic case-control association studies."
   Nature protocols 5.9 (2010): 1564-1573. DOI: 10.1038/nprot.2010.116**
-* `HG001_GRCh38_benchmark.interval.illumina.vcf.gz` -- High-confidence variations for GIAB HG001 sample
-* `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample
+* `HG001_GRCh38_benchmark.interval.illumina.vcf.gz` with `tabix` index -- High-confidence variations for GIAB HG001 sample.
+  Available here: https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/NA12878_HG001/NISTv4.2.1/GRCh38/HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+* `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample. Can generate
 * `gnomad.exomes.r4.1.freq_only.ht` - reduced version of **gnomAD** data containing only global population frequencies
 
 ### `training_sets` folder
 
-* `1000G_phase1.snps.high_confidence.hg38.ht`, `1000G_omni2.5.hg38.ht`,
-  `hapmap_3.3.hg38.ht`, `Mills_and_1000G_gold_standard.indels.hg38.ht` -
-   the set of high-confident variations from the corresponding projects
-   in Hail table format
+* `1000G_phase1.snps.high_confidence.hg38`, `1000G_omni2.5.hg38`,
+  `hapmap_3.3.hg38`, `Mills_and_1000G_gold_standard.indels.hg38` -
+   the set of high-confident variations from the corresponding projects.
+   The corresponding VCFs are available from the GATK resource bundle:
+   (https://gatk.broadinstitute.org/hc/en-us/articles/360035890811-Resource-bundle).
+   - Google Cloud: https://console.cloud.google.com/storage/browser/genomics-public-data/resources/broad/hg38/v0/
+   - FTP: http://ftp.cbi.pku.edu.cn/pub/mirror/GATK/hg38/

@@ -5,8 +5,10 @@ However, Hail data structures are “heavy” in terms of storage space and memo
 Before starting, ensure you have enough memory and storage space to proceed.
 
 If you're working inside the Wellcome Sanger Institute infrastructure,
-we recommended that you use `osdataproc` to create cluster with Hail and Spark backend.
-Follow the [Hail on SPARK](hail-on-spark.md) guide to create such a cluster.
+we recommend that you use `osdataproc` to create cluster with Hail and Spark backend.
+Follow the [Hail on SPARK](https://hgi-projects.pages.internal.sanger.ac.uk/documentation/docs/tutorials/hail-on-spark/)
+guide to create such a cluster.
+
 
 ## Set up the codebase
 
@@ -22,7 +24,7 @@ If you are running the code on a local machine,
 set up virtual environment using `uv`.
 
 ```bash
-pip install uv # Install uv using your default Python interpreter
+curl -LsSf https://astral.sh/uv/install.sh | sh # Install `uv` system-wide
 uv sync # install all required packages
 ```
 
