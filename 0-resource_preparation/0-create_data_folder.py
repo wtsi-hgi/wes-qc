@@ -16,7 +16,6 @@ def main() -> None:
     resource_dir = conf["resource_dir"]
     onekg_resource_dir = conf["onekg_resource_dir"]
     plots_dir = conf["plots_dir"]
-    training_sets_dir = conf["training_sets_dir"]
     var_qc_rf_dir = conf["var_qc_rf_dir"]
     vcf_export_dir = conf["vcf_export_dir"]
     gatk_vcf_indir = config["step1"]["gatk_vcf_indir"]
@@ -30,7 +29,6 @@ def main() -> None:
         resource_dir,
         onekg_resource_dir,
         plots_dir,
-        training_sets_dir,
         var_qc_rf_dir,
         vcf_export_dir,
         gatk_vcf_indir,
