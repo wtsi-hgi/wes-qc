@@ -18,6 +18,11 @@ because the pipeline has its own more flexible variant QC block.
 
 We use the open set of data from 1000 genomes project as an example of data analysis.
 You can download and use these data to ensure that your installation is running properly.
+You can download the dataset form the WSI page:
+
+```bash
+wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_public_dataset_v3.tar
+```
 
 **It is important to note that every dataset is different and
 requires careful tailoring and evaluation of the results.**

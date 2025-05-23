@@ -130,30 +130,22 @@ Technically, for this step you can use the original gnomAD exome/genome data.
 However, the full-size gnomAD dataset is very big, so we recommend you use
 a reduced version, containing only global population frequencies.
 
-Also, the pipeline uses a set of high-quality variations to train the random forest model
+Also, the pipeline uses a set of high-quality variations to train the random forest model.
 
-The easiest way to obtain gnomAD frequencies and all other resources is to run any integration test.
-The testing code automatically downloads all required data.
+The easiest way to obtain gnomAD frequencies and all other resources
+is to download it from the WSI server:
 
-To do it:
-
-* Upload `wxs_qc` code to your computation environment
-* Run a short integration test using the provided Makefile:
-  `make test-it-one-step test=test_trios_1_1`
-  **Note:** - the training set data include a big (about 6Gb) gnomAD matrixtable,
-  so downloading resources can take up some time depending on your connection speed.
-
-After running the test, in the `wes_qc` code folder you'll have the folder
-`tests/test_data`.
+```bash
+wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_resources.tar
+```
 
 You can copy or symlink the
-`resources` and `training_sets` folders to your data analysis folder (see the main howto).
-
-**Note:** this folder is also a good example for different metadata files and their formats.
+`resources` folder to your data analysis folder (see the main howto).
 
 _The `resources` folder also contains a small subset of 1000-Genomes data.
 However, this set is test-only, and for production run
 you should download the full-sized 1000-Genomes dataset._
+
 
 ### Using original gnomAD data
 
@@ -183,9 +175,6 @@ If you want to use your own gnomAD data (for example, for genome frequencies),
   Available here: https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/NA12878_HG001/NISTv4.2.1/GRCh38/HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
 * `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample. Can generate
 * `gnomad.exomes.r4.1.freq_only.ht` - reduced version of **gnomAD** data containing only global population frequencies
-
-### `training_sets` folder
-
 * `1000G_phase1.snps.high_confidence.hg38`, `1000G_omni2.5.hg38`,
   `hapmap_3.3.hg38`, `Mills_and_1000G_gold_standard.indels.hg38` -
    the set of high-confident variations from the corresponding projects.
