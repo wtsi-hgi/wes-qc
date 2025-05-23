@@ -34,7 +34,7 @@ source .venv/bin/activate
 uv sync
 ```
 
-Set up environment variables: 
+Set up environment variables:
 add the project folder to the `PYTHONPATH`,
 set memory size for SPARK.
 
@@ -111,3 +111,12 @@ It uses `hlrun_local` to run the code, which will output the log file to the cur
 with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
 
 For details, refer to the Markdown comments in the notebook.
+
+## Develop dependencies
+
+For developing dependencies install extra dev and test dependencies:
+
+```bash
+uv pip install -r pyproject.toml --extra dev
+uv pip install -r pyproject.toml --extra test
+```
