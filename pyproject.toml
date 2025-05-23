@@ -3,7 +3,13 @@ name = "wxs-qc"
 version = "0.2.0"
 description = "Quality control pipeline for human exome/genome cohorts"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
+
+## It's possible to use the project with the older python version.
+# To do this, check and restrict the onnxruntime version
+# For Pyhton 3.9 on WSI cluster add the following:
+# python_version = ">=3.9"
+# dependencies = [ "onnxruntime<1.20.0" ]
 
 classifiers = [
     "Development Status :: Beta",
@@ -16,9 +22,9 @@ classifiers = [
 dependencies = [
     "hail>=0.2.133",
     "gnomad>=0.8.1",
-    #"onnxruntime<1.20.0 ; python_version <= '3.9'", # For pyhton 3.9 on cluster
 ]
 
+[project.optional-dependencies]
 dev = [
     "pre-commit>=4.0.1",
     "jupyterlab>=3.5.3", # For cluster installation

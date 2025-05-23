@@ -43,7 +43,6 @@ cvars:
   resdir: general.resource_dir
   1kg_resdir: general.onekg_resource_dir
   pltdir: general.plots_dir
-  traindir: general.training_sets_dir
   rfdir: general.var_qc_rf_dir
   vcf_export_dir: general.vcf_export_dir
 
@@ -53,7 +52,7 @@ general:
   dataset_name: 'public-dataset'
 
   # Dataset root directory - to use in folder paths
-  data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
+  data_root: '/home/gena/misc/calcs/{general.dataset_name}'
 
   tmp_dir: 'file://{general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
@@ -65,9 +64,8 @@ general:
   resource_dir: '{general.data_root}/resources/'
   onekg_resource_dir: '{general.resource_dir}/mini_1000G/'
   plots_dir: '{general.data_root}/plots/'
-  training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
-  vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  vcf_export_dir: '{general.data_root}/vcf_after-qc/'
   # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
   rf_model_id: 'test-run-model'
 
@@ -98,10 +96,10 @@ step0:
     kin_threshold: 0.125
 
   generate_truthset_ht:
-    omni: '{traindir}/1000G_omni2.5.hg38.ht'
-    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
-    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+    omni: '{resdir}/1000G_omni2.5.hg38.vcf.gz'
+    mills: '{resdir}/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz'
+    thousand_genomes: '{resdir}/1000G_phase1.snps.high_confidence.hg38.vcf.gz'
+    hapmap: '{resdir}/hapmap_3.3.hg38.vcf.gz'
     truth_ht_outfile: '{mtdir}/truthset_table.ht'
 
   prepare_gnomad_ht:
@@ -112,7 +110,7 @@ step0:
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
-  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
+  gatk_vcf_indir: '{general.data_root}/vcfs_pre-qc'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
   # --- Step 1.2 --- #

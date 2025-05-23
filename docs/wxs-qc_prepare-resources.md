@@ -137,6 +137,7 @@ is to download it from the WSI server:
 
 ```bash
 wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_resources.tar
+tar xvf WxS-QC_resources.tar
 ```
 
 You can copy or symlink the

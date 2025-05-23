@@ -14,21 +14,6 @@ but this capability hasn't been tested.
 We suggest not applying the GATK4 VQSR,
 because the pipeline has its own more flexible variant QC block.
 
-### Public example dataset
-
-We use the open set of data from 1000 genomes project as an example of data analysis.
-You can download and use these data to ensure that your installation is running properly.
-You can download the dataset form the WSI page:
-
-```bash
-wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_public_dataset_v3.tar
-```
-
-**It is important to note that every dataset is different and
-requires careful tailoring and evaluation of the results.**
-For the best results, don't consider this guide as an end-to-end recipe for QC.
-Review the results and tune the analysis parameters when we suggest that you do it.
-
 ## Setting up
 
 ### Set up pipeline code and environment
@@ -37,9 +22,9 @@ To run through this guide, you need a machine or a cluster with Python and Hail 
 To set up the environment, refer to the [setup howto](wxs-qc_setup.md).
 
 **Note:**
-This guide was originally written for cluster execution and uses `spartk-submit`
+If you have Hail installed on a SPARK cluster, 
+use `spartk-submit` instead of regular `pyhton`
 to run pipeline scripts.
-If you work on a local machine, run all scripts via `python` command.
 
 ### Obtain resource files
 
@@ -49,9 +34,19 @@ refer to the [resources description section](wxs-qc_prepare-resources.md).
 
 ### Obtain public example dataset
 
-To test the pipeline and ensure that everything works correctly,
-you can use open dataset prepared by the HGI group.
-**The direct link for data downloading TBD**
+We prepared the open set of data from the 1000 genomes project as an example of data analysis.
+You can download and use these data to ensure that your pipeline installation is running properly.
+You can download the dataset from the WSI page:
+
+```bash
+wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_public_dataset_v3.tar
+tar xvf WxS-QC_public_dataset_v3.tar
+```
+
+**It is important to note that every dataset is different and
+requires careful tailoring and evaluation of the results.**
+For the best results, don't consider this guide as an end-to-end recipe for QC.
+Review the results and tune the analysis parameters when we suggest that you do it.
 
 
 ## Prepare the data and configuration
@@ -104,7 +99,7 @@ will be stored in a specific analysis folder.
 To create the folder for your dataset with all required subfolders, you can run the script:
 
 ```shell
-spark-submit 0-resource_preparation/0-create_data_folder.py
+python 0-resource_preparation/0-create_data_folder.py
 ```
 
 The script will take all values from the config file and create the dataset folder
@@ -118,6 +113,7 @@ with the following subfolders:
 * `variant_qc_random_forest`
 * `vcf_afterqc_export` - for exporting final VCFs after QC
 
+Copy/symlink to the folder your resources and data. 
 
 ## Stage 0. Prepare resource data
 
@@ -131,7 +127,7 @@ This resource set is required for the super-population prediction on the populat
 It converts the 1000 genomes VCFs into the matrixtable.
 
 ```shell
-spark-submit 0-resource_preparation/1-import_1kg.py --all
+python 0-resource_preparation/1-import_1kg.py --all
 ```
 
 ### Create the combined Truth Set table
@@ -140,7 +136,7 @@ Run this step to combine all available variation resources (1000 Genomes, Mills,
 into a single table of truth variants.
 
 ```shell
-spark-submit 0-resource_preparation/2-generate-truthset-ht.py
+python 0-resource_preparation/2-generate-truthset-ht.py
 ```
 
 ## Stage 1. Load data

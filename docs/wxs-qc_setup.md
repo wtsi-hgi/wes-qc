@@ -15,7 +15,7 @@ guide to create such a cluster.
 Clone the repository using:
 ```shell
 git clone https://github.com/wtsi-hgi/wes-qc.git
-cd wes_qc
+cd wes-qc
 ```
 
 ### Set up the environment (local installation only)
@@ -25,17 +25,25 @@ set up virtual environment using `uv`.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh # Install `uv` system-wide
-uv sync # install all required packages
 ```
 
-Activate your virtual environment
+Create and activate your virtual environment
 ```bash
+uv venv
 source .venv/bin/activate
+uv sync
 ```
 
-**Note**: Alternatively, you can work without activated virtual environment.
-In this case you need to use `uv run` for each command.
-For example, to run tests: `uv run make integration-test`.
+Set up environment variables: 
+add the project folder to the `PYTHONPATH`,
+set memory size for SPARK.
+
+```bash
+export PYTHONPATH=$( pwd ):$PYTHONPATH
+export PYSPARK_SUBMIT_ARGS="--driver-memory 48G --executor-memory 48G pyspark-shell"
+```
+
+**Note:** You need to activate venv and modify variables each time you open a new shell.
 
 ## How to run the code
 
