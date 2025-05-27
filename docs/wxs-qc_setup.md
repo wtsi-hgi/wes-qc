@@ -114,7 +114,7 @@ For details, refer to the Markdown comments in the notebook.
 
 ## Develop dependencies
 
-For developing dependencies install extra dev and test dependencies:
+For developing the pipeline code, install extra dev and test dependencies:
 
 ```bash
 uv pip install -r pyproject.toml --extra dev
