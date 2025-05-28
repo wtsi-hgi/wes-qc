@@ -50,7 +50,7 @@ python 1-import_data/1-import_gatk_vcfs_to_hail.py
 
 ### Manually running the code on a Hail cluster
 
-To submit the jobs on a Hai cluster, you need to set up environment variables
+To submit the jobs on a Hail cluster, you need to set up environment variables
 to include the directory you originally cloned the git repo into.
 To get a correct Python path, you need to have the virtual environment activated.
 
