@@ -1,49 +1,64 @@
-# Getting Started With WES QC Using Hail
+# Exome and Genome cohorts QC using WxS-QC pipeline
 
-This guide covers WES QC using Hail. It is important to note that every dataset is different and that for best results it is not advisable to view this guide as a recipe for QC.
-Each dataset will require careful tailoring and evaluation of the QC for best results.
+This guide explains how to perform QC of exome/genome data cohorts using the WxS-QC pipeline.
 
-## Before you start
+## Pre-requirements
 
-In order to run through this guide you will need an OpenStack cluster with Hail and Spark installed.
-It is recommended that you use `osdataproc` to create it.
-Follow the [Hail on SPARK](hail-on-spark.md) guide to create such a cluster.
+Input data should be a multi-sample VCF file or a set of VCF files.
+We suggest variant calling by GATK4 suite using haplotype caller and joint calling steps.
+The pipeline has no direct dependencies of GATK,
+but it uses variant-level and genotype-level metrics calculated by GATK.
+You can try to use the data from another caller,
+but this capability hasn't been tested.
 
-The ability to run WEQ-QC code on a local machine is under development.
+We suggest not applying the GATK4 VQSR,
+because the pipeline has its own more flexible variant QC block.
 
-This guide also requires a WES dataset joint called with GATK and saved as a set of multi-sample VCFs.
-If starting with a Hail matrixtable, then start at [Step 2](#2-sample-qc).
+### Public example dataset
 
-## Set up
+We use the open set of data from 1000 genomes project as an example of data analysis.
+You can download and use these data to ensure that your installation is running properly.
 
-### Set up the codebase
+**It is important to note that every dataset is different and
+requires careful tailoring and evaluation of the results.**
+For the best results, don't consider this guide as an end-to-end recipe for QC.
+Review the results and tune the analysis parameters when we suggest that you do it.
 
-Clone the repository using:
-```shell
-git clone https://github.com/wtsi-hgi/wes-qc.git
-cd wes_qc
-```
+## Setting up
 
-If you are running the code on a local machine (not on the Hail cluster),
-set up virtual environment using `uv`.
+### Set up pipeline code and environment
 
-```bash
-pip install uv # Install uv using your default Python interpreter
-uv sync # install all required packages
-```
+To run through this guide, you need a machine or a cluster with Python and Hail installed.
+To set up the environment, refer to the [setup howto](wxs-qc_setup.md).
 
-Activate your virtual environment
-```bash
-source .venv/bin/activate
-```
+**Note:**
+This guide was originally written for cluster execution and uses `spark-submit`
+to run pipeline scripts.
+If you work on a local machine, run all scripts via `python` command.
 
-**Note**: Alternatively, you can work without activated virtual environment.
-In this case you need to use `uv run` for each command.
-For example, to run tests: `uv run make integration-test`.
+### Obtain resource files
 
-### Make the config file for your dataset
+The WxS-QC pipeline uses a set of resource data.
+For the resource description and obtaining instruction,
+refer to the [resources description section](wxs-qc_prepare-resources.md).
+
+### Obtain public example dataset
+
+To test the pipeline and ensure that everything works correctly,
+you can use open dataset prepared by the HGI group.
+**The direct link for data downloading TBD**
+
+
+## Prepare the data and configuration
+
+The WxS-QC config file is a YAML file with the ability to reference one field from another.
+Each string in brackets like `{mtdir}` or `{general.dataset_name}` is a reference to another config section.
+See the config file caption for details.
+
+### Make the configuration file for your dataset
 
 Create a new config file for your dataset.
+
 By default, all scripts will use the config file named `inputs.yaml`.
 You can make a symlink for it to keep the config name meaningful.
 
@@ -54,12 +69,11 @@ ln -snf my_project.yaml inputs.yaml
 cd ..
 ```
 
-Edit `config/my_project.yaml` to include the correct paths for your datasets and working directories.
+If you want to test your WxS-QC installation with the open test data,
+you need to modify only the `data_root` parameter.
 
-The WES-QC config file is a YAML file with the ability to reference one field from another.
-See the config file caption for details.
+To start processing your own data, check and modify the following parameters:
 
-Here is the list of fields that you need to modify to start processing your data:
 * In the `general` section
   * `data_root` and `dataset_name` specifying the name of your dataset and path to it.
     Give a meaningful name to your dataset.
@@ -67,16 +81,15 @@ Here is the list of fields that you need to modify to start processing your data
   * `tmp_dir` by default references to the local folder `tmp` inside your dataset folder.
     You can change
   * `onekg_resource_dir`: The place for the 1000-Genome VCFs.
-    By default, it is `resources/mini_1000G` field under your data root
+    By default, it is `resources/mini_1000G` field under your data root.
+    If you work with your own data, change it to downloaded full-sized 1000 genomes data, as described in
+    the [resources howto](wxs-qc_prepare-resources.md).
   * `rf_model_id` leave it empty for now and specify after creating the random forest model
-    during the VariantQC stage
+    on the VariantQC stage
 * `step0 -> indir` and `step0 -> kg_pop_file` the directory for the 1000G genomes sample data. See below how to obtain it.
 
 All other files and resources you need are described in the corresponding sections
 of this manual.
-
-If you have to make any dataset-specific operations, you can create your own branch
-and add all the code you need to it.
 
 ### Create the analysis folder for your data
 
@@ -89,201 +102,47 @@ To create the folder for your dataset with all required subfolders, you can run 
 spark-submit 0-resource_preparation/0-create_data_folder.py
 ```
 
-The script will take all values form the config file and create the dataset folder
-with the following subfolders inside it:
+The script will take all values from the config file and create the dataset folder
+with the following subfolders:
 * `annotations` - various table reports generated by the pipeline
-* `matrixtables` - Hail matrixtables used for data processing
+* `matrixtables` - Hail matrixtables
 * `metadata` - all metadata for your dataset: self-reported sex, self-reported ethnicity, etc
 * `plots` - plots generated by the pipeline
 * `resources` - set of resource data
-* `training_sets` - set of true-positive variants to train a random forest model.
 * `tmp` - temporary data folder
 * `variant_qc_random_forest`
 * `vcf_afterqc_export` - for exporting final VCFs after QC
 
-Place in the folders your input pre-QC VCFs and metadata.
 
-### Obtain resource files
+## Stage 0. Prepare resource data
 
-The WES-QC pipeline uses a set of resource data.
-This section has a brief description of these resources
-and how to obtain it.
+Steps in this section prepare the reference dataset for the subsequent steps.
+You only need to run it once.
+For next analysis you can symlink resource matrixtables.
 
-#### 1000 Genomes
-Currently, gathering the 1000G data for population clustering is a manual process
-(automation is being developed).
-This process is described in detail in the separate document:
-[Prepare resource data](wes-qc-prepare-resources.md)
-
-Briefly, you need to do the following:
-
-1. Download per-chromosome 1000G dataset. HGI uses release taken from here:
-   ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/
-2. (Optional) - run BCFTools to remove structural variations and keep only SNVs and small indels
-3. Put the data in the folder specified under `onekg_resource_dir` in the `general` config section (see below).
-
-#### gnomAD
-
-The Variant QC part of the pipeline uses population frequencies from the
-[gnomAD project](https://gnomad.broadinstitute.org/)
-to find _de novo_ variations.
-Technically, for this step you can use the original gnomAD exome/genome data.
-However, the full-size gnomAD dataset is very big, so we recommend you to use
-a reduced version, containing only global population frequencies.
-
-There are two ways to obtain this table:
-* (recommended) Run a test as described in the [next section](#other-resources).
-  This will trigger downloading all required resources, including the reduced gnomAD 4.1 table,
-  containing only global exome frequencies
-* If you want to use your own data (for example, for genome frequencies),
-  you need to manually download the **gnomAD** data from https://gnomad.broadinstitute.org/downloads
-  (use the _Sites Hail Table_ version),
-  place the path to the table in the config file section `prepare_gnomad_ht -> input_gnomad_htfile`,
-  and run the script to make a reduced version:
-  ```shell
-  spark-submit 0-resource_preparation/3-prepare-gnomad-table.py
-  ```
-
-
-#### Other resources
-
-The easiest way to obtain training set data and other resources is to run any integration test.
-The testing code automatically downloads all training set matrixtables.
-
-To do it:
-
-* Upload wes_qc code to your computation environment
-* Run a short integration test using the provided Makefile:
-  `make test-it-one-step test=test_trios_1_1`
-  **Note:** - the training set data include very big (about 90Gb) gnomAD matrixtable,
-  so downloading resources can take up to 6-10 hours depending on your connection speed.
-
-After running the test, in the `wes_qc` code folder you'll have the folder
-`tests/test_data`. Copy or symlink the
-`resources` and `training_sets` folders to your data analysis folder.
-
-**Note:** this folder is also a good example for different metadata files and their formats.
-
-_The `resources` folder also contains a small subset of 1000-Genomes data.
-However, this set is test-only, and for production run
-you should download the full-sized 1000-Genomes dataset._
-
-#### Resource data description:
-
-* `igsr_samples.tsv` -- known super populations for 1000 genomes dataset.
-* `long_ld_regions.hg38.bed` -- BED file containing long-range linkage disequilibrium regions for the genome version hg38
-  The regions were obtained from the file `high-LD-regions-hg38-GRCh38.bed` in **plinkQC** github repo:
-  (https://github.com/cran/plinkQC/blob/master/inst/extdata/high-LD-regions-hg38-GRCh38.bed).
-  These coordinates are results of `liftOver` transferring original coordinates from the genome version hg36 to hg38.
-  Original coordinates are provided in supplementary files of the article
-  **Anderson, Carl A., et al. "Data quality control in genetic case-control association studies."
-  Nature protocols 5.9 (2010): 1564-1573. DOI: 10.1038/nprot.2010.116**
-* `HG001_GRCh38_benchmark.interval.illumina.vcf.gz` -- High-confidence variations for GIAB HG001 sample
-* `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample
-* `1000G_phase1.snps.high_confidence.hg38.ht`, `1000G_omni2.5.hg38.ht`,
-  `hapmap_3.3.hg38.ht`, `Mills_and_1000G_gold_standard.indels.hg38.ht` - set of high-confident variations in Hail table format
-* `gnomad.exomes.r4.1.freq_only.ht` - reduced version of **gnomAD** data containing only global population frequencies
-
-
-
-
-## How to run the code
-
-### Manually running the code on a local machine
-
-To manually run the code on a local machine,
-run the Python and provide the path to the pipeline script:
-
-```shell
-python 1-import_data/1-import_gatk_vcfs_to_hail.py
-```
-
-### Manually running the code on a Hail cluster
-
-To submit the jobs on a Hai cluster, you need to set up environment variables
-to include the directory you originally cloned the git repo into.
-To get a correct Python path, you need to have the virtual environment activated.
-
-```shell
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-export PYSPARK_PYTHON=$(which python)
-export PYSPARK_DRIVER_PYTHON=$(which python)
-```
-
-No you can run the pipeline script via `spark-submit`.
-For example:
-
-```shell
-spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
-```
-
-We suggest running all code on a cluster in `tmux`/`screen` session to avoid
-script termintaion in case of any network issues.
-
-
-### Automatically syncing and running the code on the cluster from a local machine
-
-If you want to modify the code on your local machine,
-and then run it on the cluster, you can use two scripts provided
-in the `scripts` folder.
-
-* `hlrun_local` - runs the Python script via `spark-submit`. You need to run it on the spark master node on your cluster.
-* `hlrun_remote` - runs the code on the Spark cluster form your local machine.
-  It performs a series of operations:
-  * Sync the codebase to the remote cluster, defined by the environment variable `$hail_cluster`.
-    The variable can contain the full host definition (`user@hostname`) or only hostname from the SSH config file.
-  * Create tmux session on the remoter cluster
-  * Run the Python script via `hlrun_local`
-  * Attach to the tmux session to monitor the progress
-
-**Warning**
-
-The `hlrun_remote` is designed to work with only one tmux session.
-To start a new task via `hlrun_remote`, first end the existing tmux session, if it exists.
-
-
-### Running the code via Jupyter notebook
-
-You can run the code in the provided Jupyter notebook
-where all the steps are arranged in a sequence and divided into sections
-(e.g. 0-resource_preparation, 1-import_data, 2-sample_qc, 3-variant_qc, 4-genotype_qc).
-
-The notebook is located as `scripts/run-wes-qc-pipeline-all-steps.ipynb`.
-
-It uses `hlrun_local` to run the code, which will output the log file to the current directory,
-with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
-
-For details, refer to the Markdown comments in the notebook.
-
-
-## Analyze your data
-
-### 0. Resource Preparation
-All steps in this section need to be run only once before your first run. It prepares the reference dataset for the subsequent steps.
-
-1. **Create the 1000G population prediction resource set**.
+### Create the 1000G population prediction resource set
 
 This resource set is required for the super-population prediction on the population PCA step.
-Then you can reuse it with any data cohort.
+It converts the 1000 genomes VCFs into the matrixtable.
 
 ```shell
 spark-submit 0-resource_preparation/1-import_1kg.py --all
 ```
 
-2. **Create the combined Truth Set table**
+### Create the combined Truth Set table
 
 Run this step to combine all available variation resources (1000 Genomes, Mills, Hapmap, etc)
 into a single table of truth variants.
-You need to run this step only once and then reuse the resulting table for all your analysis.
 
 ```shell
 spark-submit 0-resource_preparation/2-generate-truthset-ht.py
 ```
 
+## Stage 1. Load data
 
-### 1. Load data
+This stage focuses on the variations loading and validation against external data.
 
-1. **Load VCFs into Hail and save as a Hail MatrixTable**
+### Load VCFs into Hail and save as a Hail MatrixTable
 
 Specify in the config file under the `step1 -> gatk_vcf_indir` data entry
 the path to the directory that you created for pre-QC VCFs.
@@ -294,7 +153,7 @@ Run data import:
 spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
-2. **Annotate metadata**
+### Annotate metadata
 
 This script annotates samples with all provided metadata:
 VerifyBamId Freemix score, self-reported sex, self-reported ethnicity, etc.
@@ -325,7 +184,7 @@ spark-submit 1-import_data/2-import_annotations.py
 For each available annotation, the script prints out the list of samples that don't have annotations.
 For the Freemix score it performs validation and saves the Freemix plot.
 
-3. **Annotate and validate GtCheck results**
+### Annotate and validate GtCheck results
 
 The good practice for clinical samples is to make independent microarray-based genotyping
 together with the exome/genome sequencing.
@@ -396,7 +255,7 @@ Here are all already implemented tags:
 | mapfile_pairs_have_gtcheck, no_mapfile_pairs_have_gtcheck    | There is at least one/there are no samples form the mapping file that were reported in the Gtcheck best matching samples |
 
 
-4. **Plot mutations spectra**
+### Plot mutations spectra
 
 Plotting the mutation spectra can help you to identify batch-level artifacts.
 To do it, run the calculation script:
@@ -411,7 +270,7 @@ Also, you can specify the IQR range for outliers and change the plot size if nee
 
 
 
-### 2. Sample QC
+## 2. Sample QC
 
 1. **Run sex imputation**
 
@@ -525,7 +384,7 @@ If no samples fail identify checks the latter file could be empty.
 spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
 ```
 
-### 3. Variant QC
+## 3. Variant QC
 
 The VariantQC steps trains and runs a random forest model to estimate variation quality
 and rank all variations by this estimation.
@@ -645,7 +504,7 @@ you can filter the variants in the Hail MatrixTable based on the selected thresh
 spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel indel_bin
 ```
 
-### 4. Genotype QC
+## 4. Genotype QC
 
 On the GenotypeQc step we need to remove genotypes that are not quality enough.
 However, by removing genotypes that don't match certain filter thresholds,
