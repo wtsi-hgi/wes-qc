@@ -14,6 +14,16 @@ but this capability hasn't been tested.
 We suggest not applying the GATK4 VQSR,
 because the pipeline has its own more flexible variant QC block.
 
+### Public example dataset
+
+We use the open set of data from 1000 genomes project as an example of data analysis.
+You can download and use these data to ensure that your installation is running properly.
+
+**It is important to note that every dataset is different and
+requires careful tailoring and evaluation of the results.**
+For the best results, don't consider this guide as an end-to-end recipe for QC.
+Review the results and tune the analysis parameters when we suggest that you do it.
+
 ## Setting up
 
 ### Set up pipeline code and environment
@@ -69,7 +79,7 @@ ln -snf my_project.yaml inputs.yaml
 cd ..
 ```
 
-If you want to test your WxS-QC installation with the opn test data,
+If you want to test your WxS-QC installation with the open test data,
 you need to modify only the `data_root` parameter.
 
 To start processing your own data, check and modify the following parameters:
@@ -82,7 +92,7 @@ To start processing your own data, check and modify the following parameters:
     You can change
   * `onekg_resource_dir`: The place for the 1000-Genome VCFs.
     By default, it is `resources/mini_1000G` field under your data root.
-    If you work with your own data, change it to downloaded fill-sized 1000 genomes data, as described in
+    If you work with your own data, change it to downloaded full-sized 1000 genomes data, as described in
     the [resources howto](wxs-qc_prepare-resources.md).
   * `rf_model_id` leave it empty for now and specify after creating the random forest model
     on the VariantQC stage
