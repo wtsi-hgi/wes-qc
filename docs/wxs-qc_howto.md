@@ -32,7 +32,7 @@ To run through this guide, you need a machine or a cluster with Python and Hail 
 To set up the environment, refer to the [setup howto](wxs-qc_setup.md).
 
 **Note:**
-This guide was originally written for cluster execution and uses `spartk-submit`
+This guide was originally written for cluster execution and uses `spark-submit`
 to run pipeline scripts.
 If you work on a local machine, run all scripts via `python` command.
 
