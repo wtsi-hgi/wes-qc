@@ -69,7 +69,7 @@ ln -snf my_project.yaml inputs.yaml
 cd ..
 ```
 
-If you want to test your WxS-QC installation with the opn test data,
+If you want to test your WxS-QC installation with the open test data,
 you need to modify only the `data_root` parameter.
 
 To start processing your own data, check and modify the following parameters:
