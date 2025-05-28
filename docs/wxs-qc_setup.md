@@ -81,7 +81,7 @@ in the `scripts` folder.
   It performs a series of operations:
   * Syncs the codebase to the remote cluster, defined by the environment variable `$hail_cluster`.
     The variable can contain the full host definition (`user@hostname`) or only hostname from the SSH config file.
-  * Creates `tmux` session on the remoter cluster.
+  * Creates `tmux` session on the remote cluster.
   * Runs the Python script via `hlrun_local`
   * Attaches to the tmux session to monitor the progress
 
