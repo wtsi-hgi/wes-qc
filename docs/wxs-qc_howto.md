@@ -38,7 +38,7 @@ If you work on a local machine, run all scripts via `python` command.
 
 ### Obtain resource files
 
-The WES-QC pipeline uses a set of resource data.
+The WxS-QC pipeline uses a set of resource data.
 For the resource description and obtaining instruction,
 refer to the [resources description section](wxs-qc_prepare-resources.md).
 
@@ -82,7 +82,7 @@ To start processing your own data, check and modify the following parameters:
     You can change
   * `onekg_resource_dir`: The place for the 1000-Genome VCFs.
     By default, it is `resources/mini_1000G` field under your data root.
-    If you work with your own data, change it to downloaded fill-sized 1000 genomes data, as described in
+    If you work with your own data, change it to downloaded full-sized 1000 genomes data, as described in
     the [resources howto](wxs-qc_prepare-resources.md).
   * `rf_model_id` leave it empty for now and specify after creating the random forest model
     on the VariantQC stage

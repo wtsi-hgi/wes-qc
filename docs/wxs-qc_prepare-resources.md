@@ -181,7 +181,7 @@ If you want to use your own gnomAD data (for example, for genome frequencies),
   Nature protocols 5.9 (2010): 1564-1573. DOI: 10.1038/nprot.2010.116**
 * `HG001_GRCh38_benchmark.interval.illumina.vcf.gz` with `tabix` index -- High-confidence variations for GIAB HG001 sample.
   Available here: https://ftp-trace.ncbi.nlm.nih.gov/giab/ftp/release/NA12878_HG001/NISTv4.2.1/GRCh38/HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
-* `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample. Can generate
+* `HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt` - VEP annotations for GIAB HG001 sample.
 * `gnomad.exomes.r4.1.freq_only.ht` - reduced version of **gnomAD** data containing only global population frequencies
 
 ### `training_sets` folder

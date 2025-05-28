@@ -1,4 +1,4 @@
-# How to set up an run the WxS-QC pipeline
+# How to set up and run the WxS-QC pipeline
 
 The pipeline code is infrastructure agnostic and can run on a single machine.
 However, Hail data structures are “heavy” in terms of storage space and memory.
@@ -14,8 +14,8 @@ guide to create such a cluster.
 
 Clone the repository using:
 ```shell
-git clone https://github.com/wtsi-hgi/wes-qc.git
-cd wes_qc
+git clone https://github.com/wtsi-hgi/wxs-qc.git
+cd wxs-qc
 ```
 
 ### Set up the environment (local installation only)
@@ -77,7 +77,7 @@ and then run it on the cluster, you can use two scripts provided
 in the `scripts` folder.
 
 * `hlrun_local` - runs the Python script via `spark-submit`.
-* `hlrun_remote` - runs the code on the Spark cluster form your local machine.
+* `hlrun_remote` - runs the code on the Spark cluster from your local machine.
   It performs a series of operations:
   * Syncs the codebase to the remote cluster, defined by the environment variable `$hail_cluster`.
     The variable can contain the full host definition (`user@hostname`) or only hostname from the SSH config file.
@@ -97,7 +97,7 @@ You can run the code in the provided Jupyter notebook
 where all the steps are arranged in a sequence and divided into sections
 (e.g. 0-resource_preparation, 1-import_data, 2-sample_qc, 3-variant_qc, 4-genotype_qc).
 
-The notebook is located as `scripts/run-wes-qc-pipeline-all-steps.ipynb`.
+The notebook is located as `scripts/run-wxs-qc-pipeline-all-steps.ipynb`.
 
 It uses `hlrun_local` to run the code, which will output the log file to the current directory,
 with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
