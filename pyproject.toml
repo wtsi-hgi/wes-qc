@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "hail>=0.2.133",
+    "hail==0.2.133",  # TODO: Training random forest from gnomad doen't work with Hail 0.2.134 Need to investigate.
     "gnomad>=0.8.1",
 ]
 

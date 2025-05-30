@@ -49,10 +49,10 @@ cvars:
 general:
   # Dataset name - the root folder for all analysis files
   # Also used for the naming of tables, plots, etc
-  dataset_name: 'public-dataset'
+  dataset_name: 'wxs-qc_public_dataset_v3'
 
   # Dataset root directory - to use in folder paths
-  data_root: '/home/gena/misc/calcs/{general.dataset_name}'
+  data_root: '/home/gena/calcs/{general.dataset_name}'
 
   tmp_dir: 'file://{general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
@@ -67,7 +67,7 @@ general:
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_after-qc/'
   # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
-  rf_model_id: 'test-run-model'
+  rf_model_id: 'wxs-qc_public'
 
 step0:
   # --- Step 0.1 --- #
@@ -115,18 +115,18 @@ step1:
 
   # --- Step 1.2 --- #
   validate_verifybamid:
-    verifybamid_selfsm: '{metadir}/test_data_from_1000_genomes.verify_bam_id_result.selfSM.tsv'  # Set to null if you don't have freemix data
+    verifybamid_selfsm: '{metadir}/wxs-qc_public_dataset_v3.verify_bam_id_result.selfSM.tsv'  # Set to null if you don't have freemix data
     verifybamid_plot: '{pltdir}/freemix_validation.html'
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
-  sex_metadata_file: '{metadir}/mlwh_sample_and_sex.txt'
+  sex_metadata_file: '{metadir}/wxs-qc_public_dataset_v3.self_reported_sex.tsv'
   mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
   validate_gtcheck:
-    wes_microarray_mapping: '{metadir}/testdata_1000genomes_v2.microarray_mapping.tsv' # Set to null if you don't have microarray data
-    microarray_ids: '{metadir}/testdata_1000genomes_v2.samples_microarray.txt'
-    gtcheck_report: '{metadir}/testdata_1000genomes_v2.gtcheck.txt'
+    wes_microarray_mapping: null # '{metadir}/testdata_1000genomes_v2.microarray_mapping.tsv' # Set to null if you don't have microarray data
+    microarray_ids: null #'{metadir}/testdata_1000genomes_v2.samples_microarray.txt'
+    gtcheck_report: null #'{metadir}/testdata_1000genomes_v2.gtcheck.txt'
     gtcheck_results_folder: '{anndir}/gtcheck'
     mt_gtcheck_validated: '{mtdir}/mt_gtcheck_validated.mt'
 
@@ -273,13 +273,13 @@ step2:
     sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
 
   sample_qc_combine_results:
-    samples_to_remove_file: '{metadir}/testdata_1000genomes_v2.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
+    samples_to_remove_file: null #'{metadir}/.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
 
 
 step3:
   # Parameters used in multiple functions #
   # To skip all trios-related computations, put here the `null` value
-  pedfile: '{metadir}/test_1000g_v2.triosonly.ped'
+  pedfile: '{metadir}/wxs-qc_public_dataset_v3.trios.fam'
 
   # --- Step 3.1 --- #
   split_multi_and_var_qc:
@@ -331,7 +331,7 @@ step3:
 
   # --- Step 3.5 --- #
   add_cq_annotation:
-    synonymous_file: '{metadir}/public-dataset.synonymous_variants.tsv.bgz'
+    synonymous_file: '{metadir}/wxs-qc_public_dataset_v3.synonymous_variants.tsv.bgz'
 
   dnm_and_family_annotation:
     dnm_htfile: '{mtdir}/denovo_table.ht'
@@ -382,7 +382,7 @@ step3:
   # --- Step 3.9 --- #
   annotate_mt_with_cq_rf_score_and_bin:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{metadir}/public-dataset.all_consequences.tsv.bgz'
+    cqfile: '{metadir}/wxs-qc_public_dataset_v3.all_consequences.tsv.bgz'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
 step4:
@@ -421,7 +421,7 @@ step4:
   # --- Step 4.2 --- #
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{metadir}/public-dataset.all_consequences_with_gene_and_csq.tsv.bgz'
+    cqfile: '{metadir}/wxs-qc_public_dataset_v3.all_consequences_with_gene_and_csq.tsv.bgz'
 
   apply_hard_filters:
     hard_filters:

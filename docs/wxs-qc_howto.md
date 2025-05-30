@@ -296,8 +296,8 @@ a conflict between self-reported sex and genetically imputed sex, and saves it i
 `conflicting_sex.tsv`.
 
 
-2. **Identify samples from related individuals with PCRelate**
-This step outputs a relatedness graph, a table of total statistics of relatedness and a list of related samples.
+### Identify samples from related individuals with PCRelate
+This step outputs a relatedness graph, a table of total statistics of relatedness, and a list of related samples.
 Please see config files "prune_pc_relate" for more details.
 
 ```shell
@@ -307,7 +307,7 @@ python 2-sample_qc/2-prune_related_samples.py
 While this step identifies related samples, we keep them in the dataset since step 2.3 uses PCA score projection for population clustering. The relatedness information can be used to validate pedigree data and detect sample mislabeling.
 
 
-3. **Predict populations**
+### Predict super-populations
 
 Merge 1kg MatrixTable with WxS MatrixTable and make LD pruning.
 
@@ -339,8 +339,7 @@ You can specify the number of PCA components you want in the config file.
 ```shell
 python 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
 ```
-
-4. Identify outliers
+### Identify outliers
 
 Now that we have the predicted populations that each sample belongs to,
 we run sample QC stratified by population and identify outliers.
@@ -380,14 +379,20 @@ saves them in the folder defined by the `plot_sample_qc_metrics`:`plot_outdir`
 config parameter (a set of individual plots and one combined plot for all metrics and populations).
 To change default number of bins, use the `n_bins` config parameter.
 
-5. **Filter out samples which fail QC**
+### Filter out samples which fail QC
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script.
-<!At this stage samples failing on FREEMIX score and on identity checks are also removed.
-This samples should be in files in the annotations directory: `verify_bam_id_result_concat.selfSM`
-lists sample ID and FREEMIX score and `sanger_samples_excluded_after_gtcheck.txt` lists samples failing identity checks.
-If no samples fail identify checks the latter file could be empty.
-> These samples are saved in `samples_failing_qc.tsv.bgz` in the annotation directory.
+
+At this stage you can provide and additional list of samples to remove. 
+It could be samples failing FreeMix score, F-start check, or any other.
+To use it, specify the file in the `samples_to_remove_file` section of the config.
+This is a plain text file without a header, containing one sample per line. 
+
+If you don't want t remove any additional samples, put `none` in the config instead of sample file name.
+
+**Note:** automatic removing of samples failing FreeMix 
+and more convenient combined sample statistics  
+are in the implementation.
 
 ```shell
 python 2-sample_qc/5-filter_fail_sample_qc.py
@@ -421,22 +426,26 @@ This is an unheaded, tab-delimited file that contains the following columns:
 If you don't have pedigree data, several sub-steps will be skipped, and some metrics
 for the final graphs won't be calculated.
 
+### Generate family statistics
+
 The first step of variant QC is to split multi-allelic variants and annotate it with family statistics.
 
 ```shell
 python 3-variant_qc/1-split_and_family_annotate.py --all
 ```
 
-Next, an input table is generated to run the random forest on.
+### Generate RF test data
+Next, we combine all the data and generate the input table to run the random forest on.
 
 ```shell
 python 3-variant_qc/2-create_rf_ht.py
 ```
 
-Next, train the random forest model.
+
+### Train the random forest model.
 
 ```shell
-python  3-variant_qc/3-train_rf.py
+python  3-variant_qc/3-train_rf.py --manual-model-id wxs-qc_public
 ```
 
 The random forest model ID (called _runhash_ previously, so you can find this term in the code)
@@ -453,6 +462,8 @@ If and VariantQC step fails with some weird message
 (no space left on the device, wrong imports, etc),
 try running model training on the master node only by adding `--master local[*]`
 to the `spark-submit` parameters.
+
+### Apply random forest model
 
 Now apply the random forest to the entire dataset.
 
@@ -471,9 +482,13 @@ chr10   100204528   rs374991603 G   A   synonymous_variant
 chr10   100204555   rs17880383  G   A   synonymous_variant
 ```
 
+
+
 ```shell
 python 3-variant_qc/5-annotate_ht_after_rf.py
 ```
+
+
 
 Add ranks to variants based on random forest score, and bin the variants based on this.
 
