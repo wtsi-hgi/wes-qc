@@ -136,8 +136,8 @@ The easiest way to obtain gnomAD frequencies and all other resources
 is to download it from the WSI server:
 
 ```bash
-wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_resources.tar
-tar xvf WxS-QC_resources.tar
+wget https://wxs-qc-data.cog.sanger.ac.uk/wxs-qc_resources.tar
+tar xvf wxs-qc_resources.tar
 ```
 
 You can copy or symlink the

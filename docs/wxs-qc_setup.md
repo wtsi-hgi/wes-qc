@@ -112,11 +112,3 @@ with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_1
 
 For details, refer to the Markdown comments in the notebook.
 
-## Develop dependencies
-
-For developing the pipeline code, install extra dev and test dependencies:
-
-```bash
-uv pip install -r pyproject.toml --extra dev
-uv pip install -r pyproject.toml --extra test
-```

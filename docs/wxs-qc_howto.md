@@ -49,8 +49,8 @@ You can download and use these data to ensure that your pipeline installation is
 You can download the dataset from the WSI page:
 
 ```bash
-wget https://wes-qc-data.cog.sanger.ac.uk/WxS-QC_public_dataset_v3.tar
-tar xvf WxS-QC_public_dataset_v3.tar
+wget https://wxs-qc-data.cog.sanger.ac.uk/wxs-qc_public_dataset_v3.tar
+tar xvf wxs-qc_public_dataset_v3.tar
 ```
 
 **It is important to note that every dataset is different and

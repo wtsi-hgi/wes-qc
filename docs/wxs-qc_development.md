@@ -1,5 +1,15 @@
 # Developer's howto
 
+## Develop dependencies
+
+For developing the pipeline code, install extra dev and test dependencies:
+
+```bash
+uv pip install -r pyproject.toml --extra dev
+uv pip install -r pyproject.toml --extra test
+```
+
+
 ## How to run the tests and calculate coverage
 
 The tests currently require running on the SPARK cluster. There are plans to make them runnable locally.
