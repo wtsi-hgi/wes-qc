@@ -279,7 +279,7 @@ The script saves the plot in the HTML file specified under the
 Also, you can specify the IQR range for outliers and change the plot size if needed.
 
 
-## 2. Sample QC
+## Stage 2. Sample QC
 
 ### Run sex imputation
 
@@ -398,7 +398,7 @@ are in the implementation.
 python 2-sample_qc/5-filter_fail_sample_qc.py
 ```
 
-## 3. Variant QC
+## Stage 3. Variant QC
 
 The VariantQC steps trains and runs a random forest model to estimate variation quality
 and rank all variations by this estimation.
@@ -456,20 +456,22 @@ Put this ID in the config file in the `rf_model_id:` parameter under the `genera
 You can specify the model ID manually using the command line argument `--manual-model-id`.
 
 **Note:**
-In old _gnomAD_ releases, the function `train_rf_model()`
+The function `train_rf_model()`
 could work incorrectly in the parallel SPARK environment.
 If and VariantQC step fails with some weird message
 (no space left on the device, wrong imports, etc),
 try running model training on the master node only by adding `--master local[*]`
 to the `spark-submit` parameters.
 
-### Apply random forest model
+### Apply the random forest model
 
 Now apply the random forest to the entire dataset.
 
 ```shell
 python 3-variant_qc/4-apply_rf.py
 ```
+
+### Annotate random forest model results
 
 Annotate the random forest output with metrics including synonymous variants, family annotation,
 transmitted/untransmitted singletons, and gnomAD allele frequency.
@@ -482,19 +484,20 @@ chr10   100204528   rs374991603 G   A   synonymous_variant
 chr10   100204555   rs17880383  G   A   synonymous_variant
 ```
 
-
-
 ```shell
 python 3-variant_qc/5-annotate_ht_after_rf.py
 ```
 
+### Group variants by ranks
 
-
-Add ranks to variants based on random forest score, and bin the variants based on this.
+At this stage we rank all variants depending on their RF score and 
+group it into 100 bins (bin 1 is the most quality variants.)
 
 ```shell
 python 3-variant_qc/6-rank_and_bin.py
 ```
+
+### Plot and analyse the results
 
 Create plots of the binned random forest output to use in the selection of thresholds. Separate thresholds are used for SNPs and indels.
 
@@ -505,17 +508,21 @@ python 3-variant_qc/7-plot_rf_output.py
 The Variant QC is always a trading between sensitivity and quality.
 Examine the plots and choose the near-optimal region for RF bin,
 that preserves as many TP variants as possible and at the same time eliminating most part of FP variants.
-You can refer to other graphs to ensure that the chosen region anso has the expected metrics
+You can refer to other graphs to ensure that the chosen region also has the expected metrics.
 
 At the GenotypeQC step we run the evaluation of different hardfilter combinations
-that allows you to improve the results.
+that allow you to improve the results.
 Therefore, at this point you don't need to make a final decision.
 You only need to choose a provisional RF bin interval to analyze it on the next steps.
 
-However, if you want, you can calculate the number of true positive and false positive variants
-remaining at your chosen thresholds using the optional scripts
-(where `snv_bin` and `indel_bin` are the thresholds selected for SNVs and indels respectively).
+### Checking threshold selection
+
+If you want, you can calculate the number of true positive and false positive variants
+remaining at your chosen thresholds before running genotype evaluation.
 This scripts uses only RF bin filtering and runs faster than the full hardfilter evaluation.
+
+Use for `snv_bin` and `indel_bin` the thresholds selected for SNVs and indels respectively).
+
 
 ```shell
 python 3-variant_qc/8-select_thresholds.py --snv snv_bin --indel indel_bin
@@ -528,24 +535,24 @@ you can filter the variants in the Hail MatrixTable based on the selected thresh
 python 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel indel_bin
 ```
 
-## 4. Genotype QC
+## Stage 4. Genotype QC
 
 On the GenotypeQc step we need to remove genotypes that are not quality enough.
 However, by removing genotypes that don't match certain filter thresholds,
 we always remove some percentage of real existing genotypes.
 
-To obtain good results, we need to determine the best combination of hard filters,
+To achieve the best result, we need to determine the best combination of hard filters,
 to save "good" variations as much as possible,
 and get rid of all "bad" variants and genotypes at the same time.
 
 The first script of the genotype QC helps you to analyze different combinations of hard filters
 and choose optimal values.
 
-First hard filter that we use, if the random forest bin,
+First hard filter that we use, is the random forest bin,
 determined on the VariantQC step.
 This filter applies on the variation level, removing
-all genotyped for the variation above the threshold
-(for RFB bin smaller values are better)
+all genotypes for the variation above the threshold
+(for RF bin smaller values are better)
 
 Based on the results of the VariantQC step populate the provisional values
 for the SNV and indel random forest bins in the `evaluation` part of the config file.
@@ -558,7 +565,7 @@ For example:
 
 On the genotype level, we use the set of per-genotype hardfilters:
 Genotype quality (gq), read depth (dp), and allele balance (ab).
-Finally, we calculate missingness (also can be found in the code as **call rate**) —
+Finally, we calculate **call rate** (also can be found in the code as *missingness*) —
 the minimal percentage of genotypes where this variation remains defined
 after applying per-genotype hard filters. This filter also applies on the variant-level.
 
@@ -572,7 +579,7 @@ For all these parameters, you can start with the following default values:
 ```
 
 If your dataset contains a control sample with known high-confident variations
-(usually one of the [GIAB](https://www.nist.gov/programs-projects/genome-bottle) samples),
+(usually the first [GIAB](https://www.nist.gov/programs-projects/genome-bottle) sample **NA12878**),
 you can use it to calculate precision/recall values.
 Add the sample control name, the corresponding VCF file, and the VEP annotation to the config:
 
@@ -587,7 +594,7 @@ downloaded by the testing script
 (see the [Obtain resource files](#obtain-resource-files) section).
 
 _Note_: For now, you still have to specify the correct GIAB VCF and cqfile,
-even if you're skipping the precision calculation.
+even if you're skipping the precision/recall calculation.
 
 If you don't have a GIAB sample, put `null` in the `giab_sample` section.
 The precision/recall calculations will be skipped in this case.
@@ -615,9 +622,9 @@ For more detailed explanation of this process you could review some relevant pub
 **Evaluation step outputs:**
 For each hardfilter combination, the script calculates the following metrics:
 * Percentage of likely-true-positives (TP) and likely-false-positives (FP) variants
-  (see the explanation above in the the VariantQC step description).
+  (see the explanation above in the variant QC step description).
 * Precision and Recall, calculated on the GIAB sample (if it is present in the data).
-  For GIAB sample, we can calculate the real true-positive, false-positive, and false-negative variations.
+  For the GIAB sample, we can calculate the real true-positive, false-positive, and false-negative variations.
   Therefore, we assume these data as more confident for choosing the optimal hardfilter evaluation
   The TP/FP values should be generally consistent with precision/recall.
   If the GIAB sample is not available, the script outputs -1.0 both for precision and recall
@@ -658,7 +665,7 @@ relaxed, medium, and stringent.
 Fill in the values in the `apply_hard_filters` part of the config.
 If needed, add more values to evaluate in the config and rerun the hard filter evaluation.
 
-2. **Run the Genotype QC with the chosen set of filters:**
+### Run the Genotype QC with the chosen set of filters
 
 Now you can apply your custom thresholds and make variants with corresponding filters.
 
@@ -666,21 +673,22 @@ Now you can apply your custom thresholds and make variants with corresponding fi
 python 4-genotype_qc/2-apply_range_of_hard_filters.py
 ```
 
-3. **Export the filtered variants to VCF.**
-Script 3a tags all variations with the corresponding filter (relaxed, medium, stringent)
+### Export the filtered variants to VCFs
+
+Script `3a` tags all variations with the corresponding filter (relaxed, medium, stringent)
 removes all variants not passing the relaxed filter, and saves the resulting data to VCF files.
 
 ```shell
 python 4-genotype_qc/3a-export_vcfs_range_of_hard_filters.py
 ```
 
-Alternatively, to export VCFs with only passing stringent hard filter, use the 3b version of the script:
+Alternatively, to export VCFs with only passing stringent hard filter, use the `3b` version of the script:
 
 ```shell
 python 4-genotype_qc/3b-export_vcfs_stringent_filters.py
 ```
 
-4. **(Optional) - calculate-per-sample statistics**
+### (Optional) - calculate-per-sample statistics
 If you want to additionally evaluate the filter statistics
 (variant counts per consequence per sample and
 transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data))
@@ -699,7 +707,7 @@ chr1    100200019   .  C    A   stop_gained&splice_region_variant
 python 4-genotype_qc/4-counts_per_sample.py
 ```
 
-5. **Plot mutations spectra**
+### Plot mutations spectra
 
 After completion of the QC process, run the mutation spectra calculation
 and validate that results match the expected distribution.
@@ -710,5 +718,5 @@ To do it, run the calculation script:
 python 4-genotype_qc/5-mutation-spectra_afterqc.py
 ```
 
-The script saves the plot in the html file specified under the
+The script saves the plot in the HTML file specified under the
 `plot_mutation_spectra_afterqc`:`mut_spectra_path` config section.
