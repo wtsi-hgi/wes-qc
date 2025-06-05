@@ -383,12 +383,12 @@ To change default number of bins, use the `n_bins` config parameter.
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script.
 
-At this stage you can provide and additional list of samples to remove. 
-It could be samples failing FreeMix score, F-start check, or any other.
+At this stage, you can provide an additional list of samples to remove. 
+It could be the samples failing FreeMix score, F-start check, or any other.
 To use it, specify the file in the `samples_to_remove_file` section of the config.
 This is a plain text file without a header, containing one sample per line. 
 
-If you don't want t remove any additional samples, put `none` in the config instead of sample file name.
+If you don't want t remove any additional samples, put `null` in the config instead of sample file name.
 
 **Note:** automatic removing of samples failing FreeMix 
 and more convenient combined sample statistics  
@@ -410,7 +410,7 @@ Because for a new dataset we don't have the real TP and FP, we use the following
   in public databases: 1000 genomes, HapMap, Mills, etc (see the full list of sources on the step 0.2)
 * For likely-false-positive variants, we use variants with the lowest quality scores, provided py the variant caller.
 
-In this documentation the TP and FP abbreviations stand for likely-true-positive and likely-false-positive.
+In this documentation, the TP and FP abbreviations stand for likely-true-positive and likely-false-positive.
 
 Variant QC uses the optional pedigree file detailing trios existing in the dataset.
 The file should follow the [FAM file](https://www.cog-genomics.org/plink/1.9/formats#fam)
@@ -441,27 +441,30 @@ Next, we combine all the data and generate the input table to run the random for
 python 3-variant_qc/2-create_rf_ht.py
 ```
 
+### Train the random forest model
 
-### Train the random forest model.
+Then, we train the RF model on the constructed dataset.
+Here we use `--manual-model-id` parameter to 
+manually set the random forest model ID 
+(called _runhash_ previously, so you can find this term in the code)
 
 ```shell
 python  3-variant_qc/3-train_rf.py --manual-model-id wxs-qc_public
 ```
 
-The random forest model ID (called _runhash_ previously, so you can find this term in the code)
-will be printed to STDOUT.
-It is an 8-character string consisting of letters and numbers.
+If you don't set the the RF ID, the script will 
+generate and print to STDOUT the random ID: 8-character string consisting of letters and numbers.
 Put this ID in the config file in the `rf_model_id:` parameter under the `general` section.
-
-You can specify the model ID manually using the command line argument `--manual-model-id`.
 
 **Note:**
 The function `train_rf_model()`
-could work incorrectly in the parallel SPARK environment.
+could work incorrectly in the parallel SPARK environment,
+depending on the Hail library version.
 If and VariantQC step fails with some weird message
 (no space left on the device, wrong imports, etc),
 try running model training on the master node only by adding `--master local[*]`
-to the `spark-submit` parameters.
+to the `spark-submit` parameters,
+or try to downgrade Hail to the previous version.
 
 ### Apply the random forest model
 
@@ -490,7 +493,7 @@ python 3-variant_qc/5-annotate_ht_after_rf.py
 
 ### Group variants by ranks
 
-At this stage we rank all variants depending on their RF score and 
+At this stage, we rank all variants depending on their RF score and 
 group it into 100 bins (bin 1 is the most quality variants.)
 
 ```shell
@@ -499,7 +502,8 @@ python 3-variant_qc/6-rank_and_bin.py
 
 ### Plot and analyse the results
 
-Create plots of the binned random forest output to use in the selection of thresholds. Separate thresholds are used for SNPs and indels.
+Create plots of the binned random forest output to use in the selection of thresholds. 
+Separate thresholds are used for SNPs and indels.
 
 ```shell
 python 3-variant_qc/7-plot_rf_output.py
@@ -510,7 +514,7 @@ Examine the plots and choose the near-optimal region for RF bin,
 that preserves as many TP variants as possible and at the same time eliminating most part of FP variants.
 You can refer to other graphs to ensure that the chosen region also has the expected metrics.
 
-At the GenotypeQC step we run the evaluation of different hardfilter combinations
+At the genotype QC stage, we run the evaluation of different hardfilter combinations
 that allow you to improve the results.
 Therefore, at this point you don't need to make a final decision.
 You only need to choose a provisional RF bin interval to analyze it on the next steps.
@@ -548,7 +552,7 @@ and get rid of all "bad" variants and genotypes at the same time.
 The first script of the genotype QC helps you to analyze different combinations of hard filters
 and choose optimal values.
 
-First hard filter that we use, is the random forest bin,
+The first hard filter that we use, is the random forest bin,
 determined on the VariantQC step.
 This filter applies on the variation level, removing
 all genotypes for the variation above the threshold

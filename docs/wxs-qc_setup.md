@@ -21,15 +21,25 @@ cd wxs-qc
 ### Set up the environment (local installation only)
 
 If you are running the code on a local machine,
-set up virtual environment using `uv`.
+do the following:
+
+Install the set of development packages required to run spark and build python libraries.
+The following command installs packages for Ubuntu >= 18.04
+
+```bash
+sudo apt install openjdk-11-jre-headless build-essential libpq-dev zlib1g-dev libbz2-dev liblzma-dev
+```
+
+Set up virtual environment using `uv`.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh # Install `uv` system-wide
+source $HOME/.local/bin/env
 ```
 
 Create and activate your virtual environment
 ```bash
-uv venv
+uv venv --python 3.12
 source .venv/bin/activate
 uv sync
 ```
