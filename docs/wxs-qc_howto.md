@@ -32,9 +32,9 @@ To run through this guide, you need a machine or a cluster with Python and Hail 
 To set up the environment, refer to the [setup howto](wxs-qc_setup.md).
 
 **Note:**
-This guide was originally written for cluster execution and uses `spark-submit`
+If you have Hail installed on a SPARK cluster, 
+use `spartk-submit` instead of regular `pyhton`
 to run pipeline scripts.
-If you work on a local machine, run all scripts via `python` command.
 
 ### Obtain resource files
 
@@ -44,9 +44,19 @@ refer to the [resources description section](wxs-qc_prepare-resources.md).
 
 ### Obtain public example dataset
 
-To test the pipeline and ensure that everything works correctly,
-you can use open dataset prepared by the HGI group.
-**The direct link for data downloading TBD**
+We prepared the open set of data from the 1000 genomes project as an example of data analysis.
+You can download and use these data to ensure that your pipeline installation is running properly.
+You can download the dataset from the WSI page:
+
+```bash
+wget https://wxs-qc-data.cog.sanger.ac.uk/wxs-qc_public_dataset_v3.tar
+tar xvf wxs-qc_public_dataset_v3.tar
+```
+
+**It is important to note that every dataset is different and
+requires careful tailoring and evaluation of the results.**
+For the best results, don't consider this guide as an end-to-end recipe for QC.
+Review the results and tune the analysis parameters when we suggest that you do it.
 
 
 ## Prepare the data and configuration
@@ -99,7 +109,7 @@ will be stored in a specific analysis folder.
 To create the folder for your dataset with all required subfolders, you can run the script:
 
 ```shell
-spark-submit 0-resource_preparation/0-create_data_folder.py
+python 0-resource_preparation/0-create_data_folder.py
 ```
 
 The script will take all values from the config file and create the dataset folder
@@ -113,6 +123,7 @@ with the following subfolders:
 * `variant_qc_random_forest`
 * `vcf_afterqc_export` - for exporting final VCFs after QC
 
+Copy/symlink to the folder your resources and data. 
 
 ## Stage 0. Prepare resource data
 
@@ -126,7 +137,7 @@ This resource set is required for the super-population prediction on the populat
 It converts the 1000 genomes VCFs into the matrixtable.
 
 ```shell
-spark-submit 0-resource_preparation/1-import_1kg.py --all
+python 0-resource_preparation/1-import_1kg.py --all
 ```
 
 ### Create the combined Truth Set table
@@ -135,7 +146,7 @@ Run this step to combine all available variation resources (1000 Genomes, Mills,
 into a single table of truth variants.
 
 ```shell
-spark-submit 0-resource_preparation/2-generate-truthset-ht.py
+python 0-resource_preparation/2-generate-truthset-ht.py
 ```
 
 ## Stage 1. Load data
@@ -150,7 +161,7 @@ the path to the directory that you created for pre-QC VCFs.
 Run data import:
 
 ```shell
-spark-submit 1-import_data/1-import_gatk_vcfs_to_hail.py
+python 1-import_data/1-import_gatk_vcfs_to_hail.py
 ```
 
 ### Annotate metadata
@@ -161,8 +172,7 @@ VerifyBamId Freemix score, self-reported sex, self-reported ethnicity, etc.
 Specify the corresponding input file in the config for each available annotation
 (follow the links to download the sample files):
 
-* [verifybamid_selfsm:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.verify_bam_id_result.selfSM.tsv) -
-  the VerifyBamID Freemix data.
+* [verifybamid_selfsm—:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.verify_bam_id_result.selfSM.tsv) - the VerifyBamID Freemix data.
   To prepare this file, join together results of the individual VerifyBamID runs.
 * [sex_metadata_file:](https://wes-qc-data.cog.sanger.ac.uk/metadata/mlwh_sample_and_sex.txt) - self-reported sex.
   A tab-separated TSV file, having at least two columns: `sample_id` and `self_reported_sex`.
@@ -178,7 +188,7 @@ in the `tests/test_data/metadata` folder created on the [Obtain resource files](
 Run the annotation script:
 
 ```shell
-spark-submit 1-import_data/2-import_annotations.py
+python 1-import_data/2-import_annotations.py
 ```
 
 For each available annotation, the script prints out the list of samples that don't have annotations.
@@ -201,7 +211,7 @@ To run genotype validation, you need to provide the following files in the confi
 
 * [wes_microarray_mapping:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.microarray_mapping.tsv):
   -- the two-column tab-separated file,
-  containing the expected mapping between WES and microarray samples.
+  containing the expected mapping between WES/WGS and microarray samples.
   (usually, microarray studies have separated sample-preparation protocol and separate IDS)
 * [microarray_ids:](https://wes-qc-data.cog.sanger.ac.uk/metadata/control_set_small.microarray_samples.txt)
   -- the list (one ID per line) of IDs, actually found in your microarray data.
@@ -215,13 +225,13 @@ To run genotype validation, you need to provide the following files in the confi
 **Note:** To run `bcftools gtcheck` and generate the report,
 you most probably need to convert microarray data from FAM to VCF,
 and liftover it to the GRCh38 reference.
-This work should be done outside WES-QC pipeline,
+This work should be done outside WxS-QC pipeline,
 and is not covered by this manual.
 
 Run the validation script:
 
 ```shell
-spark-submit 1-import_data/3-validate-gtcheck.py
+python 1-import_data/3-validate-gtcheck.py
 ```
 
 **Gtcheck validation results and interpretation**:
@@ -261,21 +271,20 @@ Plotting the mutation spectra can help you to identify batch-level artifacts.
 To do it, run the calculation script:
 
 ```shell
-spark-submit 1-import_data/4-mutation-spectra_preqc.py
+python 1-import_data/4-mutation-spectra_preqc.py
 ```
 
-The script saves the plot in the html file specified under the
+The script saves the plot in the HTML file specified under the
 `plot_mutation_spectra_preqc`:`mut_spectra_path` config section.
 Also, you can specify the IQR range for outliers and change the plot size if needed.
 
 
+## Stage 2. Sample QC
 
-## 2. Sample QC
-
-1. **Run sex imputation**
+### Run sex imputation
 
 ```shell
-spark-submit 2-sample_qc/1-hard_filters_sex_annotation.py
+python 2-sample_qc/1-hard_filters_sex_annotation.py
 ```
 
 The script imputes genetic sex for all samples, and saves the results in the
@@ -287,51 +296,50 @@ a conflict between self-reported sex and genetically imputed sex, and saves it i
 `conflicting_sex.tsv`.
 
 
-2. **Identify samples from related individuals with PCRelate**
-This step outputs a relatedness graph, a table of total statistics of relatedness and a list of related samples.
+### Identify samples from related individuals with PCRelate
+This step outputs a relatedness graph, a table of total statistics of relatedness, and a list of related samples.
 Please see config files "prune_pc_relate" for more details.
 
 ```shell
-spark-submit 2-sample_qc/2-prune_related_samples.py
+python 2-sample_qc/2-prune_related_samples.py
 ```
 
 While this step identifies related samples, we keep them in the dataset since step 2.3 uses PCA score projection for population clustering. The relatedness information can be used to validate pedigree data and detect sample mislabeling.
 
 
-3. **Predict populations**
+### Predict super-populations
 
-Merge 1kg MatrixTable with WES MatrixTable and make LD pruning.
+Merge 1kg MatrixTable with WxS MatrixTable and make LD pruning.
 
 ```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --merge-and-ldprune
+python 2-sample_qc/3-population_pca_prediction.py --merge-and-ldprune
 ```
 
 Run PCA.
 
 ```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --pca
+python 2-sample_qc/3-population_pca_prediction.py --pca
 ```
 
 Plot 1KG PCA. On this step, all dataset samples should be labelled as `N/A`.
 
 ```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot
+python 2-sample_qc/3-population_pca_prediction.py --pca-plot
 ```
 
 Run population prediction.
 
 ```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --assign_pops
+python 2-sample_qc/3-population_pca_prediction.py --assign_pops
 ```
 
 Plot PCA clustering for merged dataset (1000 genomes + the dataset), and for the dataset only.
 You can specify the number of PCA components you want in the config file.
 
 ```shell
-spark-submit 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
+python 2-sample_qc/3-population_pca_prediction.py --pca-plot-assigned
 ```
-
-4. Identify outliers
+### Identify outliers
 
 Now that we have the predicted populations that each sample belongs to,
 we run sample QC stratified by population and identify outliers.
@@ -347,10 +355,10 @@ For metric description, see the
 function description.
 
 ```shell
-spark-submit 2-sample_qc/4-find_population_outliers.py
+python 2-sample_qc/4-find_population_outliers.py
 ```
 
-WES-QC pipeline identifies outliers using the gnomAD function
+WxS-QC pipeline identifies outliers using the gnomAD function
 [`compute_stratified_metrics_filter()`](https://broadinstitute.github.io/gnomad_methods/api_reference/sample_qc/filtering.html#gnomad.sample_qc.filtering.compute_stratified_metrics_filter).
 By default, this function designates as outliers any samples
 that deviate more than 4 Median Absolute Deviations (MAD)
@@ -371,20 +379,26 @@ saves them in the folder defined by the `plot_sample_qc_metrics`:`plot_outdir`
 config parameter (a set of individual plots and one combined plot for all metrics and populations).
 To change default number of bins, use the `n_bins` config parameter.
 
-5. **Filter out samples which fail QC**
+### Filter out samples which fail QC
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script.
-<!At this stage samples failing on FREEMIX score and on identity checks are also removed.
-This samples should be in files in the annotations directory: `verify_bam_id_result_concat.selfSM`
-lists sample ID and FREEMIX score and `sanger_samples_excluded_after_gtcheck.txt` lists samples failing identity checks.
-If no samples fail identify checks the latter file could be empty.
-> These samples are saved in `samples_failing_qc.tsv.bgz` in the annotation directory.
+
+At this stage, you can provide an additional list of samples to remove. 
+It could be the samples failing FreeMix score, F-start check, or any other.
+To use it, specify the file in the `samples_to_remove_file` section of the config.
+This is a plain text file without a header, containing one sample per line. 
+
+If you don't want t remove any additional samples, put `null` in the config instead of sample file name.
+
+**Note:** automatic removing of samples failing FreeMix 
+and more convenient combined sample statistics  
+are in the implementation.
 
 ```shell
-spark-submit 2-sample_qc/5-filter_fail_sample_qc.py
+python 2-sample_qc/5-filter_fail_sample_qc.py
 ```
 
-## 3. Variant QC
+## Stage 3. Variant QC
 
 The VariantQC steps trains and runs a random forest model to estimate variation quality
 and rank all variations by this estimation.
@@ -396,7 +410,7 @@ Because for a new dataset we don't have the real TP and FP, we use the following
   in public databases: 1000 genomes, HapMap, Mills, etc (see the full list of sources on the step 0.2)
 * For likely-false-positive variants, we use variants with the lowest quality scores, provided py the variant caller.
 
-In this documentation the TP and FP abbreviations stand for likely-true-positive and likely-false-positive.
+In this documentation, the TP and FP abbreviations stand for likely-true-positive and likely-false-positive.
 
 Variant QC uses the optional pedigree file detailing trios existing in the dataset.
 The file should follow the [FAM file](https://www.cog-genomics.org/plink/1.9/formats#fam)
@@ -412,44 +426,55 @@ This is an unheaded, tab-delimited file that contains the following columns:
 If you don't have pedigree data, several sub-steps will be skipped, and some metrics
 for the final graphs won't be calculated.
 
+### Generate family statistics
+
 The first step of variant QC is to split multi-allelic variants and annotate it with family statistics.
 
 ```shell
-spark-submit 3-variant_qc/1-split_and_family_annotate.py --all
+python 3-variant_qc/1-split_and_family_annotate.py --all
 ```
 
-Next, an input table is generated to run the random forest on.
+### Generate RF test data
+Next, we combine all the data and generate the input table to run the random forest on.
 
 ```shell
-spark-submit 3-variant_qc/2-create_rf_ht.py
+python 3-variant_qc/2-create_rf_ht.py
 ```
 
-Next, train the random forest model.
+### Train the random forest model
+
+Then, we train the RF model on the constructed dataset.
+Here we use `--manual-model-id` parameter to 
+manually set the random forest model ID 
+(called _runhash_ previously, so you can find this term in the code)
 
 ```shell
-spark-submit  3-variant_qc/3-train_rf.py
+python  3-variant_qc/3-train_rf.py --manual-model-id wxs-qc_public
 ```
 
-The random forest model ID (called _runhash_ previously, so you can find this term in the code)
-will be printed to STDOUT.
-It is an 8-character string consisting of letters and numbers.
+If you don't set the the RF ID, the script will 
+generate and print to STDOUT the random ID: 8-character string consisting of letters and numbers.
 Put this ID in the config file in the `rf_model_id:` parameter under the `general` section.
 
-You can specify the model ID manually using the command line argument `--manual-model-id`.
-
 **Note:**
-In old _gnomAD_ releases, the function `train_rf_model()`
-could work incorrectly in the parallel SPARK environment.
+The function `train_rf_model()`
+could work incorrectly in the parallel SPARK environment,
+depending on the Hail library version.
 If and VariantQC step fails with some weird message
 (no space left on the device, wrong imports, etc),
 try running model training on the master node only by adding `--master local[*]`
-to the `spark-submit` parameters.
+to the `spark-submit` parameters,
+or try to downgrade Hail to the previous version.
+
+### Apply the random forest model
 
 Now apply the random forest to the entire dataset.
 
 ```shell
-spark-submit 3-variant_qc/4-apply_rf.py
+python 3-variant_qc/4-apply_rf.py
 ```
+
+### Annotate random forest model results
 
 Annotate the random forest output with metrics including synonymous variants, family annotation,
 transmitted/untransmitted singletons, and gnomAD allele frequency.
@@ -463,65 +488,75 @@ chr10   100204555   rs17880383  G   A   synonymous_variant
 ```
 
 ```shell
-spark-submit 3-variant_qc/5-annotate_ht_after_rf.py
+python 3-variant_qc/5-annotate_ht_after_rf.py
 ```
 
-Add ranks to variants based on random forest score, and bin the variants based on this.
+### Group variants by ranks
+
+At this stage, we rank all variants depending on their RF score and 
+group it into 100 bins (bin 1 is the most quality variants.)
 
 ```shell
-spark-submit 3-variant_qc/6-rank_and_bin.py
+python 3-variant_qc/6-rank_and_bin.py
 ```
 
-Create plots of the binned random forest output to use in the selection of thresholds. Separate thresholds are used for SNPs and indels.
+### Plot and analyse the results
+
+Create plots of the binned random forest output to use in the selection of thresholds. 
+Separate thresholds are used for SNPs and indels.
 
 ```shell
-spark-submit 3-variant_qc/7-plot_rf_output.py
+python 3-variant_qc/7-plot_rf_output.py
 ```
 
 The Variant QC is always a trading between sensitivity and quality.
 Examine the plots and choose the near-optimal region for RF bin,
 that preserves as many TP variants as possible and at the same time eliminating most part of FP variants.
-You can refer to other graphs to ensure that the chosen region anso has the expected metrics
+You can refer to other graphs to ensure that the chosen region also has the expected metrics.
 
-At the GenotypeQC step we run the evaluation of different hardfilter combinations
-that allows you to improve the results.
+At the genotype QC stage, we run the evaluation of different hardfilter combinations
+that allow you to improve the results.
 Therefore, at this point you don't need to make a final decision.
 You only need to choose a provisional RF bin interval to analyze it on the next steps.
 
-However, if you want, you can calculate the number of true positive and false positive variants
-remaining at your chosen thresholds using the optional scripts
-(where `snv_bin` and `indel_bin` are the thresholds selected for SNVs and indels respectively).
+### Checking threshold selection
+
+If you want, you can calculate the number of true positive and false positive variants
+remaining at your chosen thresholds before running genotype evaluation.
 This scripts uses only RF bin filtering and runs faster than the full hardfilter evaluation.
 
+Use for `snv_bin` and `indel_bin` the thresholds selected for SNVs and indels respectively).
+
+
 ```shell
-spark-submit 3-variant_qc/8-select_thresholds.py --snv snv_bin --indel indel_bin
+python 3-variant_qc/8-select_thresholds.py --snv snv_bin --indel indel_bin
 ```
 
 If you want to manually explore remaining variations,
 you can filter the variants in the Hail MatrixTable based on the selected threshold for SNVs and indels.
 
 ```shell
-spark-submit 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel indel_bin
+python 3-variant_qc/9-filter_mt_after_variant_qc.py --snv snv_bin --indel indel_bin
 ```
 
-## 4. Genotype QC
+## Stage 4. Genotype QC
 
 On the GenotypeQc step we need to remove genotypes that are not quality enough.
 However, by removing genotypes that don't match certain filter thresholds,
 we always remove some percentage of real existing genotypes.
 
-To obtain good results, we need to determine the best combination of hard filters,
+To achieve the best result, we need to determine the best combination of hard filters,
 to save "good" variations as much as possible,
 and get rid of all "bad" variants and genotypes at the same time.
 
 The first script of the genotype QC helps you to analyze different combinations of hard filters
 and choose optimal values.
 
-First hard filter that we use, if the random forest bin,
+The first hard filter that we use, is the random forest bin,
 determined on the VariantQC step.
 This filter applies on the variation level, removing
-all genotyped for the variation above the threshold
-(for RFB bin smaller values are better)
+all genotypes for the variation above the threshold
+(for RF bin smaller values are better)
 
 Based on the results of the VariantQC step populate the provisional values
 for the SNV and indel random forest bins in the `evaluation` part of the config file.
@@ -534,7 +569,7 @@ For example:
 
 On the genotype level, we use the set of per-genotype hardfilters:
 Genotype quality (gq), read depth (dp), and allele balance (ab).
-Finally, we calculate missingness (also can be found in the code as **call rate**) —
+Finally, we calculate **call rate** (also can be found in the code as *missingness*) —
 the minimal percentage of genotypes where this variation remains defined
 after applying per-genotype hard filters. This filter also applies on the variant-level.
 
@@ -548,7 +583,7 @@ For all these parameters, you can start with the following default values:
 ```
 
 If your dataset contains a control sample with known high-confident variations
-(usually one of the [GIAB](https://www.nist.gov/programs-projects/genome-bottle) samples),
+(usually the first [GIAB](https://www.nist.gov/programs-projects/genome-bottle) sample **NA12878**),
 you can use it to calculate precision/recall values.
 Add the sample control name, the corresponding VCF file, and the VEP annotation to the config:
 
@@ -563,7 +598,7 @@ downloaded by the testing script
 (see the [Obtain resource files](#obtain-resource-files) section).
 
 _Note_: For now, you still have to specify the correct GIAB VCF and cqfile,
-even if you're skipping the precision calculation.
+even if you're skipping the precision/recall calculation.
 
 If you don't have a GIAB sample, put `null` in the `giab_sample` section.
 The precision/recall calculations will be skipped in this case.
@@ -571,7 +606,7 @@ The precision/recall calculations will be skipped in this case.
 Run the hard-filter evaluation step:
 
 ```shell
-spark-submit 4-genotype_qc/1-compare_hard_filter_combinations.py --all
+python 4-genotype_qc/1-compare_hard_filter_combinations.py --all
 ```
 
 The script calculates all possible combinations of hard filters.
@@ -591,9 +626,9 @@ For more detailed explanation of this process you could review some relevant pub
 **Evaluation step outputs:**
 For each hardfilter combination, the script calculates the following metrics:
 * Percentage of likely-true-positives (TP) and likely-false-positives (FP) variants
-  (see the explanation above in the the VariantQC step description).
+  (see the explanation above in the variant QC step description).
 * Precision and Recall, calculated on the GIAB sample (if it is present in the data).
-  For GIAB sample, we can calculate the real true-positive, false-positive, and false-negative variations.
+  For the GIAB sample, we can calculate the real true-positive, false-positive, and false-negative variations.
   Therefore, we assume these data as more confident for choosing the optimal hardfilter evaluation
   The TP/FP values should be generally consistent with precision/recall.
   If the GIAB sample is not available, the script outputs -1.0 both for precision and recall
@@ -634,29 +669,30 @@ relaxed, medium, and stringent.
 Fill in the values in the `apply_hard_filters` part of the config.
 If needed, add more values to evaluate in the config and rerun the hard filter evaluation.
 
-2. **Run the Genotype QC with the chosen set of filters:**
+### Run the Genotype QC with the chosen set of filters
 
 Now you can apply your custom thresholds and make variants with corresponding filters.
 
 ```shell
-spark-submit 4-genotype_qc/2-apply_range_of_hard_filters.py
+python 4-genotype_qc/2-apply_range_of_hard_filters.py
 ```
 
-3. **Export the filtered variants to VCF.**
-Script 3a tags all variations with the corresponding filter (relaxed, medium, stringent)
+### Export the filtered variants to VCFs
+
+Script `3a` tags all variations with the corresponding filter (relaxed, medium, stringent)
 removes all variants not passing the relaxed filter, and saves the resulting data to VCF files.
 
 ```shell
-spark-submit 4-genotype_qc/3a-export_vcfs_range_of_hard_filters.py
+python 4-genotype_qc/3a-export_vcfs_range_of_hard_filters.py
 ```
 
-Alternatively, to export VCFs with only passing stringent hard filter, use the 3b version of the script:
+Alternatively, to export VCFs with only passing stringent hard filter, use the `3b` version of the script:
 
 ```shell
-spark-submit 4-genotype_qc/3b-export_vcfs_stringent_filters.py
+python 4-genotype_qc/3b-export_vcfs_stringent_filters.py
 ```
 
-4. **(Optional) - calculate-per-sample statistics**
+### (Optional) - calculate-per-sample statistics
 If you want to additionally evaluate the filter statistics
 (variant counts per consequence per sample and
 transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data))
@@ -672,10 +708,10 @@ chr1    100200019   .  C    A   stop_gained&splice_region_variant
 ```
 
 ```shell
-spark-submit 4-genotype_qc/4-counts_per_sample.py
+python 4-genotype_qc/4-counts_per_sample.py
 ```
 
-5. **Plot mutations spectra**
+### Plot mutations spectra
 
 After completion of the QC process, run the mutation spectra calculation
 and validate that results match the expected distribution.
@@ -683,8 +719,8 @@ and validate that results match the expected distribution.
 To do it, run the calculation script:
 
 ```shell
-spark-submit 4-genotype_qc/5-mutation-spectra_afterqc.py
+python 4-genotype_qc/5-mutation-spectra_afterqc.py
 ```
 
-The script saves the plot in the html file specified under the
+The script saves the plot in the HTML file specified under the
 `plot_mutation_spectra_afterqc`:`mut_spectra_path` config section.

@@ -1,73 +1,36 @@
-# Sample and variant QC for exome cohort studies
+# WxS-QC - sample and variant QC for genome/exome cohort studies
 
-This repository contains the code
-used for the QC of human exome cohorts
+This repository contains the pipeline
+for quality control of human genome/exome cohorts
 
 The code is written by members of **Wellcome Sanger HGI group**
 (https://www.sanger.ac.uk/group/human-genetics-informatics-hgi/)
-based on the **gnomAD QC** pipeline by **Broad institute**
-(https://github.com/broadinstitute/gnomad_qc/tree/main).
+based on the **gnomAD QC v3** pipeline by **Broad institute**
+(https://github.com/broadinstitute/gnomad_qc/tree/main/gnomad_qc/v3).
 
-The current codebase has several branches — one for each dataset.
-The unification of branches and the code refactoring are in progress.
-
-The howto for the code is here:
-https://hgi-projects.pages.internal.sanger.ac.uk/documentation/docs/how-to-guides/wes-qc-hail/
-
-# How to run the code and QC your data
-
-The brief howto for the QC process is available in the
-[WES-QC Hail howto](docs/wes-qc-hail.md).
-
-The code is designed to run on the SPARK cluster with the
+The code is designed to run standalone or on the SPARK cluster with the
 [Hail library](https://hail.is/) installed.
-The manual for the cluster setting up is
-[here](https://hgi-projects.pages.internal.sanger.ac.uk/documentation/docs/tutorials/hail-on-spark/).
 
-# How to get the latest changes from main
+## How to QC your data
 
-When working on an analysis branch, you can retrieve the latest changes from main by running:
+The high-level description of the QC process is available in a separate document: 
+[WxS-QC concepts](docs/wxs-qc_concepts.md).
+
+Detailed howto for the QC process is here:
+[WcS-QC howto](docs/wxs-qc_howto.md).
+
+### How to get the latest changes from the `main` branch
+
+When working on an analysis branch, you can retrieve the latest changes from the `main` branch by running:
+
 ```bash
 make update
 ```
-This will fetch the latest changes from main and rebase the current branch onto it.
+
+This will fetch the latest changes from the `main` branch and rebase your current branch onto it.
 If there are any unstaged changes in the branch, you will be asked to commit or stash them first.
 
-# Developer's howto
+## Developer's howto
 
-## How to run the tests and calculate coverage
-
-The tests currently require running on the SPARK cluster. There are plans to make them runnable locally.
-They can be run by commands defined in `Makefile`.
-
-To run all the tests:
-```bash
-make test
-```
-Or you can specify the type of test to run
-```bash
-make unit-test
-make integration-test
-```
-
-To run the tests with coverage:
-```bash
-make unit-test-coverage
-make integration-test-coverage
-```
-
-## To run pre-commit hooks on commit
-
-1. Install pre-commit
-```shell
-pip install pre-commit
-```
-2. `pre-commit` will automatically run on every commit
-3. To run pre-commit manually on specific files
-```shell
-pre-commit run --files <file1> <file2>
-```
-4. `mypy` is configured to run manually because now it produces too many errors. To run it:
-```shell
-pre-commit run --hook-stage manual
-```
+For improving the pipeline and developing new functionality,
+the [Developer's howto](docs/wxs-qc_development.md) is available.

@@ -4,7 +4,7 @@ from tests.integration_tests.integration_stub import IntegrationTestsStub
 
 # /path/to/wes_qc must be in PYTHONPATH
 
-PEDIGREE_FILE_PATH_TRIOS = """ '{metadir}/control_set_small_trios.ped' """
+PEDIGREE_FILE_PATH_TRIOS = """ '{metadir}/control_set_small.trios.fam' """
 
 
 class IntegrationTests(IntegrationTestsStub):

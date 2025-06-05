@@ -21,21 +21,39 @@ cd wxs-qc
 ### Set up the environment (local installation only)
 
 If you are running the code on a local machine,
-set up virtual environment using `uv`.
+do the following:
+
+Install the set of development packages required to run spark and build python libraries.
+The following command installs packages for Ubuntu >= 18.04
+
+```bash
+sudo apt install openjdk-11-jre-headless build-essential libpq-dev zlib1g-dev libbz2-dev liblzma-dev
+```
+
+Set up virtual environment using `uv`.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh # Install `uv` system-wide
-uv sync # install all required packages
+source $HOME/.local/bin/env
 ```
 
-Activate your virtual environment
+Create and activate your virtual environment
 ```bash
+uv venv --python 3.12
 source .venv/bin/activate
+uv sync
 ```
 
-**Note**: Alternatively, you can work without activated virtual environment.
-In this case you need to use `uv run` for each command.
-For example, to run tests: `uv run make integration-test`.
+Set up environment variables:
+add the project folder to the `PYTHONPATH`,
+set memory size for SPARK.
+
+```bash
+export PYTHONPATH=$( pwd ):$PYTHONPATH
+export PYSPARK_SUBMIT_ARGS="--driver-memory 48G --executor-memory 48G pyspark-shell"
+```
+
+**Note:** You need to activate venv and modify variables each time you open a new shell.
 
 ## How to run the code
 
@@ -103,3 +121,4 @@ It uses `hlrun_local` to run the code, which will output the log file to the cur
 with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
 
 For details, refer to the Markdown comments in the notebook.
+

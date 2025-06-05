@@ -10,8 +10,8 @@ from pathlib import Path
 # === Utils for downloading test data from the s3 storage === #
 
 TEST_DATA_FILENAME = "all_test_data.zip"
-TEST_DATA_ARCHIVE_URL = f"https://wes-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}"
-TEST_DATA_PARENT_DIR_URL = "https://wes-qc-data.cog.sanger.ac.uk"
+TEST_DATA_ARCHIVE_URL = f"https://wxs-qc-data.cog.sanger.ac.uk/all_test_data/{TEST_DATA_FILENAME}"
+TEST_DATA_PARENT_DIR_URL = "https://wxs-qc-data.cog.sanger.ac.uk"
 TEST_DATA_DIR_NAMES = ["control_set_small", "unit_tests", "training_sets", "resources"]
 
 
@@ -51,10 +51,14 @@ def download_test_data_using_files_list(files_list: str, outdir: str) -> None:
         if Path(file_destination_path).is_file():
             continue
 
-        print(f"DEBUG: Downloading file: {file_url}")
-        subprocess.run(
+        proc = subprocess.run(
             ["wget", "-nv", "-nc", file_url, "-P", file_destination_dir]
-        )  # downlaod the file into destination
+        )  # download the file into destination
+        result = proc.returncode
+        if result != 0:
+            raise Exception(f"Error downloading file {file_url}")
+        else:
+            print(f"DEBUG: File {file_url} downloaded")
 
 
 def move_dirs(move_dirs: dict) -> None:

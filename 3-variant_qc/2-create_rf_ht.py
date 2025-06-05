@@ -20,6 +20,7 @@ def create_initial_table(mt: hl.MatrixTable) -> hl.Table:
     """Create initial Hail table with basic features."""
     ht = mt.rows()
     ht = ht.transmute(**ht.info)
+    # TODO: add workaround when AS_QD and related features are not accessible in the initial dataset
     ht = ht.select("MQ", "InbreedingCoeff", "a_index", "was_split", "meanHetAB", *constants.INFO_FEATURES)
     return ht
 

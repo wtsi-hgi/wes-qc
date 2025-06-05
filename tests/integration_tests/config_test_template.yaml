@@ -43,7 +43,6 @@ cvars:
   resdir: general.resource_dir
   1kg_resdir: general.onekg_resource_dir
   pltdir: general.plots_dir
-  traindir: general.training_sets_dir
   rfdir: general.var_qc_rf_dir
   vcf_export_dir: general.vcf_export_dir
 
@@ -65,7 +64,6 @@ general:
   resource_dir: "{RESOURCES_DIR}" # input and output
   onekg_resource_dir: "{general.resource_dir}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
   plots_dir: "{general.data_root}/plots/" # output
-  training_sets_dir: "{TRAINING_SETS_DIR}" # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
   vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
   # random forest model is geneated during step3.3, catch the parameter `runhash` and place it here
@@ -98,10 +96,10 @@ step0:
     kin_threshold: 0.125
 
   generate_truthset_ht:
-    omni: '{traindir}/1000G_omni2.5.hg38.ht'
-    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
-    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+    omni: '{resdir}/1000G_omni2.5.hg38.vcf.gz'
+    mills: '{resdir}/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz'
+    thousand_genomes: '{resdir}/1000G_phase1.snps.high_confidence.hg38.vcf.gz'
+    hapmap: '{resdir}/hapmap_3.3.hg38.vcf.gz'
     truth_ht_outfile: '{mtdir}/truthset_table.ht'
 
   prepare_gnomad_ht:
@@ -122,7 +120,7 @@ step1:
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
-  sex_metadata_file: '{metadir}/mlwh_sample_and_sex.txt'
+  sex_metadata_file: '{metadir}/control_set_small.mlwh_sample_and_sex.txt'
   mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
   validate_gtcheck:
@@ -223,7 +221,7 @@ step2:
   pop_pca:
     pca_1kg_scores_file: '{mtdir}/pop_pca_1kg_scores.ht'
     pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
-    pca_1kg_evals_file: '{mtdir}/pop_pca_1kg_evals.tsv'
+    pca_1kg_evals_file: '{anndir}/pop_pca_1kg_evals.tsv'
     pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
     pca_components: 4
 
@@ -275,7 +273,7 @@ step2:
     sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
 
   sample_qc_combine_results:
-    samples_to_remove_file: '{metadir}/control_set_small_samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
+    samples_to_remove_file: '{metadir}/control_set_small.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
 
 
 step3:
