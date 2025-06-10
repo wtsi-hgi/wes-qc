@@ -178,7 +178,7 @@ step2:
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
     samples_to_remove_tsv: '{anndir}/related_samples_to_remove.tsv' # output in the TSV table
-    pca_components: 3
+    pca_components: 10
     pc_relate_args: # https://hail.is/docs/0.2/methods/relatedness.html#hail.methods.pc_relate
       min_individual_maf: 0.05
       block_size: 4096
@@ -223,7 +223,7 @@ step2:
     pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
     pca_1kg_evals_file: '{anndir}/pop_pca_1kg_evals.tsv'
     pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
-    pca_components: 4
+    pca_components: 10
 
   plot_pop_pca:
     pca_components: 3
