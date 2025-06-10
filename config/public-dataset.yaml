@@ -43,17 +43,16 @@ cvars:
   resdir: general.resource_dir
   1kg_resdir: general.onekg_resource_dir
   pltdir: general.plots_dir
-  traindir: general.training_sets_dir
   rfdir: general.var_qc_rf_dir
   vcf_export_dir: general.vcf_export_dir
 
 general:
   # Dataset name - the root folder for all analysis files
   # Also used for the naming of tables, plots, etc
-  dataset_name: 'public-dataset'
+  dataset_name: 'wxs-qc_public_dataset_v3'
 
   # Dataset root directory - to use in folder paths
-  data_root: '/lustre/scratch126/teams/hgi/gz3/{general.dataset_name}'
+  data_root: '/home/gena/calcs/{general.dataset_name}'
 
   tmp_dir: 'file://{general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
@@ -65,11 +64,10 @@ general:
   resource_dir: '{general.data_root}/resources/'
   onekg_resource_dir: '{general.resource_dir}/mini_1000G/'
   plots_dir: '{general.data_root}/plots/'
-  training_sets_dir: '{general.data_root}/training_sets/' # input
   var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
-  vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  vcf_export_dir: '{general.data_root}/vcf_after-qc/'
   # random forest model ID is generated during step3.3, catch the parameter `runhash` and place it here
-  rf_model_id: 'test-run-model'
+  rf_model_id: 'wxs-qc_public'
 
 step0:
   # --- Step 0.1 --- #
@@ -98,10 +96,10 @@ step0:
     kin_threshold: 0.125
 
   generate_truthset_ht:
-    omni: '{traindir}/1000G_omni2.5.hg38.ht'
-    mills: '{traindir}/Mills_and_1000G_gold_standard.indels.hg38.ht'
-    thousand_genomes: '{traindir}/1000G_phase1.snps.high_confidence.hg38.ht'
-    hapmap: '{traindir}/hapmap_3.3.hg38.ht'
+    omni: '{resdir}/1000G_omni2.5.hg38.vcf.gz'
+    mills: '{resdir}/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz'
+    thousand_genomes: '{resdir}/1000G_phase1.snps.high_confidence.hg38.vcf.gz'
+    hapmap: '{resdir}/hapmap_3.3.hg38.vcf.gz'
     truth_ht_outfile: '{mtdir}/truthset_table.ht'
 
   prepare_gnomad_ht:
@@ -112,23 +110,23 @@ step0:
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
-  gatk_vcf_indir: '{general.data_root}/test_data_from_1000_genomes/'
+  gatk_vcf_indir: '{general.data_root}/vcfs_pre-qc'
   gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
 
   # --- Step 1.2 --- #
   validate_verifybamid:
-    verifybamid_selfsm: '{metadir}/test_data_from_1000_genomes.verify_bam_id_result.selfSM.tsv'  # Set to null if you don't have freemix data
+    verifybamid_selfsm: '{metadir}/wxs-qc_public_dataset_v3.verify_bam_id_result.selfSM.tsv'  # Set to null if you don't have freemix data
     verifybamid_plot: '{pltdir}/freemix_validation.html'
     samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
-  sex_metadata_file: '{metadir}/mlwh_sample_and_sex.txt'
+  sex_metadata_file: '{metadir}/wxs-qc_public_dataset_v3.self_reported_sex.tsv'
   mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
 
   validate_gtcheck:
-    wes_microarray_mapping: '{metadir}/testdata_1000genomes_v2.microarray_mapping.tsv' # Set to null if you don't have microarray data
-    microarray_ids: '{metadir}/testdata_1000genomes_v2.samples_microarray.txt'
-    gtcheck_report: '{metadir}/testdata_1000genomes_v2.gtcheck.txt'
+    wes_microarray_mapping: null # '{metadir}/testdata_1000genomes_v2.microarray_mapping.tsv' # Set to null if you don't have microarray data
+    microarray_ids: null #'{metadir}/testdata_1000genomes_v2.samples_microarray.txt'
+    gtcheck_report: null #'{metadir}/testdata_1000genomes_v2.gtcheck.txt'
     gtcheck_results_folder: '{anndir}/gtcheck'
     mt_gtcheck_validated: '{mtdir}/mt_gtcheck_validated.mt'
 
@@ -169,7 +167,7 @@ step2:
   # --- Step 2.2 --- #
   prune:
     pruned_mt_file: '{mtdir}/mt_ldpruned.mt' # output
-    ld_prune_args:
+    ld_prune_args: # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.ld_prune
       r2: 0.2
       # bp_window_size:
       # memory_per_core:
@@ -194,7 +192,7 @@ step2:
     relatedness_plotfile: '{pltdir}/relatedness_plot.html'
 
   prune_plot_pca:
-    plink_outfile: '{mtdir}/mt_unrelated.plink'
+    plink_outfile: '{anndir}/mt_unrelated.plink'
     pca_components: 4
     pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
     pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output
@@ -271,17 +269,17 @@ step2:
 
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
-    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz' # output
-    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # output
+    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz'
+    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
 
   sample_qc_combine_results:
-    samples_to_remove_file: '{metadir}/testdata_1000genomes_v2.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
+    samples_to_remove_file: null #'{metadir}/.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
 
 
 step3:
   # Parameters used in multiple functions #
   # To skip all trios-related computations, put here the `null` value
-  pedfile: '{metadir}/test_1000g_v2.triosonly.ped'
+  pedfile: '{metadir}/wxs-qc_public_dataset_v3.trios.fam'
 
   # --- Step 3.1 --- #
   split_multi_and_var_qc:
@@ -296,7 +294,7 @@ step3:
     fam_stats_htoutfile: '{mtdir}/family_stats.ht'
     fam_stats_mtoutfile: '{mtdir}/family_stats.mt'
     fam_stats_gnomad_mtoutfile: '{mtdir}/family_stats_gnomad.mt'
-    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+    gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
     dnm_htoutfile: '{mtdir}/denovo_table.ht'
 
   create_inbreeding_ht_with_ac_and_allele_data:
@@ -329,11 +327,11 @@ step3:
     gnomad_train_rf_max_depth: 5
 
   # --- Step 3.4 --- #
-  # only var_qc_rf_dir (which is CVAR) is required
+  # only var_qc_rf_dir (CVAR) is needed
 
   # --- Step 3.5 --- #
   add_cq_annotation:
-    synonymous_file: '{metadir}/public-dataset.synonymous_variants.tsv.bgz'
+    synonymous_file: '{metadir}/wxs-qc_public_dataset_v3.synonymous_variants.tsv.bgz'
 
   dnm_and_family_annotation:
     dnm_htfile: '{mtdir}/denovo_table.ht'
@@ -345,7 +343,7 @@ step3:
     trio_filtered_mtfile: '{mtdir}/trios_filtered_.mt'
 
   annotate_gnomad:
-    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+    gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
 
   # --- Step 3.6 --- #
@@ -384,7 +382,7 @@ step3:
   # --- Step 3.9 --- #
   annotate_mt_with_cq_rf_score_and_bin:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{metadir}/public-dataset.all_consequences.tsv.bgz'
+    cqfile: '{metadir}/wxs-qc_public_dataset_v3.all_consequences.tsv.bgz'
     mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
 
 step4:
@@ -396,7 +394,7 @@ step4:
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
-    giab_sample_id: null
+    giab_sample_id: 'NA12878'
     hardfilter_combinations:
       snp_bins: [ 40, 60, 80 ]
       indel_bins: [ 25, 50, 75 ]
@@ -405,10 +403,10 @@ step4:
       ab_vals: [ 0.2 ]
       missing_vals: [ 0.5 ]
     json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
-    snp_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
-    snp_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
+    snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
+    snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
     indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
-    indel_tsv: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
+    indel_tsv:  '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
 
   plot:
     snv-precision-recall: '{pltdir}/hard_filter_evaluation.snv.precision_recall.html'
@@ -423,7 +421,7 @@ step4:
   # --- Step 4.2 --- #
   annotate_cq_rf:
     mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{metadir}/public-dataset.all_consequences_with_gene_and_csq.tsv.bgz'
+    cqfile: '{metadir}/wxs-qc_public_dataset_v3.all_consequences_with_gene_and_csq.tsv.bgz'
 
   apply_hard_filters:
     hard_filters:
@@ -469,7 +467,7 @@ step4:
   # used as an output of the whole step
   mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'
 
-    # --- Step 4.3a --- #
+  # --- Step 4.3a --- #
   export_vcfs_a:
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
     vcf_output_dir: '{vcf_export_dir}/filtered_vcfs_combinations/'
@@ -483,7 +481,7 @@ step4:
   annotate_gnomad:
     # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
     mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
-    gnomad_htfile:  '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+    gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
   get_trans_untrans_synon_singleton_counts:
     pedfile: '{resdir}/trios.ped'
