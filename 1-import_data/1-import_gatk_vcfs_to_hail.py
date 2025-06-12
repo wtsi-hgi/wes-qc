@@ -40,31 +40,30 @@ def load_vcfs_to_mt(config):
         print("info: Loading VCFs WITHOUT header")
         mt = hl.import_vcf(vcfs, array_elements_required=False, force_bgz=True)
 
-
-    print("=== Checking for duplications ===")
-    duplicated_variants = find_duplicated_variants(mt)
-    if duplicated_variants.count() > 0:
-        dups_path = f"{anndir}/duplicated_variants.vcf.bgz"
-        print(f"=== WARNING !!! Found duplicated variants. Exporting to: {dups_path}")
-        hl.export_vcf(duplicated_variants, path_spark(dups_path))
-    else:
-        print("=== No duplicated variants has been found.")
-
-    duplicated_samples = find_duplicated_samples(mt)
-    if duplicated_samples.count() > 0:
-        dups_path = f"{anndir}/duplicated_samples.tsv"
-        print(f"=== WARNING !!! Found samples. Exporting to: {dups_path}")
-
-        duplicated_samples.export(path_spark(dups_path))
-    else:
-        print("=== No duplicated samples has been found.")
-
     mt_out_file = path_spark(outfile)
-    print(f"Saving as hail mt to {mt_out_file}")
+    print(f"=== Saving as hail mt to {mt_out_file}")
     mt.write(mt_out_file, overwrite=True)
     vars, samples = mt.count()
     print(f"=== Loaded dataset: {samples} samples, {vars} variants")
 
+    print("=== Checking for duplications ===")
+    duplicated_samples = find_duplicated_samples(mt)
+    duplicated_samples_count = duplicated_samples.count()
+    if duplicated_samples_count > 0:
+        dups_path = f"{anndir}/duplicated_samples.tsv"
+        print(f"=== WARNING !!! Found {duplicated_samples_count} duplicated samples. Exporting to: {dups_path}")
+        duplicated_samples.export(path_spark(dups_path))
+    else:
+        print("=== No duplicated samples has been found.")
+
+    duplicated_variants = find_duplicated_variants(mt)
+    duplicated_variants_count = duplicated_variants.count()
+    if duplicated_variants_count > 0:
+        dups_path = f"{anndir}/duplicated_variants.vcf.bgz"
+        print(f"=== WARNING !!! Found {duplicated_variants_count} duplicated variants. Exporting to: {dups_path}")
+        hl.export_vcf(duplicated_variants, path_spark(dups_path))
+    else:
+        print("=== No duplicated variants has been found.")
 
 def find_duplicated_variants(mt: hl.MatrixTable) -> hl.Table:
     # Group by chromosome, position, and reference allele
