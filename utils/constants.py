@@ -1,10 +1,10 @@
 #constants for random forest
 
 INFO_FEATURES = [
-    "AS_QD",
-    "AS_ReadPosRankSum",
-    "AS_MQRankSum",
-    "AS_SOR",
+    #"AS_QD",
+    #"AS_ReadPosRankSum",
+    #"AS_MQRankSum",
+    #"AS_SOR",
     "QD",
     "MQRankSum",
     "SOR",
