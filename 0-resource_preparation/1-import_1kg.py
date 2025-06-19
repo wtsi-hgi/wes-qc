@@ -12,6 +12,7 @@ To prepare data for this script
 """
 
 import argparse
+from os import rename
 from typing import Any
 
 import hail as hl  # type: ignore
@@ -38,6 +39,11 @@ def create_1kg_mt(vcf_indir: str, kg_pop_file: str, **kwargs: dict) -> hl.Matrix
     kg_unprocessed_mt = kg_unprocessed_mt.annotate_cols(
         known_pop=cohorts_pop[kg_unprocessed_mt.s]["Superpopulation code"]
     )
+    # Renaming samples to avoid name clashes with cohorts samples
+    kg_unprocessed_mt = kg_unprocessed_mt.key_cols_by()
+    kg_unprocessed_mt = kg_unprocessed_mt.transmute_cols(s=hl.str('1kg-for-pop-pca_') + kg_unprocessed_mt.s)
+    kg_unprocessed_mt = kg_unprocessed_mt.key_cols_by(kg_unprocessed_mt.s)
+
     return kg_unprocessed_mt
 
 
