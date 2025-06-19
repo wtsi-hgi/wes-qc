@@ -151,14 +151,14 @@ step2:
     sex_ht_outfile: '{anndir}/sex_annotated.sex_check.tsv.bgz'
     sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
     hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
-      female_threshold: 0.5
+      female_threshold: 0.4
       male_threshold: 0.8
-      aaf_threshold: 0.05
+      aaf_threshold: 0.01
 
   f_stat_outliers:
     fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_hist_path: '{pltdir}/fstat_hist.html'
-    fstat_low: 0.2
+    fstat_low: 0.4
     fstat_high: 0.8
 
   sex_inconsistencies:
