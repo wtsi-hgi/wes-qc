@@ -209,8 +209,12 @@ def main():
         print(f"Plotting PCA components for {pca_1kg_scores_file}")
         pca_1kg_scores = hl.read_table(pca_1kg_scores_file)
         print("1kg components:", pca_1kg_scores.count())
-        # TODO: Modify pop_pca to assing 1KG populations from the original matrixtable and avoid using the kg_pop_file
-        cohorts_pop = hl.import_table(kg_pop_file, delimiter="\t").key_by("Sample name")
+        # TODO: Modify pop_pca to assign 1KG populations from the original matrixtable and avoid using the kg_pop_file
+        cohorts_pop = hl.import_table(kg_pop_file, delimiter="\t")
+        # Renaming samples the same way as on the step 0.1
+        cohorts_pop = cohorts_pop.annotate(s=hl.str('1kg-for-pop-pca_') + cohorts_pop["Sample name"])
+        cohorts_pop = cohorts_pop.key_by(cohorts_pop.s)
+
         pca_1kg_scores = pca_1kg_scores.annotate(known_pop=cohorts_pop[pca_1kg_scores.s]["Superpopulation code"])
         visualize.plot_pop_pca(pca_1kg_scores, pop_pca_1kg_graph, n_pca, pop="known_pop")
 
