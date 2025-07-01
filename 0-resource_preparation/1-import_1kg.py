@@ -12,7 +12,6 @@ To prepare data for this script
 """
 
 import argparse
-from os import rename
 from typing import Any
 
 import hail as hl  # type: ignore
