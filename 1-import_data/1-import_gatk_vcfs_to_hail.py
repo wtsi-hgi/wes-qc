@@ -1,6 +1,8 @@
 # Load GATK VCFs into hail and save as matrixtable
 import re
+
 import hail as hl
+
 from utils.utils import parse_config, path_spark
 from wes_qc import hail_utils
 
@@ -54,7 +56,7 @@ def load_vcfs_to_mt(config):
         print(f"=== WARNING !!! Found {duplicated_samples_count} duplicated samples. Exporting to: {dups_path}")
         duplicated_samples.export(path_spark(dups_path))
     else:
-        print("=== No duplicated samples has been found.")
+        print("=== No duplicated samples have been found.")
 
     duplicated_variants = find_duplicated_variants(mt)
     duplicated_variants_count = duplicated_variants.count()
@@ -63,7 +65,8 @@ def load_vcfs_to_mt(config):
         print(f"=== WARNING !!! Found {duplicated_variants_count} duplicated variants. Exporting to: {dups_path}")
         hl.export_vcf(duplicated_variants, path_spark(dups_path))
     else:
-        print("=== No duplicated variants has been found.")
+        print("=== No duplicated variants have been found.")
+
 
 def find_duplicated_variants(mt: hl.MatrixTable) -> hl.Table:
     # Group by chromosome, position, and reference allele
@@ -78,6 +81,7 @@ def find_duplicated_variants(mt: hl.MatrixTable) -> hl.Table:
     mt_duplicated_records = mt.filter_rows(hl.is_defined(duplicates[mt.locus]))
     return mt_duplicated_records.rows()
 
+
 def find_duplicated_samples(mt: hl.MatrixTable) -> hl.Table:
     """
     Duplicate sample IDs from a Hail MatrixTable and return as a Hail Table.
@@ -85,14 +89,11 @@ def find_duplicated_samples(mt: hl.MatrixTable) -> hl.Table:
     """
 
     samples = mt.cols()
-    grouped = samples.group_by(samples.s).aggregate(
-        s_count=hl.agg.count()
-    )
+    grouped = samples.group_by(samples.s).aggregate(s_count=hl.agg.count())
 
     # Filter for duplicates
     duplicates = grouped.filter(grouped.s_count > 1)
     return duplicates
-
 
 
 def main():
