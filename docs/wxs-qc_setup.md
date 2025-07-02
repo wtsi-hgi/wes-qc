@@ -39,9 +39,8 @@ source $HOME/.local/bin/env
 
 Create and activate your virtual environment
 ```bash
-uv venv --python 3.12
+uv sync --no-dev
 source .venv/bin/activate
-uv sync
 ```
 
 Set up environment variables:
@@ -121,4 +120,3 @@ It uses `hlrun_local` to run the code, which will output the log file to the cur
 with the prefix of the step name, e.g. `hlrun_3-1-generate-truth-sets_20250102_125729.log`.
 
 For details, refer to the Markdown comments in the notebook.
-

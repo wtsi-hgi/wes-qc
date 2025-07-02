@@ -323,7 +323,7 @@ css = [
 
 [[package]]
 name = "bokeh"
-version = "3.4.3"
+version = "3.3.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "contourpy" },
@@ -336,9 +336,9 @@ dependencies = [
     { name = "tornado" },
     { name = "xyzservices" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c1/a8/4f750e1febe3b8d448794a7b85cd0efd2eb649eb915c990bcdd3650a5f3b/bokeh-3.4.3.tar.gz", hash = "sha256:b7c22fb0f7004b04f12e1b7b26ee0269a26737a08ded848fb58f6a34ec1eb155", size = 6410715, upload-time = "2024-07-25T10:44:33.237Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/0d/6d8e028ab1d9f44c27d0a93ecb310fc9f91326a0c587c106b052bfa5f552/bokeh-3.3.4.tar.gz", hash = "sha256:73b7982dc2b8df15bf660cdddc8d3825e829195c438015a5d09824f1a7028368", size = 6245504, upload-time = "2024-01-25T18:45:38.944Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/5d/e96520996607c9b894a4716ddedc447a68351b0a8729f26ac012c8e7041b/bokeh-3.4.3-py3-none-any.whl", hash = "sha256:c6f33817f866fc67fbeb5df79cd13a8bb592c05c591f3fd7f4f22b824f7afa01", size = 7017720, upload-time = "2024-07-25T10:44:29.542Z" },
+    { url = "https://files.pythonhosted.org/packages/39/ba/aefd7aacc9e086e2c7f3bb42e99cb8e2a8f24dcb4bf78519ef25a9102988/bokeh-3.3.4-py3-none-any.whl", hash = "sha256:ad7b6f89d0a7c2be01eff1db0ca24e2755ac41de14539db919a62e791809c309", size = 6828621, upload-time = "2024-01-25T18:45:35.264Z" },
 ]
 
 [[package]]
@@ -894,7 +894,7 @@ wheels = [
 
 [[package]]
 name = "hail"
-version = "0.2.134"
+version = "0.2.133"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiodns" },
@@ -934,7 +934,7 @@ dependencies = [
     { name = "uvloop", marker = "sys_platform != 'win32'" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/6c/eae99ba9422f90a2b86f1f309099e3504c19ee76f7401625fb47bd49f228/hail-0.2.134-py3-none-any.whl", hash = "sha256:75289519fa79d3eede93aa1de9b1ef29307e01eeb3ac99bcc5d5d94f949c2e81", size = 144929795, upload-time = "2025-03-07T12:38:30.373Z" },
+    { url = "https://files.pythonhosted.org/packages/71/5e/65310e232d383b387cdfd8314d341f8f3508525d739198ddfc33ec75fe02/hail-0.2.133-py3-none-any.whl", hash = "sha256:b5269b0b2d9ade147279a9b8157c301a705922459deb144c8d5c543ce28d1bbb", size = 144749210, upload-time = "2024-10-04T20:34:16.255Z" },
 ]
 
 [[package]]
@@ -3120,12 +3120,10 @@ dependencies = [
     { name = "hail" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "jupyterlab" },
     { name = "pre-commit" },
-]
-test = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-it" },
@@ -3135,15 +3133,18 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "gnomad", specifier = ">=0.8.1" },
-    { name = "hail", specifier = ">=0.2.133" },
-    { name = "jupyterlab", marker = "extra == 'dev'", specifier = ">=3.5.3" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0.1" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3.3" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=6.0.0" },
-    { name = "pytest-it", marker = "extra == 'test'", specifier = ">=0.1.5" },
-    { name = "snakeviz", marker = "extra == 'test'", specifier = ">=2.2.2" },
+    { name = "hail", specifier = "==0.2.133" },
 ]
-provides-extras = ["dev", "test"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "jupyterlab", specifier = ">=3.5.3" },
+    { name = "pre-commit", specifier = ">=4.0.1" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-it", specifier = ">=0.1.5" },
+    { name = "snakeviz", specifier = ">=2.2.2" },
+]
 
 [[package]]
 name = "xyzservices"

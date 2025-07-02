@@ -1,19 +1,33 @@
 # Developer's howto
 
-## Develop dependencies
+This howto contains development howto and best practices.
 
-For developing the pipeline code, install extra dev and test dependencies:
+## Set up a dev environment
+
+Update your environment with extra dev dependencies:
 
 ```bash
-uv pip install -r pyproject.toml --extra dev
-uv pip install -r pyproject.toml --extra test
+uv sync
 ```
 
+Set up pre-commit:
 
-## How to run the tests and calculate coverage
+```bash
+pre-commit install
+```
 
-The tests currently require running on the SPARK cluster. There are plans to make them runnable locally.
-They can be run by commands defined in `Makefile`.
+This will set up the pre-commit hooks configured in `.pre-commit-config.yaml`, which include:
+- Trailing whitespace removal
+- End of file fixer
+- YAML syntax checking
+- Large file checking
+- Ruff linting and formatting
+- mypy type checking
+
+
+## Run the tests and calculate coverage
+
+The easiest way to run tests is using make utility and commands defined in `Makefile`.
 
 To run all the tests:
 ```bash
@@ -31,18 +45,35 @@ make unit-test-coverage
 make integration-test-coverage
 ```
 
-## To run pre-commit hooks on commit
+## Use pre-commit hooks
 
-1. Install pre-commit
-```shell
-pip install pre-commit
+Once `pre-commit` is installed and configured
+(as described in the [Set up a dev environment](#set-up-a-dev-environment) section),
+the hooks will automatically run on every commit.
+
+### Run pre-commit manually
+
+To run all pre-commit hooks on all files:
+```bash
+pre-commit run --all-files
 ```
-2. `pre-commit` will automatically run on every commit
-3. To run pre-commit manually on specific files
-```shell
+
+To run pre-commit hooks on specific files:
+```bash
 pre-commit run --files <file1> <file2>
 ```
-4. `mypy` is configured to run manually because now it produces too many errors. To run it:
-```shell
-pre-commit run --hook-stage manual
+
+### Run MyPy type checking
+
+`mypy` is configured to run in the manual stage because it currently produces many errors.
+To run it:
+```bash
+pre-commit run mypy --hook-stage manual
+```
+
+### Skipping pre-commit hooks
+
+In rare cases when you need to bypass pre-commit hooks (not recommended for regular use):
+```bash
+git commit -m "Your message" --no-verify
 ```
