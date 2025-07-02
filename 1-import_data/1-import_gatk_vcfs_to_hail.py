@@ -68,18 +68,16 @@ def load_vcfs_to_mt(config):
         print("=== No duplicated variants have been found.")
 
 
+
 def find_duplicated_variants(mt: hl.MatrixTable) -> hl.Table:
-    # Group by chromosome, position, and reference allele
-    grouped = mt.rows()
-    grouped = grouped.group_by(variation=(grouped.locus, grouped.alleles[0])).aggregate(var_count=hl.agg.count())
+    # Group by chromosome, position, and all alleles
+    vars = mt.rows()
+    grouped = vars.group_by(variation=(vars.locus, vars.alleles)).aggregate(var_count=hl.agg.count())
 
     # Filter for duplicates
     duplicates = grouped.filter(grouped.var_count > 1)
-    duplicates = duplicates.annotate(dup_locus=duplicates.variation[0])
-    duplicates = duplicates.key_by("dup_locus")
+    return duplicates
 
-    mt_duplicated_records = mt.filter_rows(hl.is_defined(duplicates[mt.locus]))
-    return mt_duplicated_records.rows()
 
 
 def find_duplicated_samples(mt: hl.MatrixTable) -> hl.Table:
