@@ -77,3 +77,36 @@ In rare cases when you need to bypass pre-commit hooks (not recommended for regu
 ```bash
 git commit -m "Your message" --no-verify
 ```
+
+## Development and code organization best practices
+
+This section contains major suggestions sto maintain code style and structure.
+Due to the limited number of developers,
+the code refactoring is usually performed together with financial improvements.
+Therefore, current guidelines represent the desired state for the codebase,
+and not all pipeline parts follow it yet.
+
+### Scripts organizations and sequence
+- use numbered scripts for pipeline steps
+- Break complex steps into smaller substeps using command-line arguments
+
+### Main Function Structure
+- Try to keep all data loading and saving (especially Hail structures) inside the main function.
+- Copy existing fucntion structure for new scripts
+
+### Pipeline step function design
+- Accept matrix tables as primary input/output. Avoid writing/reading matrixtables inside the fucntion
+- Use dictionary unpacking from parsed config for flexible argument passing
+- Convert file paths to Spark format (`file://`) only before Hail operations
+
+### Toolset Organization
+- Maintain utility functions in the `wes-qc` folder
+- Create and separate modules depending on the function purpose:
+    - Data filterign/transformation
+    - Statistical Analysis
+    - Visualization
+
+### Logging and reporting (TBD)
+- Use Python's logging module to capture all important messages
+- Provide informative error messages
+- Consider making separate logs for

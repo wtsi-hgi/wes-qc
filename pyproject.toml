@@ -32,4 +32,7 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest-it>=0.1.5",
     "snakeviz>=2.2.2",
+
+    "pandas-stubs>=2.2.3",
+
 ]
