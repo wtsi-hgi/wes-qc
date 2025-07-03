@@ -3,7 +3,7 @@ This script prepares the 1000 Genome matrixtable,
 starting from the published 1000G VCF files
 
 You need to run this script only once to prepare the 1000 Genome matrix
-Then ou can reuse it with other datasets
+Then you can reuse it with other datasets
 
 To prepare data for this script
 (you can use the script in scripts/1kg_download):
@@ -16,16 +16,16 @@ from typing import Any
 
 import hail as hl  # type: ignore
 
-from utils.utils import parse_config
 from utils.config import path_spark
-from wes_qc import hail_utils, filtering
+from utils.utils import parse_config
+from wes_qc import filtering, hail_utils
 
 
 def create_1kg_mt(vcf_indir: str, kg_pop_file: str, **kwargs: dict) -> hl.MatrixTable:
     """
     Create matrixtable of 1kg data
     :param str vcf_indir: the directory with 1KG VCF files
-    :param str kg_pop_file: Assignes superpopulations
+    :param str kg_pop_file: Assigns superpopulations
     """
     print(f"Loading VCFs from {vcf_indir}")
     objects = hl.utils.hadoop_ls(vcf_indir)
@@ -38,6 +38,11 @@ def create_1kg_mt(vcf_indir: str, kg_pop_file: str, **kwargs: dict) -> hl.Matrix
     kg_unprocessed_mt = kg_unprocessed_mt.annotate_cols(
         known_pop=cohorts_pop[kg_unprocessed_mt.s]["Superpopulation code"]
     )
+    # Renaming samples to avoid name clashes with cohorts samples
+    kg_unprocessed_mt = kg_unprocessed_mt.key_cols_by()
+    kg_unprocessed_mt = kg_unprocessed_mt.transmute_cols(s=hl.str("1kg-for-pop-pca_") + kg_unprocessed_mt.s)
+    kg_unprocessed_mt = kg_unprocessed_mt.key_cols_by(kg_unprocessed_mt.s)
+
     return kg_unprocessed_mt
 
 
@@ -63,7 +68,11 @@ def kg_filter_and_ldprune(
     long_range_ld_file = path_spark(long_range_ld_file)
     # Filtering for good variations to make LD prune
     kg_mt_filtered = filtering.filter_matrix_for_ldprune(
-        kg_unprocessed_mt, long_range_ld_file, call_rate_threshold, af_threshold, hwe_threshold
+        kg_unprocessed_mt,
+        long_range_ld_file,
+        call_rate_threshold,
+        af_threshold,
+        hwe_threshold,
     )
     # LD pruning - removing variation regions that are related to each other
     pruned_kg_ht = hl.ld_prune(kg_mt_filtered.GT, r2=r2_threshold)
@@ -99,7 +108,11 @@ def run_pc_relate(
     scores.write(scores_file, overwrite=True)
 
     print("=== Calculating relatedness (this step usually takes a while)")
-    relatedness_ht = hl.pc_relate(pruned_mt.GT, scores_expr=scores[pruned_mt.col_key].scores, **hl_pc_related_kwargs)
+    relatedness_ht = hl.pc_relate(
+        pruned_mt.GT,
+        scores_expr=scores[pruned_mt.col_key].scores,
+        **hl_pc_related_kwargs,
+    )
     relatedness_ht.write(relatedness_ht_file, overwrite=True)
     # prune individuals to be left with unrelated - creates a table containing one column - samples to remove
     pairs = relatedness_ht.filter(relatedness_ht["kin"] > kin_threshold)
@@ -123,7 +136,11 @@ def get_options() -> Any:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--kg-to-mt", help="Convert 1kg data to matrixtable", action="store_true")
-    parser.add_argument("--kg-filter-and-prune", help="Prune related variants from 1kg matrix", action="store_true")
+    parser.add_argument(
+        "--kg-filter-and-prune",
+        help="Prune related variants from 1kg matrix",
+        action="store_true",
+    )
     parser.add_argument("--kg-pc-relate", help="Run PC relate for 1KG ", action="store_true")
     parser.add_argument("--kg-remove-related-samples", help="Run PC relate for 1KG", action="store_true")
     parser.add_argument("--all", help="Run All steps", action="store_true")

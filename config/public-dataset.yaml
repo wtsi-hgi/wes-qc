@@ -104,7 +104,6 @@ step0:
 
   prepare_gnomad_ht:
     input_gnomad_htfile: '/lustre/scratch125/resources/gnomAD/release-4.1/ht/exomes/gnomad.exomes.v4.1.sites.ht'
-    #'{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
     processed_gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
 step1:
@@ -151,14 +150,14 @@ step2:
     sex_ht_outfile: '{anndir}/sex_annotated.sex_check.tsv.bgz'
     sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
     hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
-      female_threshold: 0.5
+      female_threshold: 0.4
       male_threshold: 0.8
-      aaf_threshold: 0.05
+      aaf_threshold: 0.01
 
   f_stat_outliers:
     fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_hist_path: '{pltdir}/fstat_hist.html'
-    fstat_low: 0.2
+    fstat_low: 0.4
     fstat_high: 0.8
 
   sex_inconsistencies:
@@ -178,7 +177,7 @@ step2:
     scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
     samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
     samples_to_remove_tsv: '{anndir}/related_samples_to_remove.tsv' # output in the TSV table
-    pca_components: 3
+    pca_components: 10
     pc_relate_args: # https://hail.is/docs/0.2/methods/relatedness.html#hail.methods.pc_relate
       min_individual_maf: 0.05
       block_size: 4096
@@ -223,7 +222,7 @@ step2:
     pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
     pca_1kg_evals_file: '{anndir}/pop_pca_1kg_evals.tsv'
     pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
-    pca_components: 4
+    pca_components: 10
 
   plot_pop_pca:
     pca_components: 3
@@ -244,7 +243,6 @@ step2:
 
 
   # --- Step 2.4 --- #
-  # func name: annotate_mt
   annotate_with_pop:
     annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
 
@@ -273,11 +271,10 @@ step2:
     sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
 
   sample_qc_combine_results:
-    samples_to_remove_file: null #'{metadir}/.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
+    samples_to_remove_file: null #'{metadir}/.samples_to_remove_after_sampleqc.tsv' # Put here null, if you don't want to remove any samples
 
 
 step3:
-  # Parameters used in multiple functions #
   # To skip all trios-related computations, put here the `null` value
   pedfile: '{metadir}/wxs-qc_public_dataset_v3.trios.fam'
 
@@ -388,7 +385,7 @@ step3:
 step4:
   # --- Step 4.1 --- #
   evaluation:
-    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_vcf:    '{resdir}/HG001_GRCh38_1_22_v4.2.1_benchmark.1kg-panel.vcf.gz'
     giab_cqfile: '{resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
     giab_ht_file: '{mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
@@ -396,12 +393,12 @@ step4:
     # (the precision/recall calculations will be skipped in this case)
     giab_sample_id: 'NA12878'
     hardfilter_combinations:
-      snp_bins: [ 40, 60, 80 ]
-      indel_bins: [ 25, 50, 75 ]
+      snp_bins:   [ 86, 88, 90, 91, 92, 93, 94, 96 ]
+      indel_bins: [ 68, 70, 72, 74, 76, 78, 80, 84, 88 ]
       dp_vals: [ 5, 10 ]
-      gq_vals: [ 10 ]
-      ab_vals: [ 0.2 ]
-      missing_vals: [ 0.5 ]
+      gq_vals: [ 10, 15 ]
+      ab_vals: [ 0.2, 0.3 ]
+      missing_vals: [ 0.1, 0.5 ]
     json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
     snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
@@ -427,43 +424,42 @@ step4:
     hard_filters:
       snp:
         relaxed:
-          bin: 90
+          bin: 93
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         medium:
-          bin: 82
+          bin: 92
           dp: 5
           gq: 10
           ab: 0.2
           call_rate: 0.5
         stringent:
-          bin: 72
+          bin: 88
           dp: 5
           gq: 15
           ab: 0.2
           call_rate: 0.5
       indel:
         relaxed:
-          bin: 72
+          bin: 80
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         medium:
-          bin: 66
+          bin: 74
+          dp: 5
+          gq: 10
+          ab: 0.2
+          call_rate: 0.1
+        stringent:
+          bin: 72
           dp: 5
           gq: 15
-          ab: 0.2
-          call_rate: 0.0
-        stringent:
-          bin: 54
-          dp: 5
-          gq: 20
           ab: 0.3
           call_rate: 0.5
-
   # used as an output of the whole step
   mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'
 
