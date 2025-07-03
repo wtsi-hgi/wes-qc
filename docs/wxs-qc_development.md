@@ -1,16 +1,16 @@
 # Developer's howto
 
-This how-to contains development howto and best practices.
+This how-to contains development howto and best practices for the WxS-QC pipeline.
 
 ## Set up a dev environment
 
-Update your environment with extra dev dependencies:
+Update your environment with all dependencies, including dev and test packages:
 
 ```bash
 uv sync
 ```
 
-Set up pre-commit:
+Set up `pre-commit`:
 
 ```bash
 pre-commit install
@@ -27,7 +27,7 @@ This will set up the pre-commit hooks, which include:
 
 ## Run the tests and calculate coverage
 
-The easiest way to run tests is using make utility and commands defined in `Makefile`.
+The easiest way to run tests is using `make` utility and commands defined in `Makefile`.
 
 To run all the tests:
 ```bash
@@ -73,48 +73,43 @@ pre-commit run --files <file1> <file2>
 
 ### Run MyPy type checking
 
-`mypy` is configured to run in the manual stage because it currently produces many errors.
-To run it:
+For now `mypy` is configured to run in the manual stage because it produces
+errors with the config module, that are not fixed yet.
+
+To run MyPy manually for your commit:
 ```bash
 pre-commit run mypy --hook-stage manual
 ```
 
 ### Skipping pre-commit hooks
 
-In rare cases when you need to bypass pre-commit hooks (not recommended for regular use):
+In rare cases when you need to bypass pre-commit hooks (not recommended for regular use), run:
 ```bash
 git commit -m "Your message" --no-verify
 ```
 
 ## Development and code organization best practices
 
-This section contains major suggestions sto maintain code style and structure.
+This section contains major suggestions to maintain code style and structure for the WxS-QC pipeline.
 Due to the limited number of developers,
-the code refactoring is usually performed together with financial improvements.
+the code refactoring is usually performed together with functional improvements.
 Therefore, current guidelines represent the desired state for the codebase,
 and not all pipeline parts follow it yet.
 
 ### Scripts organizations and sequence
-- use numbered scripts for pipeline steps
+- Use numbered scripts for pipeline steps
 - Break complex steps into smaller substeps using command-line arguments
 
 ### Main Function Structure
-- Try to keep all data loadings and savings (especially Hail structures) inside the main function.
-- Copy existing function structure for new scripts
+- Try to keep all data loadings and savings (especially Hail structures) inside the `main()` function.
+- Copy existing `main()` function structure
 
 ### Pipeline step function design
-- Accept matrix tables as primary input/output. Avoid writing/reading matrixtables inside the function
+- Accept matrix tables as primary input/output. Avoid writing/reading matrixtables inside pipeline step functions
 - Use dictionary unpacking from parsed config for flexible argument passing
-- Convert file paths to Spark format (`file://`) only before Hail operations
+  (For example `fstat_hist = plot_f_stat_histogram(sex_ht, **config["step2"]["f_stat_outliers"])`)
+- Convert file paths to Spark format (`file://`) just before submitting to Hail/Spark functions.
 
 ### Toolset Organization
 - Maintain utility functions in the `wes-qc` folder
-- Create and separate modules depending on the function purpose:
-    - Data filtering/transformation
-    - Statistical Analysis
-    - Visualization
-
-### Logging and reporting (TBD)
-- Use Python's logging module to capture all important messages
-- Provide informative error messages
-- Consider making separate logs for
+- Create and separate modules depending on the function purpose.
