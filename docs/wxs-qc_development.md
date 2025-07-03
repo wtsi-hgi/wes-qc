@@ -1,6 +1,6 @@
 # Developer's howto
 
-This howto contains development howto and best practices.
+This how-to contains development howto and best practices.
 
 ## Set up a dev environment
 
@@ -16,13 +16,13 @@ Set up pre-commit:
 pre-commit install
 ```
 
-This will set up the pre-commit hooks configured in `.pre-commit-config.yaml`, which include:
+This will set up the pre-commit hooks, which include:
 - Trailing whitespace removal
 - End of file fixer
 - YAML syntax checking
 - Large file checking
 - Ruff linting and formatting
-- mypy type checking
+- MyPy type checking
 
 
 ## Run the tests and calculate coverage
@@ -33,6 +33,7 @@ To run all the tests:
 ```bash
 make test
 ```
+
 Or you can specify the type of test to run
 ```bash
 make unit-test
@@ -43,6 +44,13 @@ To run the tests with coverage:
 ```bash
 make unit-test-coverage
 make integration-test-coverage
+```
+
+To run a subset of tests, use the `test-it-one-step` or `test-ut-one-step`,
+and provide the test name wildcard using `test` option:
+```bash
+make test-it-one-step test=test_trios_1           # Run all tests for stage 1
+make test-ut-one-step test=test_find_duplicated_  # Run all tests for function finding duplicates
 ```
 
 ## Use pre-commit hooks
@@ -91,18 +99,18 @@ and not all pipeline parts follow it yet.
 - Break complex steps into smaller substeps using command-line arguments
 
 ### Main Function Structure
-- Try to keep all data loading and saving (especially Hail structures) inside the main function.
-- Copy existing fucntion structure for new scripts
+- Try to keep all data loadings and savings (especially Hail structures) inside the main function.
+- Copy existing function structure for new scripts
 
 ### Pipeline step function design
-- Accept matrix tables as primary input/output. Avoid writing/reading matrixtables inside the fucntion
+- Accept matrix tables as primary input/output. Avoid writing/reading matrixtables inside the function
 - Use dictionary unpacking from parsed config for flexible argument passing
 - Convert file paths to Spark format (`file://`) only before Hail operations
 
 ### Toolset Organization
 - Maintain utility functions in the `wes-qc` folder
 - Create and separate modules depending on the function purpose:
-    - Data filterign/transformation
+    - Data filtering/transformation
     - Statistical Analysis
     - Visualization
 
