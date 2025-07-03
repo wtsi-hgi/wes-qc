@@ -4,7 +4,7 @@ import re
 import hail as hl
 
 from utils.utils import parse_config, path_spark
-from wes_qc import hail_utils
+from wes_qc import hail_utils, filtering
 
 # DEBUG: for some reason, paths prefix is `file:`, not a `file://`
 VCF_PATTERN = re.compile("file:.*vcf.b?gz$")
@@ -49,7 +49,7 @@ def load_vcfs_to_mt(config):
     print(f"=== Loaded dataset: {samples} samples, {vars} variants")
 
     print("=== Checking for duplications ===")
-    duplicated_samples = find_duplicated_samples(mt)
+    duplicated_samples = filtering.find_duplicated_samples(mt)
     duplicated_samples_count = duplicated_samples.count()
     if duplicated_samples_count > 0:
         dups_path = f"{anndir}/duplicated_samples.tsv"
@@ -58,40 +58,14 @@ def load_vcfs_to_mt(config):
     else:
         print("=== No duplicated samples have been found.")
 
-    duplicated_variants = find_duplicated_variants(mt)
+    duplicated_variants = filtering.find_duplicated_variants(mt)
     duplicated_variants_count = duplicated_variants.count()
     if duplicated_variants_count > 0:
-        dups_path = f"{anndir}/duplicated_variants.vcf.bgz"
+        dups_path = f"{anndir}/duplicated_variants.tsv.bgz"
         print(f"=== WARNING !!! Found {duplicated_variants_count} duplicated variants. Exporting to: {dups_path}")
-        hl.export_vcf(duplicated_variants, path_spark(dups_path))
+        duplicated_variants.export(path_spark(dups_path))
     else:
         print("=== No duplicated variants have been found.")
-
-
-
-def find_duplicated_variants(mt: hl.MatrixTable) -> hl.Table:
-    # Group by chromosome, position, and all alleles
-    vars = mt.rows()
-    grouped = vars.group_by(variation=(vars.locus, vars.alleles)).aggregate(var_count=hl.agg.count())
-
-    # Filter for duplicates
-    duplicates = grouped.filter(grouped.var_count > 1)
-    return duplicates
-
-
-
-def find_duplicated_samples(mt: hl.MatrixTable) -> hl.Table:
-    """
-    Duplicate sample IDs from a Hail MatrixTable and return as a Hail Table.
-
-    """
-
-    samples = mt.cols()
-    grouped = samples.group_by(samples.s).aggregate(s_count=hl.agg.count())
-
-    # Filter for duplicates
-    duplicates = grouped.filter(grouped.s_count > 1)
-    return duplicates
 
 
 def main():

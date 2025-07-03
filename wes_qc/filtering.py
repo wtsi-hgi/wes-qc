@@ -7,6 +7,33 @@ import hail as hl  # type: ignore
 from wes_qc import hail_patches
 
 
+def find_duplicated_variants(mt: hl.MatrixTable) -> hl.Table:
+    """
+    Filter duplicated variants from a Hail MatrixTable using locus and alleles
+    and return as a Hail Table.
+    """
+    # Group by chromosome, position, and all alleles
+    vars = mt.rows()
+    grouped = vars.group_by(variation=(vars.locus, vars.alleles)).aggregate(var_count=hl.agg.count())
+
+    # Filter for duplicates
+    duplicates = grouped.filter(grouped.var_count > 1)
+    return duplicates
+
+
+def find_duplicated_samples(mt: hl.MatrixTable) -> hl.Table:
+    """
+    Find duplicates sample IDs from a Hail MatrixTable and return as a Hail Table.
+    """
+
+    samples = mt.cols()
+    grouped = samples.group_by(samples.s).aggregate(s_count=hl.agg.count())
+
+    # Filter for duplicates
+    duplicates = grouped.filter(grouped.s_count > 1)
+    return duplicates
+
+
 def filter_matrix_for_ldprune(
     mt: hl.MatrixTable,
     long_range_ld_file: str,
