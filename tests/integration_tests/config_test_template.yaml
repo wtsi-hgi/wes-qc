@@ -1,50 +1,20 @@
 ---
-
 #############################################################################################
 # This is a config file example to process public 1000 Genomes dataset.
-# All data files and resources are here: s3://wes-qc-data/test_data_from_1000_genomes_v2
-# To download it to sanger farm, use s3cmd command.
 #############################################################################################
 
-# - You can insert a variable in the string value via '{}'. For example,
-#   'foo {var_name} baz' with `var_name: bar` will render to 'foo bar baz'.
+# - The config system supports variable interpolation via OmegaConf library
+# - You can insert a variable in the string value via '${}'. For example,
+#   'foo ${var_name} baz' with `var_name: bar` will render to 'foo bar baz'.
+#   Read more at https://omegaconf.readthedocs.io/en/2.3_branch/
+# - Note that string quotes are MANDATORY if using variable interpolation.
 #
-# - If a config field ends with 'dir' or 'file', then parser will consider
-#   this field as a path and normalize it, thus removing double slashes (foo//bar -> foo/bar)
-#   and redundand dots (foo/./bar -> foo/bar).
-#
-# - Note that string quotes are MANDATORY if using cvars.
-#   That is, variable should be used only inside an explicit string.
-#   Curly braces outside a string will break the YAML parser.
-#
-# - You can use dot-separated name of any config field as a variable name like this:
-#   a:
-#     a1: bar
-#     a2: baz
-#   b: 'foo {a.a1} {a.a2}' (will render to 'foo bar baz')
-#
-# - Special variables from 'cvars' list will be replaced with field
-#   they are referring to. For example, '{mtdir}/gatk_unprocessed.mt' is
-#   equivalent to '{general.matrixtables_dir}/gatk_unprocessed.mt'
-#
-# - Parser can only insert variables that were already defined.
-#   You can't use a variable that will be defined further down the config.
+# - The 'cvars' section provides short alternatives for long values
+#   defined in the metadata section
 
-# TODO: custom yaml type for paths
-# TODO: ensure strict variable substitution, from top to bottom of the config
-# TODO: add testcases for cvars, for order of variables, for nested variables
-cvars:
-  dataset: general.dataset_name
-  dataroot: general.data_root
-  tmpdir: general.tmp_dir
-  anndir: general.annotation_dir
-  metadir: general.metadata_dir
-  mtdir: general.matrixtables_dir
-  resdir: general.resource_dir
-  1kg_resdir: general.onekg_resource_dir
-  pltdir: general.plots_dir
-  rfdir: general.var_qc_rf_dir
-  vcf_export_dir: general.vcf_export_dir
+#############################################################################################
+# The general section contains all important paths and files you need to set up.
+#############################################################################################
 
 general:
   # Dataset name - the root folder for all analysis files
@@ -52,37 +22,51 @@ general:
   dataset_name: 'integration-data'
 
   # Dataset root directory - to use in folder paths
-  data_root: '{INTEGRATION_TESTS_DIR}/{general.dataset_name}'
+  data_root: '{INTEGRATION_TESTS_DIR}/${general.dataset_name}'
 
-  tmp_dir: '{general.data_root}/tmp/' # output
+  tmp_dir: '${general.data_root}/tmp/' # output
   #tmp_dir: '/shared' # Without file:// prefix Hail will use HDFS on the spark master, e.g. hdfs://spark-master:9820/shared
   # To use local temp dir you need to specify it with 'file://' prefix
-  # tmp_dir: 'file://{general.data_root}/tmp'
+  # tmp_dir: 'file://${general.data_root}/tmp'
   metadata_dir: "{METADATA_DIR}" # input
-  annotation_dir: "{general.data_root}/annotations/" # output
-  matrixtables_dir: "{general.data_root}/matrixtables/" # output
+  annotation_dir: "${general.data_root}/annotations/" # output
+  matrixtables_dir: "${general.data_root}/matrixtables/" # output
   resource_dir: "{RESOURCES_DIR}" # input and output
-  onekg_resource_dir: "{general.resource_dir}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
-  plots_dir: "{general.data_root}/plots/" # output
-  var_qc_rf_dir: '{general.data_root}/variant_qc_random_forest/' # output
-  vcf_export_dir: '{general.data_root}/vcf_afterqc_export/'
+  onekg_resource_dir: "${general.resource_dir}/mini_1000G" # input; must be without trailing slash (TODO: make more robust)
+  plots_dir: "${general.data_root}/plots/" # output
+  var_qc_rf_dir: '${general.data_root}/variant_qc_random_forest/' # output
+  vcf_export_dir: '${general.data_root}/vcf_afterqc_export/'
   # random forest model is geneated during step3.3, catch the parameter `runhash` and place it here
   rf_model_id: "testhash"
+
+# Block of cvars variables - use to provide shorter alternatives for long names
+cvars:
+  dataset: '${general.dataset_name}'
+  dataroot: '${general.data_root}'
+  tmpdir: '${general.tmp_dir}'
+  anndir: '${general.annotation_dir}'
+  metadir: '${general.metadata_dir}'
+  mtdir: '${general.matrixtables_dir}'
+  resdir: '${general.resource_dir}'
+  pltdir: '${general.plots_dir}'
+  rfdir: '${general.var_qc_rf_dir}'
+  vcf_export_dir: '${general.vcf_export_dir}'
+
 
 step0:
   # --- Step 0.1 --- #
   create_1kg_mt:
-    indir: '{1kg_resdir}'
-    vcfheader: '{1kg_resdir}/header_20201028.txt' # not available for the test data, this parameter is ignored
-    kg_pop_file: '{resdir}/igsr_samples.tsv'
-    kg_unprocessed: '{mtdir}/kg_unprocessed.mt'
-    pruned_kg_file: '{mtdir}/kg_pruned_ld.mt'
-    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
-    relatedness_ht_file: '{mtdir}/kg_relatedness.ht'
-    samples_to_remove_file: '{mtdir}/kg_related_samples_to_remove.ht'
-    scores_file: '{mtdir}/kg_pruned.pca_scores.ht'
+    indir: '${general.onekg_resource_dir}'
+    vcfheader: '${general.onekg_resource_dir}/header_20201028.txt' # not available for the test data, this parameter is ignored
+    kg_pop_file: '${cvars.resdir}/igsr_samples.tsv'
+    kg_unprocessed: '${cvars.mtdir}/kg_unprocessed.mt'
+    pruned_kg_file: '${cvars.mtdir}/kg_pruned_ld.mt'
+    long_range_ld_file: '${cvars.resdir}/long_ld_regions.hg38.bed'
+    relatedness_ht_file: '${cvars.mtdir}/kg_relatedness.ht'
+    samples_to_remove_file: '${cvars.mtdir}/kg_related_samples_to_remove.ht'
+    scores_file: '${cvars.mtdir}/kg_pruned.pca_scores.ht'
 
-    kg_out_mt: '{mtdir}/kg_wes_regions.mt' # output
+    kg_out_mt: '${cvars.mtdir}/kg_wes_regions.mt' # output
     call_rate_threshold: 0.99
     af_threshold: 0.05
     hwe_threshold: 0.00001 #1e-5
@@ -96,47 +80,47 @@ step0:
     kin_threshold: 0.125
 
   generate_truthset_ht:
-    omni: '{resdir}/1000G_omni2.5.hg38.vcf.gz'
-    mills: '{resdir}/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz'
-    thousand_genomes: '{resdir}/1000G_phase1.snps.high_confidence.hg38.vcf.gz'
-    hapmap: '{resdir}/hapmap_3.3.hg38.vcf.gz'
-    truth_ht_outfile: '{mtdir}/truthset_table.ht'
+    omni: '${cvars.resdir}/1000G_omni2.5.hg38.vcf.gz'
+    mills: '${cvars.resdir}/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz'
+    thousand_genomes: '${cvars.resdir}/1000G_phase1.snps.high_confidence.hg38.vcf.gz'
+    hapmap: '${cvars.resdir}/hapmap_3.3.hg38.vcf.gz'
+    truth_ht_outfile: '${cvars.mtdir}/truthset_table.ht'
 
   prepare_gnomad_ht:
     input_gnomad_htfile: '/lustre/scratch125/resources/gnomAD/release-4.1/ht/exomes/gnomad.exomes.v4.1.sites.ht'
-    #'{resdir}/gnomad.exomes.r2.1.1.sites.liftover_grch38.ht'
-    processed_gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+    processed_gnomad_htfile: '${cvars.resdir}/gnomad.exomes.r4.1.freq_only.ht'
+
 
 step1:
   # --- Step 1.1 --- #
   gatk_vcf_header_infile:
   gatk_vcf_indir: "{TEST_DATA_DIR}"
-  gatk_mt_outfile: '{mtdir}/gatk_unprocessed.mt'
+  gatk_mt_outfile: '${cvars.mtdir}/gatk_unprocessed.mt'
 
   # --- Step 1.2 --- #
   validate_verifybamid:
-    verifybamid_selfsm: '{metadir}/control_set_small.verify_bam_id_result.selfSM.tsv' # Set to null if you don't have freemix data
-    verifybamid_plot: '{pltdir}/freemix_validation.html'
-    samples_failing_freemix_tsv: '{anndir}/samples_failing_freemix.tsv'
+    verifybamid_selfsm: '${cvars.metadir}/control_set_small.verify_bam_id_result.selfSM.tsv' # Set to null if you don't have freemix data
+    verifybamid_plot: '${cvars.pltdir}/freemix_validation.html'
+    samples_failing_freemix_tsv: '${cvars.anndir}/samples_failing_freemix.tsv'
     freemix_treshold: 0.05
 
-  sex_metadata_file: '{metadir}/control_set_small.mlwh_sample_and_sex.txt'
-  mt_metadata_annotated: '{mtdir}/mt_metadata_annotated.mt'
+  sex_metadata_file: '${cvars.metadir}/control_set_small.mlwh_sample_and_sex.txt'
+  mt_metadata_annotated: '${cvars.mtdir}/mt_metadata_annotated.mt'
 
   validate_gtcheck:
-    wes_microarray_mapping: '{metadir}/control_set_small.microarray_mapping.tsv' # Set to null if you don't have microarray data
-    microarray_ids: '{metadir}/control_set_small.microarray_samples.txt'
-    gtcheck_report: '{metadir}/control_set_small.combined.gtcheck.txt'
-    gtcheck_results_folder: '{anndir}/gtcheck'
-    mt_gtcheck_validated: '{mtdir}/mt_gtcheck_validated.mt'
+    wes_microarray_mapping: '${cvars.metadir}/control_set_small.microarray_mapping.tsv' # Set to null if you don't have microarray data
+    microarray_ids: '${cvars.metadir}/control_set_small.microarray_samples.txt'
+    gtcheck_report: '${cvars.metadir}/control_set_small.combined.gtcheck.txt'
+    gtcheck_results_folder: '${cvars.anndir}/gtcheck'
+    mt_gtcheck_validated: '${cvars.mtdir}/mt_gtcheck_validated.mt'
 
     wes_id_col: 'WES_ID'
     microarray_id_col: 'Microarray_ID'
     gtcheck_score_threshold: 0.2
 
   plot_mutation_spectra_preqc:
-    mut_spectra_path: '{anndir}/mutation_spectra_preqc.tsv'
-    mut_spectra_plot_path: '{pltdir}/mutation_spectra_preqc.html'
+    mut_spectra_path: '${cvars.anndir}/mutation_spectra_preqc.tsv'
+    mut_spectra_plot_path: '${cvars.pltdir}/mutation_spectra_preqc.html'
     iqr_multiplier: 1.5
     width: 800
     height: 600
@@ -148,25 +132,25 @@ step2:
     defined_gt_frac_threshold: 0.99
 
   impute_sex:
-    sex_ht_outfile: '{anndir}/sex_annotated.sex_check.tsv.bgz'
-    sex_mt_outfile: '{mtdir}/mt_sex_annotated.mt'
+    sex_ht_outfile: '${cvars.anndir}/sex_annotated.sex_check.tsv.bgz'
+    sex_mt_outfile: '${cvars.mtdir}/mt_sex_annotated.mt'
     hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
       female_threshold: 0.5
       male_threshold: 0.8
       aaf_threshold: 0.05
 
   f_stat_outliers:
-    fstat_outliers_report_file: '{anndir}/sex_annotation_f_stat_outliers.tsv' # output
-    fstat_hist_path: '{pltdir}/fstat_hist.html'
+    fstat_outliers_report_file: '${cvars.anndir}/sex_annotation_f_stat_outliers.tsv' # output
+    fstat_hist_path: '${cvars.pltdir}/fstat_hist.html'
     fstat_low: 0.2
     fstat_high: 0.8
 
   sex_inconsistencies:
-    conflicting_sex_report_file: '{anndir}/conflicting_sex.tsv' # output
+    conflicting_sex_report_file: '${cvars.anndir}/conflicting_sex.tsv' # output
 
   # --- Step 2.2 --- #
   prune:
-    pruned_mt_file: '{mtdir}/mt_ldpruned.mt' # output
+    pruned_mt_file: '${cvars.mtdir}/mt_ldpruned.mt' # output
     ld_prune_args: # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.ld_prune
       r2: 0.2
       # bp_window_size:
@@ -175,9 +159,9 @@ step2:
       # block_size:
 
   prune_pc_relate:
-    scores_file: '{mtdir}/mt_pruned.pca_scores.ht' # output
-    samples_to_remove_file: '{mtdir}/mt_related_samples_to_remove.ht' # output
-    samples_to_remove_tsv: '{anndir}/related_samples_to_remove.tsv' # output in the TSV table
+    scores_file: '${cvars.mtdir}/mt_pruned.pca_scores.ht' # output
+    samples_to_remove_file: '${cvars.mtdir}/mt_related_samples_to_remove.ht' # output
+    samples_to_remove_tsv: '${cvars.anndir}/related_samples_to_remove.tsv' # output in the TSV table
     pca_components: 3
     pc_relate_args: # https://hail.is/docs/0.2/methods/relatedness.html#hail.methods.pc_relate
       min_individual_maf: 0.05
@@ -188,70 +172,60 @@ step2:
       # include_self_kinship:
     relatedness_column: 'kin'
     relatedness_threshold: 0.125
-    relatedness_outfile: '{anndir}/relatedness.tsv.gz'
-    relatedness_plotfile: '{pltdir}/relatedness_plot.html'
+    relatedness_outfile: '${cvars.anndir}/relatedness.tsv.gz'
+    relatedness_plotfile: '${cvars.pltdir}/relatedness_plot.html'
 
   prune_plot_pca:
-    plink_outfile: '{anndir}/mt_unrelated.plink'
+    plink_outfile: '${cvars.anndir}/mt_unrelated.plink'
     pca_components: 4
-    pca_scores_file: '{mtdir}/mt_pca_scores.ht' # output
-    pca_loadings_file: '{mtdir}/mt_pca_loadings.ht' # output
-    pca_mt_file: '{mtdir}/mt_pca.mt' # output
-    plot_outfile: '{pltdir}/pca.html' # output
-
-
-#  annotate_and_filter:
-#    pops_file: '{resdir}/igsr_samples.tsv'
-#    call_rate: 0.99
-#    AF: 0.05
-#    p_value_hwe: 0.00005
-#    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
-#    filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+    pca_scores_file: '${cvars.mtdir}/mt_pca_scores.ht' # output
+    pca_loadings_file: '${cvars.mtdir}/mt_pca_loadings.ht' # output
+    pca_mt_file: '${cvars.mtdir}/mt_pca.mt' # output
+    plot_outfile: '${cvars.pltdir}/pca.html' # output
 
   # --- Step 2.3 --- #
   merge_1kg_and_ldprune:
-    long_range_ld_file: '{resdir}/long_ld_regions.hg38.bed'
-    merged_filtered_mt_outfile: '{mtdir}/merged_with_1kg_filtered.mt'
+    long_range_ld_file: '${cvars.resdir}/long_ld_regions.hg38.bed'
+    merged_filtered_mt_outfile: '${cvars.mtdir}/merged_with_1kg_filtered.mt'
     call_rate_threshold: 0.99
     af_threshold: 0.05
     hwe_threshold: 0.00001 #1e-5
     r2_threshold: 0.2
-    filtered_and_pruned_mt_outfile: '{mtdir}/merged_with_1kg_filtered_ldpruned.mt'
+    filtered_and_pruned_mt_outfile: '${cvars.mtdir}/merged_with_1kg_filtered_ldpruned.mt'
 
   pop_pca:
-    pca_1kg_scores_file: '{mtdir}/pop_pca_1kg_scores.ht'
-    pca_1kg_loadings_file: '{mtdir}/pop_pca_1kg_loadings.ht'
-    pca_1kg_evals_file: '{anndir}/pop_pca_1kg_evals.tsv'
-    pca_union_scores_file: '{mtdir}/pop_pca_union_scores.ht'
+    pca_1kg_scores_file: '${cvars.mtdir}/pop_pca_1kg_scores.ht'
+    pca_1kg_loadings_file: '${cvars.mtdir}/pop_pca_1kg_loadings.ht'
+    pca_1kg_evals_file: '${cvars.anndir}/pop_pca_1kg_evals.tsv'
+    pca_union_scores_file: '${cvars.mtdir}/pop_pca_union_scores.ht'
     pca_components: 4
 
   plot_pop_pca:
     pca_components: 3
-    pop_pca_1kg_graph: '{pltdir}/pop_pca_scores_1kg.html'
-    pop_pca_union_graph: '{pltdir}/pop_pca_scores_union.html'
+    pop_pca_1kg_graph: '${cvars.pltdir}/pop_pca_scores_1kg.html'
+    pop_pca_union_graph: '${cvars.pltdir}/pop_pca_scores_union.html'
 
   predict_pops:
     gnomad_pc_n_estimators: 100
     gnomad_prop_train: 0.8
     gnomad_min_prob: 0.5
-    pop_ht_outfile: '{mtdir}/pop_assignments.ht'
-    pop_ht_out_tsv: '{mtdir}/pop_assignments.tsv'
+    pop_ht_outfile: '${cvars.mtdir}/pop_assignments.ht'
+    pop_ht_out_tsv: '${cvars.mtdir}/pop_assignments.tsv'
 
   plot_pop_pca_assigned:
     pca_components: 3
-    pop_assigned_pca_dataset_graph: '{pltdir}/pop_pca_assigned_scores_dataset.html'
-    pop_assigned_pca_union_graph: '{pltdir}/pop_pca_assigned_scores_union.html'
+    pop_assigned_pca_dataset_graph: '${cvars.pltdir}/pop_pca_assigned_scores_dataset.html'
+    pop_assigned_pca_union_graph: '${cvars.pltdir}/pop_pca_assigned_scores_union.html'
 
 
   # --- Step 2.4 --- #
-  # func name: annotate_mt
   annotate_with_pop:
-    annotated_mt_file: '{mtdir}/gatk_unprocessed_with_pop.mt' # output
+    annotated_mt_file: '${cvars.mtdir}/gatk_unprocessed_with_pop.mt' # output
 
   stratified_sample_qc:
-    mt_qc_outfile: '{mtdir}/mt_pops_sampleqc.mt' # output
-    ht_qc_cols_outfile: '{mtdir}/mt_pops_sampleqc.ht' # output
-    qc_filter_file: '{mtdir}/mt_pops_QC_filters.ht' # output
+    mt_qc_outfile: '${cvars.mtdir}/mt_pops_sampleqc.mt' # output
+    ht_qc_cols_outfile: '${cvars.mtdir}/mt_pops_sampleqc.ht' # output
+    qc_filter_file: '${cvars.mtdir}/mt_pops_QC_filters.ht' # output
     min_depth: 5
     min_genotype_quality: 10
     min_vaf: 0.2
@@ -260,47 +234,46 @@ step2:
     compute_stratified_metrics_filter_args:
       lower_threshold: 12.0 # Using a broad interval to make all samples pass QC
       upper_threshold: 12.0
-    output_text_file: '{anndir}/sample_qc_by_pop.tsv.bgz' # output
-    output_globals_json_file: '{anndir}/sample_qc_by_pop.globals.json' # output
+    output_text_file: '${cvars.anndir}/sample_qc_by_pop.tsv.bgz' # output
+    output_globals_json_file: '${cvars.anndir}/sample_qc_by_pop.globals.json' # output
 
   plot_sample_qc_metrics:
     n_bins: 4
-    plot_outdir: '{pltdir}/sample_qc_metrics'
+    plot_outdir: '${cvars.pltdir}/sample_qc_metrics'
 
   # --- Step 2.5 --- #
   remove_sample_qc_fails:
-    samples_failing_qc_file: '{anndir}/samples_failing_qc.tsv.bgz'
-    sample_qc_filtered_mt_file: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
+    samples_failing_qc_file: '${cvars.anndir}/samples_failing_qc.tsv.bgz'
+    sample_qc_filtered_mt_file: '${cvars.mtdir}/mt_pops_QC_filters_after_sample_qc.mt'
 
   sample_qc_combine_results:
-    samples_to_remove_file: '{metadir}/control_set_small.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
+    samples_to_remove_file: '${cvars.metadir}/control_set_small.samples_to_remove_after_sampleqc.tsv' # Put here none, if you don't want to remove any samples
 
 
 step3:
-  # Parameters used in multiple functions #
   # To skip all trios-related computations, put here the `null` value
-  pedfile: {PEDIGREE_FILE_NAME}  #'{metadir}/control_set_small_trios.ped' - put from test_integration
+  pedfile: {PEDIGREE_FILE_NAME}  #'${cvars.metadir}/control_set_small_trios.ped' - put from test_integration
 
   # --- Step 3.1 --- #
   split_multi_and_var_qc:
-    mtfile: '{mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
-    varqc_mtoutfile: '{mtdir}/mt_varqc.mt'
-    varqc_mtoutfile_split: '{mtdir}/mt_varqc_splitmulti.mt'
+    mtfile: '${cvars.mtdir}/mt_pops_QC_filters_after_sample_qc.mt' # gatk_broad_crams_sanger_calls.mt for non-trios mode
+    varqc_mtoutfile: '${cvars.mtdir}/mt_varqc.mt'
+    varqc_mtoutfile_split: '${cvars.mtdir}/mt_varqc_splitmulti.mt'
 
   # not used for non-trios mode
   trio_family_dnm_annotation:
-    trio_mtoutfile: '{mtdir}/trios.mt'
-    trio_stats_htoutfile: '{mtdir}/trio_stats.ht'
-    fam_stats_htoutfile: '{mtdir}/family_stats.ht'
-    fam_stats_mtoutfile: '{mtdir}/family_stats.mt'
-    fam_stats_gnomad_mtoutfile: '{mtdir}/family_stats_gnomad.mt'
-    gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
-    dnm_htoutfile: '{mtdir}/denovo_table.ht'
+    trio_mtoutfile: '${cvars.mtdir}/trios.mt'
+    trio_stats_htoutfile: '${cvars.mtdir}/trio_stats.ht'
+    fam_stats_htoutfile: '${cvars.mtdir}/family_stats.ht'
+    fam_stats_mtoutfile: '${cvars.mtdir}/family_stats.mt'
+    fam_stats_gnomad_mtoutfile: '${cvars.mtdir}/family_stats_gnomad.mt'
+    gnomad_htfile: '${cvars.resdir}/gnomad.exomes.r4.1.freq_only.ht'
+    dnm_htoutfile: '${cvars.mtdir}/denovo_table.ht'
 
   create_inbreeding_ht_with_ac_and_allele_data:
-    inbreeding_htoutfile: '{mtdir}/inbreeding.ht'
-    qc_ac_htoutfile: '{mtdir}/qc_ac.ht'
-    allele_data_htoutfile: '{mtdir}/allele_data.ht'
+    inbreeding_htoutfile: '${cvars.mtdir}/inbreeding.ht'
+    qc_ac_htoutfile: '${cvars.mtdir}/qc_ac.ht'
+    allele_data_htoutfile: '${cvars.mtdir}/allele_data.ht'
 
   # --- Step 3.2 --- #
   create_rf_ht:
@@ -308,20 +281,20 @@ step3:
     fail_hard_filters_FS_greater_than: 60
     fail_hard_filters_MQ_less_than: 30
 
-    truthset_file: '{mtdir}/truthset_table.ht'
-    trio_stats_file: '{mtdir}/trio_stats.ht'
-    allele_data_file: '{mtdir}/allele_data.ht'
-    allele_counts_file: '{mtdir}/qc_ac.ht'
-    inbreeding_file: '{mtdir}/inbreeding.ht'
-    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    htoutfile_rf_var_type_all_cols: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    truthset_file: '${cvars.mtdir}/truthset_table.ht'
+    trio_stats_file: '${cvars.mtdir}/trio_stats.ht'
+    allele_data_file: '${cvars.mtdir}/allele_data.ht'
+    allele_counts_file: '${cvars.mtdir}/qc_ac.ht'
+    inbreeding_file: '${cvars.mtdir}/inbreeding.ht'
+    mtfile: '${cvars.mtdir}/mt_varqc_splitmulti.mt'
+    htoutfile_rf_var_type_all_cols: '${cvars.mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
 
   # --- Step 3.3 --- #
   rf_test_interval: chr20 # used in multiple functions
-  runs_json: '{rfdir}/rf_runs.json'
+  runs_json: '${cvars.rfdir}/rf_runs.json'
 
   train_rf:
-    input_ht_file: '{mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    input_ht_file: '${cvars.mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
     gnomad_train_rf_fp_to_tp: 1.0
     gnomad_train_rf_num_trees: 500
     gnomad_train_rf_max_depth: 5
@@ -331,20 +304,19 @@ step3:
 
   # --- Step 3.5 --- #
   add_cq_annotation:
-    synonymous_file: '{metadir}/control_set_small.synonymous_variants.tsv.bgz'
+    synonymous_file: '${cvars.metadir}/control_set_small.synonymous_variants.tsv.bgz'
 
   dnm_and_family_annotation:
-    dnm_htfile: '{mtdir}/denovo_table.ht'
-    fam_stats_htfile: '{mtdir}/family_stats.ht'
-    trio_stats_htfile: '{mtdir}/trio_stats.ht'
+    dnm_htfile: '${cvars.mtdir}/denovo_table.ht'
+    fam_stats_htfile: '${cvars.mtdir}/family_stats.ht'
+    trio_stats_htfile: '${cvars.mtdir}/trio_stats.ht'
 
   transmitted_singleton_annotation:
-    trio_mtfile: '{mtdir}/trios.mt'
-    trio_filtered_mtfile: '{mtdir}/trios_filtered_.mt'
+    trio_mtfile: '${cvars.mtdir}/trios.mt'
+    trio_filtered_mtfile: '${cvars.mtdir}/trios_filtered_.mt'
 
   annotate_gnomad:
-    gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
-
+    gnomad_htfile: '${cvars.resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
   # --- Step 3.6 --- #
   add_rank:
@@ -352,7 +324,7 @@ step3:
     subrank_expr_de_novo_medium_quality_rank: 0.5
 
   create_binned_data_initial:
-    truth_htfile: '{mtdir}/truthset_table.ht'
+    truth_htfile: '${cvars.mtdir}/truthset_table.ht'
 
     high_quality_p_de_novo: 0.99
     medium_quality_p_de_novo: 0.5
@@ -381,16 +353,17 @@ step3:
 
   # --- Step 3.9 --- #
   annotate_mt_with_cq_rf_score_and_bin:
-    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{metadir}/control_set_small.all_consequences.tsv.bgz'
-    mtoutfile_after_varqc: '{mtdir}/mt_after_var_qc.mt'
+    mtfile: '${cvars.mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '${cvars.metadir}/control_set_small.all_consequences.tsv.bgz'
+    mtoutfile_after_varqc: '${cvars.mtdir}/mt_after_var_qc.mt'
+
 
 step4:
   # --- Step 4.1 --- #
   evaluation:
-    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
-    giab_cqfile: '{resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
-    giab_ht_file: '{mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
+    giab_vcf: '${cvars.resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_cqfile: '${cvars.resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
+    giab_ht_file: '${cvars.mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
@@ -402,26 +375,26 @@ step4:
       gq_vals: [10]
       ab_vals: [0.2]
       missing_vals: [0.0]
-    json_dump_folder: '{anndir}/{general.rf_model_id}/json_dump'
-    snp_json:   '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.json'
-    snp_tsv:    '{anndir}/{general.rf_model_id}/hard_filter_evaluation.snv.tsv'
-    indel_json: '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.json'
-    indel_tsv:  '{anndir}/{general.rf_model_id}/hard_filter_evaluation.indel.tsv'
+    json_dump_folder: '${cvars.anndir}/${general.rf_model_id}/json_dump'
+    snp_json:   '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.json'
+    snp_tsv:    '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.tsv'
+    indel_json: '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.indel.json'
+    indel_tsv:  '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.indel.tsv'
 
   plot:
-    snv-precision-recall: '{pltdir}/hard_filter_evaluation.snv.precision_recall.html'
-    snv-TP-FP: '{pltdir}/hard_filter_evaluation.snv.tp_fp.html'
-    snv-TP-mendelian_error_mean: '{pltdir}/hard_filter_evaluation.snv.tp_mendel.html'
-    snv-TP-t_u_ratio: '{pltdir}/hard_filter_evaluation.snv.tp_t_u_ratio.html'
-    indel-TP-FP: '{pltdir}/hard_filter_evaluation.indel.tp_fp.html'
-    indel-TP-mendelian_error_mean: '{pltdir}/hard_filter_evaluation.indel.tp_mendel.html'
-    indel-precision-recall: '{pltdir}/hard_filter_evaluation.indel.precision_recall.html'
+    snv-precision-recall: '${cvars.pltdir}/hard_filter_evaluation.snv.precision_recall.html'
+    snv-TP-FP: '${cvars.pltdir}/hard_filter_evaluation.snv.tp_fp.html'
+    snv-TP-mendelian_error_mean: '${cvars.pltdir}/hard_filter_evaluation.snv.tp_mendel.html'
+    snv-TP-t_u_ratio: '${cvars.pltdir}/hard_filter_evaluation.snv.tp_t_u_ratio.html'
+    indel-TP-FP: '${cvars.pltdir}/hard_filter_evaluation.indel.tp_fp.html'
+    indel-TP-mendelian_error_mean: '${cvars.pltdir}/hard_filter_evaluation.indel.tp_mendel.html'
+    indel-precision-recall: '${cvars.pltdir}/hard_filter_evaluation.indel.precision_recall.html'
 
 
   # --- Step 4.2 --- #
   annotate_cq_rf:
-    mtfile: '{mtdir}/mt_varqc_splitmulti.mt'
-    cqfile: '{metadir}/control_set_small.all_consequences_with_gene_and_csq.tsv.bgz'
+    mtfile: '${cvars.mtdir}/mt_varqc_splitmulti.mt'
+    cqfile: '${cvars.metadir}/control_set_small.all_consequences_with_gene_and_csq.tsv.bgz'
 
   apply_hard_filters:
     hard_filters:
@@ -465,34 +438,34 @@ step4:
           call_rate: 0.5
 
   # used as an output of the whole step
-  mtoutfile_annot: '{mtdir}/mt_hard_filter_combinations.mt'
+  mtoutfile_annot: '${cvars.mtdir}/mt_hard_filter_combinations.mt'
 
   # --- Step 4.3a --- #
   export_vcfs_a:
-    mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    vcf_output_dir: '{vcf_export_dir}/filtered_vcfs_combinations/'
+    mtfile: '${cvars.mtdir}/mt_hard_filter_combinations.mt'
+    vcf_output_dir: '${cvars.vcf_export_dir}/filtered_vcfs_combinations/'
 
   # --- Ster 4.3b --- #
   export_vcfs_b:
-    mtfile: '{mtdir}/mt_hard_filter_combinations.mt'
-    filtered_vcf_dir: '{vcf_export_dir}/filtered_vcfs_combinations_stringent/'
+    mtfile: '${cvars.mtdir}/mt_hard_filter_combinations.mt'
+    filtered_vcf_dir: '${cvars.vcf_export_dir}/filtered_vcfs_combinations_stringent/'
 
   # --- Step 4.4 --- #
   annotate_gnomad:
-    # mtfile: '{mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
-    mtfile: '{mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
-    gnomad_htfile: '{resdir}/gnomad.exomes.r4.1.freq_only.ht'
+    # mtfile: '${cvars.mtdir}/mt_after_var_qc_hard_filter_gt.mt' # used when 1-apply_hard_filters is run
+    mtfile: '${cvars.mtdir}/mt_hard_filter_combinations.mt' # used when 1a-apply_hard_filters is run
+    gnomad_htfile: '${cvars.resdir}/gnomad.exomes.r4.1.freq_only.ht'
 
   get_trans_untrans_synon_singleton_counts:
-    pedfile: '{resdir}/trios.ped'
+    pedfile: '${cvars.resdir}/trios.ped'
 
   get_counts_per_cq:
-    cqfile: '{anndir}/variant_counts_per_cq_post_qc.txt'
+    cqfile: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
 
   # --- Step 4.5 --- #
   plot_mutation_spectra_afterqc:
-    mut_spectra_path: '{anndir}/mutation_spectra_afterqc.tsv'
-    mut_spectra_plot_path: '{pltdir}/mutation_spectra_afterqc.html'
+    mut_spectra_path: '${cvars.anndir}/mutation_spectra_afterqc.tsv'
+    mut_spectra_plot_path: '${cvars.pltdir}/mutation_spectra_afterqc.html'
     iqr_multiplier: 1.5
     width: 800
     height: 600
