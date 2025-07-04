@@ -13,15 +13,10 @@ Config
 # ruff: noqa: E402
 # TODO: cleanup these imports
 
-from utils.config import (  # noqa
-    getp,  # noqa
-    subdict,  # noqa
-    multigetp,  # noqa
-    __is_path_field_re,  # noqa
-    __is_path_field,  # noqa
-    _expand_cvars_str,  # noqa
-    _process_cvars_in_flat_config,  # noqa
+from wes_qc.config import (  # noqa
     parse_config,  # noqa
+)
+from wes_qc.hail_utils import (
     path_local,  # noqa
     path_spark,  # noqa
 )  # noqa

@@ -34,7 +34,7 @@ from collections import Counter
 from pathlib import Path
 import hail as hl
 import numpy as np
-from utils.config import path_spark
+from wes_qc.hail_utils import path_spark
 from utils.utils import parse_config
 from wes_qc import hail_utils
 

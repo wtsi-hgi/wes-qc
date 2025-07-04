@@ -16,8 +16,8 @@ from typing import Any
 
 import hail as hl  # type: ignore
 
-from utils.config import path_spark
-from utils.utils import parse_config
+from wes_qc.hail_utils import path_spark
+from wes_qc.config import parse_config
 from wes_qc import filtering, hail_utils
 
 

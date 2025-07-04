@@ -62,3 +62,32 @@ def trace_analysis_step(mt: hl.MatrixTable, description: str = "") -> hl.MatrixT
 def print_analysis_steps(analysis_steps: hl.ArrayExpression) -> None:
     for n, step in enumerate(hl.eval(analysis_steps)):
         print(f"Step {n:4}\t{step.step_name:20}\t{step.step_description}")
+
+
+"""
+Path utils
+"""
+
+
+def path_spark(path: str) -> str:
+    """
+    Ensure `path` is a valid spark path.
+    That is, add 'file://' prefix if needed
+    """
+    if path.startswith("file://"):
+        return path
+    if path.startswith("hdfs://"):
+        raise NotImplementedError("Cannot convert hdfs to a spark path")
+    return "file://" + path
+
+
+def path_local(path: str) -> str:
+    """
+    Ensure `path` is a valid linux path.
+    That is, remove 'file://' prefix if needed
+    """
+    if path.startswith("file://"):
+        return path[7:]
+    if path.startswith("hdfs://"):
+        raise NotImplementedError("Cannot convert hdfs to a local path")
+    return path
