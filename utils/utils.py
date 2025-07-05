@@ -14,7 +14,7 @@ Config
 # TODO: cleanup these imports
 
 from wes_qc.config import (  # noqa
-    parse_config,  # noqa
+    get_config as parse_config,  # noqa
 )
 from wes_qc.hail_utils import (
     path_local,  # noqa

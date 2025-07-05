@@ -20,8 +20,7 @@ def parse_config_file(file_name: str) -> WxsqcConfig:
     return cast(WxsqcConfig, config)
 
 
-# TODO: rename to load_config or get_config
-def parse_config(path: Optional[str] = None) -> WxsqcConfig:
+def get_config(path: Optional[str] = None) -> WxsqcConfig:
     """
     Read and parse WES QC YAML config from the default location,
     env variable, or function argument.
