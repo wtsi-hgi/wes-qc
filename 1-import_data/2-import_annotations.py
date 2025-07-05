@@ -3,7 +3,7 @@ import hail.plot
 import bokeh
 
 from utils.utils import parse_config
-from utils.config import path_spark
+from wes_qc.hail_utils import path_spark
 from wes_qc import hail_utils
 
 verifybamid_types = {

@@ -6,7 +6,7 @@ keeping only data that are required for the VariantQC
 import hail as hl  # type: ignore
 
 from utils.utils import parse_config
-from utils.config import path_spark
+from wes_qc.hail_utils import path_spark
 from wes_qc import hail_utils
 
 

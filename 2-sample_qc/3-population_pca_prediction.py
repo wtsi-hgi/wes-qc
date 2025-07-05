@@ -5,7 +5,7 @@ from typing import Tuple
 import hail as hl
 from gnomad.sample_qc.ancestry import assign_population_pcs, pc_project
 
-from utils.config import path_local, path_spark
+from wes_qc.hail_utils import path_local, path_spark
 from utils.utils import parse_config
 from wes_qc import hail_utils, filtering, visualize
 
@@ -212,7 +212,7 @@ def main():
         # TODO: Modify pop_pca to assign 1KG populations from the original matrixtable and avoid using the kg_pop_file
         cohorts_pop = hl.import_table(kg_pop_file, delimiter="\t")
         # Renaming samples the same way as on the step 0.1
-        cohorts_pop = cohorts_pop.annotate(s=hl.str('1kg-for-pop-pca_') + cohorts_pop["Sample name"])
+        cohorts_pop = cohorts_pop.annotate(s=hl.str("1kg-for-pop-pca_") + cohorts_pop["Sample name"])
         cohorts_pop = cohorts_pop.key_by(cohorts_pop.s)
 
         pca_1kg_scores = pca_1kg_scores.annotate(known_pop=cohorts_pop[pca_1kg_scores.s]["Superpopulation code"])
