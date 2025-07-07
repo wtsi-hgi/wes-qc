@@ -16,8 +16,8 @@ from typing import Any
 
 import hail as hl  # type: ignore
 
-from utils.config import path_spark
-from utils.utils import parse_config
+from wes_qc.hail_utils import path_spark
+from wes_qc.config import get_config
 from wes_qc import filtering, hail_utils
 
 
@@ -150,7 +150,7 @@ def get_options() -> Any:
 
 def main() -> None:
     # = STEP SETUP = #
-    config = parse_config()
+    config = get_config()
     args = get_options()
     if args.all:
         args.kg_to_mt = True
