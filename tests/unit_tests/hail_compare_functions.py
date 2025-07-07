@@ -1,3 +1,9 @@
+"""
+Different functions comparing hail objects.
+Used for validation tests --
+comparison of pipeline output with reference results.
+"""
+
 import re
 import gzip
 
@@ -6,7 +12,7 @@ import hail as hl
 from typing import Union
 
 # ensure that PYTHONPATH includes the wes-qc directory
-from wes_qc.config import path_spark
+from wes_qc.hail_utils import path_spark
 
 
 def compare_structs(struct1, struct2):

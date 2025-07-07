@@ -65,7 +65,7 @@ def get_config(path: Optional[str] = None) -> WxsqcConfig:
 
     # read config
     if not os.path.exists(input_yaml):
-        print(f"error: config {input_yaml} does not exist")
-    print(f"Loading config '{input_yaml}', {config_type}")
+        raise ValueError(f"Config {input_yaml} does not exist")
 
+    print(f"Loading config '{input_yaml}', {config_type}")
     return parse_config_file(input_yaml)

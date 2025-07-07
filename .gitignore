@@ -138,6 +138,7 @@ tests/unit_tests/*
 # except the test_*.py files
 !tests/unit_tests/test_*.py
 !tests/unit_tests/conftest.py
+!tests/unit_tests/hail_compare_functions.py
 tests/integration_tests/*
 # except the test_*.py files
 !tests/integration_tests/test_*.py
