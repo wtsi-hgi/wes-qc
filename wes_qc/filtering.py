@@ -2,7 +2,7 @@
 All fucntions used to filter samples/variants
 """
 
-import hail as hl  # type: ignore
+import hail as hl
 
 from wes_qc import hail_patches
 

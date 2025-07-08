@@ -7,9 +7,10 @@ import hail as hl
 import json
 import logging
 from typing import Optional, Any, Union
-from utils.utils import parse_config, path_spark
+from wes_qc.hail_utils import path_spark
+from wes_qc.config import get_config
 from utils.utils import select_founders, collect_pedigree_samples
-from wes_qc import hail_utils
+from wes_qc import hail_utils, filtering
 import pandas as pd
 import bokeh.plotting
 import bokeh.layouts
@@ -122,7 +123,7 @@ def str_timedelta(delta: datetime.timedelta) -> str:
     return f"{days} days and {hours:4.2f} hr"
 
 
-def cache_filter_results(func):
+def cache_filter_results(func: Any):
     """
     Decorator to handle caching of filter combination results to JSON files.
     If a cached result exists, it will be loaded instead of recomputing.
@@ -161,6 +162,7 @@ def process_filter_combination(
     var_type: str,
     mtdir: str,
     giab_sample_id: Optional[str] = None,
+    prec_recall_panel: Optional[hl.Table] = None,
 ) -> dict:
     """
     Process a single filter combination and return the variant counts and metrics.
@@ -218,12 +220,15 @@ def process_filter_combination(
         )
 
         if var_type == "snv":
-            prec, recall = count_precision_recall(ht_giab_control, ht_giab_dataset)
+            prec, recall = count_precision_recall(ht_giab_control, ht_giab_dataset, prec_recall_panel)
             var_counts["prec"] = prec
             var_counts["recall"] = recall
         elif var_type == "indel":
             prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = count_prec_recall_indel(
-                ht_giab_control=ht_giab_control, ht_giab_dataset=ht_giab_dataset, mtdir=mtdir
+                ht_giab_control=ht_giab_control,
+                ht_giab_dataset=ht_giab_dataset,
+                mtdir=mtdir,
+                prec_recall_panel=prec_recall_panel,
             )
             var_counts["prec"] = prec
             var_counts["recall"] = recall
@@ -266,6 +271,7 @@ def filter_and_count(
     hardfilter_combinations: dict[str, Union[int, float]],
     giab_sample_id: Optional[str],
     json_dump_folder: str,
+    prec_recall_panel: Optional[hl.Table] = None,
     **kwargs,
 ) -> dict:
     """
@@ -360,6 +366,7 @@ def filter_and_count(
                             giab_sample_id=giab_sample_id,
                             filter_name=filter_name,
                             json_dump_folder=json_dump_folder,
+                            prec_recall_panel=prec_recall_panel,
                         )
 
                         results[var_type][filter_name] = var_counts
@@ -433,7 +440,9 @@ def apply_hard_filters(
     return mt_tmp
 
 
-def count_prec_recall_indel(ht_giab_control: hl.Table, ht_giab_dataset: hl.Table, mtdir: str) -> tuple:
+def count_prec_recall_indel(
+    ht_giab_control: hl.Table, ht_giab_dataset: hl.Table, mtdir: str, prec_recall_panel: Optional[hl.Table] = None
+) -> tuple:
     """
     Get precison/recall vs GIAB for indels
     In fact, calls calculate_precision_recall for different subset of indels
@@ -447,14 +456,14 @@ def count_prec_recall_indel(ht_giab_control: hl.Table, ht_giab_dataset: hl.Table
     ht_giab_dataset_indels = ht_giab_dataset.checkpoint(tmp_ht_giab_dataset_indels, overwrite=True)
 
     # Regular precision-recall for the full set of indels
-    p, r = count_precision_recall(ht_giab_control, ht_giab_dataset_indels)
+    p, r = count_precision_recall(ht_giab_control, ht_giab_dataset_indels, prec_recall_panel)
 
     # Precision/recall for FrameShift indels
     ht_giab_control_frameshift = ht_giab_control.filter(ht_giab_control.consequence == "frameshift_variant")
     ht_giab_dataset_frameshift = ht_giab_dataset_indels.filter(
         ht_giab_dataset_indels.consequence == "frameshift_variant"
     )
-    p_f, r_f = count_precision_recall(ht_giab_control_frameshift, ht_giab_dataset_frameshift)
+    p_f, r_f = count_precision_recall(ht_giab_control_frameshift, ht_giab_dataset_frameshift, prec_recall_panel)
 
     # Precision/recall for In-Frame indels
     inframe_cqs = ["inframe_deletion", "inframe_insertion"]
@@ -462,18 +471,27 @@ def count_prec_recall_indel(ht_giab_control: hl.Table, ht_giab_dataset: hl.Table
     ht_giab_dataset_inframe = ht_giab_dataset_indels.filter(
         hl.literal(inframe_cqs).contains(ht_giab_dataset_indels.consequence)
     )
-    p_if, r_if = count_precision_recall(ht_giab_conrol_inframe, ht_giab_dataset_inframe)
+    p_if, r_if = count_precision_recall(ht_giab_conrol_inframe, ht_giab_dataset_inframe, prec_recall_panel)
 
     return p, r, p_f, r_f, p_if, r_if
 
 
-def count_precision_recall(ht_control: hl.Table, ht_dataset: hl.Table) -> tuple[float, float]:
+def count_precision_recall(
+    ht_control: hl.Table, ht_dataset: hl.Table, prec_recall_panel: Optional[hl.Table] = None
+) -> tuple[float, float]:
     """
     Calculates precision/recall for the gived control and test Hail tables.
     :param hl.Table ht_control: Control set
     :paran hl.Table ht_test: Test set
     :return tuple:
     """
+    if prec_recall_panel is not None:
+        print("DEBUG: Filtering variants by high-confidence panel")
+        print(f"DEBUG: Before:\t{ht_control.count()} control\t{ht_dataset.count()} dataset")
+        ht_control = filtering.filter_by_bed(ht_control, prec_recall_panel)
+        ht_dataset = filtering.filter_by_bed(ht_dataset, prec_recall_panel)
+        print(f"DEBUG: After:\t{ht_control.count()} control\t{ht_dataset.count()} dataset")
+
     vars_in_both = ht_control.semi_join(ht_dataset)
     control_only = ht_control.anti_join(ht_dataset)
     test_only = ht_dataset.anti_join(ht_control)
@@ -861,7 +879,7 @@ def get_options() -> Any:
 
 def main():
     # = STEP SETUP = #
-    config = parse_config()
+    config = get_config()
     args = get_options()
     if args.all:
         args.prepare = True
@@ -882,6 +900,7 @@ def main():
     # GIAB sample to compare
     giab_vcf: str = config["step4"]["evaluation"]["giab_vcf"]
     giab_cqfile: str = config["step4"]["evaluation"]["giab_cqfile"]
+    prec_recall_panel_bed = config["step4"]["evaluation"]["prec_recall_panel_bed"]
 
     # Files from VariantQC
     mtfile: str = config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"]
@@ -914,6 +933,7 @@ def main():
         mt_annot.write(path_spark(mt_annot_path), overwrite=True)
 
     ht_giab_control = hl.read_table(path_spark(giab_ht_file))
+    prec_recall_panel = hl.import_bed(path_spark(prec_recall_panel_bed)) if prec_recall_panel_bed is not None else None
 
     if args.evaluate_snv:
         print("=== Calculating hard filter evaluation for SNV ===")
@@ -926,6 +946,7 @@ def main():
             pedigree,
             mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="snv",
+            prec_recall_panel=prec_recall_panel,
             **config["step4"]["evaluation"],
         )
 
@@ -945,6 +966,7 @@ def main():
             pedigree,
             mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="indel",
+            prec_recall_panel=prec_recall_panel,
             **config["step4"]["evaluation"],
         )
 

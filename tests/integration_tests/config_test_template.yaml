@@ -363,6 +363,8 @@ step4:
   evaluation:
     giab_vcf: '${cvars.resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
     giab_cqfile: '${cvars.resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
+    # The list of overlaps between the high-confidence regions from giab_vcf and panel used for the dataset
+    prec_recall_panel_bed: '${cvars.metadir}/20130108.exome.targets.HG001_GRCh38_1_22_v4.2.1_benchmark.bed'
     giab_ht_file: '${cvars.mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
