@@ -111,3 +111,47 @@ def test_filter_vars_for_quality(mt_sex_chr):
         mt_sex_chr, call_rate_threshold=0.99, af_threshold=0.05, hwe_threshold=1e-5
     )
     mt_vqc_filtered.count_rows()
+
+
+@pytest.fixture
+def mock_hail_table():
+    """Fixture to create a mock Hail Table"""
+    data = [
+        {"locus": hl.Locus("chr1", 1000, reference_genome="GRCh38")},
+        {"locus": hl.Locus("chr1", 2000, reference_genome="GRCh38")},
+        {"locus": hl.Locus("chr2", 3000, reference_genome="GRCh38")},
+    ]
+    ht = hl.Table.parallelize(data, hl.tstruct(locus=hl.tlocus(reference_genome="GRCh38")))
+    ht = ht.key_by("locus")
+    return ht
+
+
+@pytest.fixture
+def temp_bed(tmp_path):
+    """Fixture to create a temporary BED file"""
+    bed_content = "chr1\t500\t1500\nchr2\t2500\t3500\n"
+    bed_file_name = tmp_path / "test.bed"
+    bed_file_name.write_text(bed_content)
+    bed = hl.import_bed(str(bed_file_name), reference_genome="GRCh38")
+    bed = bed.key_by("interval")
+    return bed
+
+
+def test_filter_by_bed_filters_correctly(mock_hail_table, temp_bed):
+    """Test that filter_by_bed correctly filters the table using the BED file"""
+    result = filtering.filter_by_bed(mock_hail_table, temp_bed)
+    expected_loci = [
+        hl.Locus("chr1", 1000, reference_genome="GRCh38"),
+        hl.Locus("chr2", 3000, reference_genome="GRCh38"),
+    ]
+    result_loci = result.locus.collect()
+    assert result_loci == expected_loci
+
+
+def test_filter_by_bed_no_matches(mock_hail_table, tmp_path):
+    """Test that filter_by_bed handles cases where no loci match"""
+    bed_file = tmp_path / "empty.bed"
+    bed_file.write_text("chr3\t1000\t2000\n")
+    bed = hl.import_bed(str(bed_file), reference_genome="GRCh38")
+    result = filtering.filter_by_bed(mock_hail_table, bed)
+    assert result.count() == 0

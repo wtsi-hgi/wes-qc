@@ -108,3 +108,10 @@ def remove_palindromes(mt: hl.MatrixTable) -> hl.MatrixTable:
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "A") & (mt_non_pal.alleles[1] == "T"), keep=False)
     mt_non_pal = mt_non_pal.filter_rows((mt_non_pal.alleles[0] == "T") & (mt_non_pal.alleles[1] == "A"), keep=False)
     return mt_non_pal
+
+
+def filter_by_bed(ht: hl.Table, intervals: hl.Table) -> hl.Table:
+    """
+    Filter a Hail Table by a BED file
+    """
+    return ht.filter(hl.is_defined(intervals[ht.locus]))
