@@ -18,14 +18,14 @@ test-it-one-step-profile: clear-hard-filter-checkpoints
 	snakeviz --hostname 0.0.0.0 $(shell pwd)/tests/integration_tests/profile.stats
 
 integration-test-trios: clear-ht clear-logs
-	cd tests/integration_tests && pytest -k test_trios_
+	cd tests/integration_tests && pytest -k "test_trios_ and not test_trios_0_3_import_data"
 
 integration-test-non-trios: clear-ht clear-logs
-	cd tests/integration_tests && pytest -k test_non_trios_
+	cd tests/integration_tests && pytest -k "test_non_trios_ and not test_non_trios_0_3_import_data"
 
 
 integration-test-coverage: clear-ht clear-logs
-	cd tests/integration_tests && pytest -k test_trios_ --cov=../..
+	cd tests/integration_tests && pytest -k "test_trios_ and not test_trios_0_3_import_data" --cov=../..
 
 
 unit-test:

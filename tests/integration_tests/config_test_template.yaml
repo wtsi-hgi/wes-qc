@@ -370,6 +370,7 @@ step4:
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
     giab_sample_id: 'EGAN00003332049'
+    evaluate_unfiltered: true # Calculate stats for initial matrixtable without filtering
     hardfilter_combinations:
       snp_bins: [70, 90]
       indel_bins: [40, 80]
