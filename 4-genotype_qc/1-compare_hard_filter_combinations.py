@@ -6,7 +6,7 @@ from pathlib import Path
 import hail as hl
 import json
 import logging
-from typing import Optional, Any, Union, Callable
+from typing import Optional, Any, Union
 from wes_qc.hail_utils import path_spark
 from wes_qc.config import get_config
 from utils.utils import select_founders, collect_pedigree_samples
@@ -130,25 +130,7 @@ def str_timedelta(delta: datetime.timedelta) -> str:
     return f"{days} days and {hours:4.2f} hr"
 
 
-EvaluationFunc = Callable[
-    [
-        hl.MatrixTable,
-        int,
-        int,
-        float,
-        float,
-        hl.Table,
-        Optional[hl.Table],
-        str,
-        str,
-        Optional[str],
-        Optional[hl.Table],
-    ],
-    EvaluationStepResults,
-]
-
-
-def cache_filter_results(func: EvaluationFunc) -> EvaluationFunc:
+def cache_filter_results(func):
     """
     Decorator to handle caching of filter combination results to JSON files.
     If a cached result exists, it will be loaded instead of recomputing.
@@ -360,7 +342,8 @@ def filter_and_count(
         filter_name = get_filter_name(100, 0, 0, 0.0, 0.0)
 
         var_counts = process_filter_combination(
-            mt,
+            filter_name=filter_name,
+            mt_bin=mt,
             dp=0,
             gq=0,
             ab=0.0,
@@ -370,7 +353,6 @@ def filter_and_count(
             var_type=var_type,
             mtdir=mtdir,
             giab_sample_id=giab_sample_id,
-            filter_name=filter_name,
             json_dump_folder=json_dump_folder,
             prec_recall_panel=prec_recall_panel,
         )
@@ -404,7 +386,8 @@ def filter_and_count(
                         filter_name = get_filter_name(rf_bin, dp, gq, ab, call_rate)
                         # Running evaluation for the hardfilter combination
                         var_counts = process_filter_combination(
-                            mt_bin,
+                            filter_name=filter_name,
+                            mt_bin=mt_bin,
                             dp=dp,
                             gq=gq,
                             ab=ab,
@@ -414,7 +397,6 @@ def filter_and_count(
                             var_type=var_type,
                             mtdir=mtdir,
                             giab_sample_id=giab_sample_id,
-                            filter_name=filter_name,
                             json_dump_folder=json_dump_folder,
                             prec_recall_panel=prec_recall_panel,
                         )
