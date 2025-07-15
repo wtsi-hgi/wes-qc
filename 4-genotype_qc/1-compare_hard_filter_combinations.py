@@ -196,6 +196,7 @@ def process_filter_combination(
 
     var_counts: EvaluationStepResults = {"TP": 0.0, "FP": 0.0}
     # Counting TP and FP
+    var_counts["TP"], var_counts["FP"] = count_tp_fp(mt_hard_filtered)
 
     if pedigree is not None:
         mendelian_error_mean, mendelian_error_std = calculate_normalized_mendel_errors_proband(
