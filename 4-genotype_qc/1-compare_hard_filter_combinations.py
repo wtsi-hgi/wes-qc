@@ -10,7 +10,7 @@ from typing import Optional, Any, Union
 from wes_qc.hail_utils import path_spark
 from wes_qc.config import get_config
 from utils.utils import select_founders, collect_pedigree_samples
-from wes_qc import hail_utils, filtering
+from wes_qc import hail_utils, filtering, hail_patches
 import pandas as pd
 import bokeh.plotting
 import bokeh.layouts
@@ -108,7 +108,7 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, prec_recall_panel: Optional
     ht = ht.drop(ht.chr, ht.pos, ht.ref, ht.alt)
 
     mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
-    mt = hl.split_multi_hts(mt)
+    mt = hail_patches.split_multi_hts(mt)
     # The GIAB HG001 release doesn't contain X-chromosome
     # Filtering it out just in case to get consistent results
     mt = mt.filter_rows(mt.locus.in_autosome())
@@ -335,7 +335,7 @@ def filter_and_count(
 
     print(f"=== Starting evaluation for {var_type} ===")
     mt = mt.filter_rows(mt.type == var_type)
-    mt = hl.split_multi_hts(mt)  # Just in case to have same variants as in the GIAB VCF
+    mt = hail_patches.split_multi_hts(mt)  # Just in case to have same variants as in the GIAB VCF
     n_steps_run = 0
 
     if evaluate_unfiltered:
