@@ -141,7 +141,7 @@ step2:
   f_stat_outliers:
     fstat_outliers_report_file: '${cvars.anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_hist_path: '${cvars.pltdir}/fstat_hist.html'
-    fstat_low: 0.2
+    fstat_low: 0.4
     fstat_high: 0.8
 
   sex_inconsistencies:
@@ -361,20 +361,23 @@ step3:
 step4:
   # --- Step 4.1 --- #
   evaluation:
-    giab_vcf:    '${cvars.resdir}/HG001_GRCh38_1_22_v4.2.1_benchmark.1kg-panel.vcf.gz'
+    giab_vcf:    '${cvars.resdir}/HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz'
     giab_cqfile: '${cvars.resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
+    # The list of overlaps between the high-confidence regions from giab_vcf and panel used for the dataset
+    prec_recall_panel_bed: '${cvars.metadir}/HG001_twistedexome_1kg.bed'
     giab_ht_file: '${cvars.mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
     # (the precision/recall calculations will be skipped in this case)
     giab_sample_id: 'NA12878'
+    evaluate_unfiltered: true # Calculate stats for initial matrixtable without filtering
     hardfilter_combinations:
-      snp_bins:   [ 86, 88, 90, 91, 92, 93, 94, 96 ]
-      indel_bins: [ 68, 70, 72, 74, 76, 78, 80, 84, 88 ]
-      dp_vals: [ 5, 10 ]
-      gq_vals: [ 10, 15 ]
-      ab_vals: [ 0.2, 0.3 ]
-      missing_vals: [ 0.1, 0.5 ]
+      snp_bins:   [ 88, 90, 92, 94, 96 ]
+      indel_bins: [ 72, 76, 80, 84, 88 ]
+      dp_vals: [ 5 ]
+      gq_vals: [ 10 ]
+      ab_vals: [ 0.2 ]
+      missing_vals: [ 0.5 ]
     json_dump_folder: '${cvars.anndir}/${general.rf_model_id}/json_dump'
     snp_json:   '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.tsv'

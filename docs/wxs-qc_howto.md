@@ -32,7 +32,7 @@ To run through this guide, you need a machine or a cluster with Python and Hail 
 To set up the environment, refer to the [setup howto](wxs-qc_setup.md).
 
 **Note:**
-If you have Hail installed on a SPARK cluster, 
+If you have Hail installed on a SPARK cluster,
 use `spartk-submit` instead of regular `pyhton`
 to run pipeline scripts.
 
@@ -123,7 +123,7 @@ with the following subfolders:
 * `variant_qc_random_forest`
 * `vcf_afterqc_export` - for exporting final VCFs after QC
 
-Copy/symlink to the folder your resources and data. 
+Copy/symlink to the folder your resources and data.
 
 ## Stage 0. Prepare resource data
 
@@ -383,15 +383,15 @@ To change default number of bins, use the `n_bins` config parameter.
 
 The final step in sample QC is filtering the data to remove samples which are identified as failing in the previous script.
 
-At this stage, you can provide an additional list of samples to remove. 
+At this stage, you can provide an additional list of samples to remove.
 It could be the samples failing FreeMix score, F-start check, or any other.
 To use it, specify the file in the `samples_to_remove_file` section of the config.
-This is a plain text file without a header, containing one sample per line. 
+This is a plain text file without a header, containing one sample per line.
 
 If you don't want t remove any additional samples, put `null` in the config instead of sample file name.
 
-**Note:** automatic removing of samples failing FreeMix 
-and more convenient combined sample statistics  
+**Note:** automatic removing of samples failing FreeMix
+and more convenient combined sample statistics
 are in the implementation.
 
 ```shell
@@ -444,15 +444,15 @@ python 3-variant_qc/2-create_rf_ht.py
 ### Train the random forest model
 
 Then, we train the RF model on the constructed dataset.
-Here we use `--manual-model-id` parameter to 
-manually set the random forest model ID 
+Here we use `--manual-model-id` parameter to
+manually set the random forest model ID
 (called _runhash_ previously, so you can find this term in the code)
 
 ```shell
 python  3-variant_qc/3-train_rf.py --manual-model-id wxs-qc_public
 ```
 
-If you don't set the the RF ID, the script will 
+If you don't set the the RF ID, the script will
 generate and print to STDOUT the random ID: 8-character string consisting of letters and numbers.
 Put this ID in the config file in the `rf_model_id:` parameter under the `general` section.
 
@@ -493,7 +493,7 @@ python 3-variant_qc/5-annotate_ht_after_rf.py
 
 ### Group variants by ranks
 
-At this stage, we rank all variants depending on their RF score and 
+At this stage, we rank all variants depending on their RF score and
 group it into 100 bins (bin 1 is the most quality variants.)
 
 ```shell
@@ -502,7 +502,7 @@ python 3-variant_qc/6-rank_and_bin.py
 
 ### Plot and analyse the results
 
-Create plots of the binned random forest output to use in the selection of thresholds. 
+Create plots of the binned random forest output to use in the selection of thresholds.
 Separate thresholds are used for SNPs and indels.
 
 ```shell
@@ -588,9 +588,9 @@ you can use it to calculate precision/recall values.
 Add the sample control name, the corresponding VCF file, and the VEP annotation to the config:
 
 ```yaml
-    giab_vcf: '{resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
+    giab_vcf: '{resdir}/HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz'
     giab_cqfile: '{resdir}/all.interval.illumina.vep.info.txt'
-    giab_sample: 'NA12878.alt_bwamem_GRCh38DH.20120826.exome'
+    giab_sample: 'NA12878'
 ```
 
 Data files for the `GIAB HG001/NA12878` sample are available in the resource data
@@ -603,7 +603,26 @@ even if you're skipping the precision/recall calculation.
 If you don't have a GIAB sample, put `null` in the `giab_sample` section.
 The precision/recall calculations will be skipped in this case.
 
-Run the hard-filter evaluation step:
+**Making the correct panel for precision/recall evaluation:**
+The precision-recall calculation compares the variations in the control GIAB VCF with the variations
+actually present in your dataset GIAB sample.
+To get correct precision/recall values you should use for evaluation
+the intersection of confident regions between GIAb VCF (`HG001_GRCh38_1_22_v4.2.1_benchmark.vcf.gz`)
+and your dataset sequencing panel.
+
+Intersect it using `bedtools` to get the overlaps:
+
+```shell
+bedtools intersect -a HG001_GRCh38_1_22_v4.2.1_benchmark.bed -b your_exome_panel_intervals.bed > HG001_exome_intersected.bed
+```
+
+Place the resulting panel file to the `metadata` folder and add it to the config:
+
+```yaml
+    prec_recall_panel_bed: '${cvars.metadir}/HG001_exome_intersected.bed'
+```
+
+**Run the hard-filter evaluation step**:
 
 ```shell
 python 4-genotype_qc/1-compare_hard_filter_combinations.py --all

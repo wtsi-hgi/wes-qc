@@ -7,9 +7,10 @@ import hail as hl
 import json
 import logging
 from typing import Optional, Any, Union
-from utils.utils import parse_config, path_spark
+from wes_qc.hail_utils import path_spark
+from wes_qc.config import get_config
 from utils.utils import select_founders, collect_pedigree_samples
-from wes_qc import hail_utils
+from wes_qc import hail_utils, filtering, hail_patches
 import pandas as pd
 import bokeh.plotting
 import bokeh.layouts
@@ -23,6 +24,8 @@ import datetime
 
 snv_label = "snv"
 indel_label = "indel"
+
+EvaluationStepResults = dict[str, Union[int, float]]
 
 
 def clean_mt(mt: hl.MatrixTable) -> hl.MatrixTable:
@@ -76,7 +79,7 @@ def annotate_cq(mt: hl.MatrixTable, cqfile: str) -> hl.MatrixTable:
     return mt
 
 
-def prepare_giab_ht(giab_vcf: str, giab_cqfile: str) -> hl.Table:
+def prepare_giab_ht(giab_vcf: str, giab_cqfile: str, prec_recall_panel: Optional[hl.Table]) -> hl.Table:
     """
     Make GIAB table from the VCF file
     :param str giab_vcf: input VCF file
@@ -105,8 +108,13 @@ def prepare_giab_ht(giab_vcf: str, giab_cqfile: str) -> hl.Table:
     ht = ht.drop(ht.chr, ht.pos, ht.ref, ht.alt)
 
     mt = mt.annotate_rows(consequence=ht[mt.row_key].consequence)
+    mt = hail_patches.split_multi_hts(mt)
+    # The GIAB HG001 release doesn't contain X-chromosome
+    # Filtering it out just in case to get consistent results
+    mt = mt.filter_rows(mt.locus.in_autosome())
     giab_vars = mt.rows()
-
+    if prec_recall_panel is not None:
+        giab_vars = filtering.filter_by_bed(giab_vars, prec_recall_panel)
     return giab_vars
 
 
@@ -129,7 +137,7 @@ def cache_filter_results(func):
     If not, the function will be executed and its results cached.
     """
 
-    def wrapper(filter_name: str, json_dump_folder: str, var_type: str, **kwargs) -> dict:
+    def wrapper(filter_name: str, json_dump_folder: str, var_type: str, **kwargs) -> EvaluationStepResults:
         json_dump_file = os.path.join(json_dump_folder, f"{var_type}_hardfilters_{filter_name}.json")
 
         if os.path.exists(json_dump_file):
@@ -161,7 +169,8 @@ def process_filter_combination(
     var_type: str,
     mtdir: str,
     giab_sample_id: Optional[str] = None,
-) -> dict:
+    prec_recall_panel: Optional[hl.Table] = None,
+) -> EvaluationStepResults:
     """
     Process a single filter combination and return the variant counts and metrics.
 
@@ -185,7 +194,7 @@ def process_filter_combination(
         mt_bin, dp=dp, gq=gq, ab=ab, call_rate=call_rate, checkpoint_path=mt_hard_path
     )
 
-    var_counts: dict[str, Any] = {}
+    var_counts: EvaluationStepResults = {"TP": 0.0, "FP": 0.0}
     # Counting TP and FP
     var_counts["TP"], var_counts["FP"] = count_tp_fp(mt_hard_filtered)
 
@@ -218,12 +227,15 @@ def process_filter_combination(
         )
 
         if var_type == "snv":
-            prec, recall = count_precision_recall(ht_giab_control, ht_giab_dataset)
+            prec, recall = count_precision_recall(ht_giab_control, ht_giab_dataset, prec_recall_panel)
             var_counts["prec"] = prec
             var_counts["recall"] = recall
         elif var_type == "indel":
             prec, recall, prec_frameshift, recall_frameshift, prec_inframe, recall_inframe = count_prec_recall_indel(
-                ht_giab_control=ht_giab_control, ht_giab_dataset=ht_giab_dataset, mtdir=mtdir
+                ht_giab_control=ht_giab_control,
+                ht_giab_dataset=ht_giab_dataset,
+                mtdir=mtdir,
+                prec_recall_panel=prec_recall_panel,
             )
             var_counts["prec"] = prec
             var_counts["recall"] = recall
@@ -249,6 +261,7 @@ def get_giab_sample_from_dataset(giab_sample_id: str, mt_hard: hl.MatrixTable, c
     Extracts the GIAB sample table from the dataset matrixtable
     """
     mt_giab_sample = mt_hard.filter_cols(mt_hard.s == giab_sample_id)  # GIAB sample for precision/recall
+    # Filtering out X and Y coromosomes because GIAB HG001 doesn't contain it
     mt_giab_sample = mt_giab_sample.filter_rows(mt_giab_sample.locus.in_autosome())
     mt_giab_sample = hl.variant_qc(mt_giab_sample)
     mt_giab_sample = mt_giab_sample.filter_rows(mt_giab_sample.variant_qc.n_non_ref > 0)
@@ -257,27 +270,38 @@ def get_giab_sample_from_dataset(giab_sample_id: str, mt_hard: hl.MatrixTable, c
     return ht_giab_dataset
 
 
+def get_filter_name(bin: int, dp: int, gq: int, ab: float, call_rate: float) -> str:
+    bin_str = f"bin_{bin:03d}"
+    dp_str = f"DP_{dp:02d}"
+    gq_str = f"GQ_{gq:02d}"
+    ab_str = f"AB_{ab:0.2f}"
+    missing_str = f"missing_{call_rate:0.2f}"
+    return "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
+
+
 def filter_and_count(
     mt: hl.MatrixTable,
     ht_giab_control: hl.Table,
     pedigree: Optional[hl.Pedigree],
     mtdir: str,
     var_type: str,
-    hardfilter_combinations: dict[str, Union[int, float]],
+    hardfilter_combinations: dict[str, list[Union[int, float]]],
     giab_sample_id: Optional[str],
     json_dump_folder: str,
+    evaluate_unfiltered: bool = False,
+    prec_recall_panel: Optional[hl.Table] = None,
     **kwargs,
 ) -> dict:
     """
     Filter MT by various bins followed by genotype GQ and calculate % of FP and TP remaining for each bin
     """
 
-    snv_bins: int = hardfilter_combinations["snp_bins"]
-    indel_bins: int = hardfilter_combinations["indel_bins"]
-    gq_vals: int = hardfilter_combinations["gq_vals"]
-    dp_vals: int = hardfilter_combinations["dp_vals"]
-    ab_vals: float = hardfilter_combinations["ab_vals"]
-    missing_vals: float = hardfilter_combinations["missing_vals"]
+    snv_bins: list[int] = hardfilter_combinations["snp_bins"]
+    indel_bins: list[int] = hardfilter_combinations["indel_bins"]
+    gq_vals: list[int] = hardfilter_combinations["gq_vals"]
+    dp_vals: list[int] = hardfilter_combinations["dp_vals"]
+    ab_vals: list[float] = hardfilter_combinations["ab_vals"]
+    missing_vals: list[float] = hardfilter_combinations["missing_vals"]
 
     Path(json_dump_folder).mkdir(parents=True, exist_ok=True)
 
@@ -311,7 +335,29 @@ def filter_and_count(
 
     print(f"=== Starting evaluation for {var_type} ===")
     mt = mt.filter_rows(mt.type == var_type)
+    mt = hail_patches.split_multi_hts(mt)  # Just in case to have same variants as in the GIAB VCF
     n_steps_run = 0
+
+    if evaluate_unfiltered:
+        print(f"=== Calculating pre-filter stats for {var_type} ===")
+        filter_name = get_filter_name(100, 0, 0, 0.0, 0.0)
+
+        var_counts = process_filter_combination(
+            filter_name=filter_name,
+            mt_bin=mt,
+            dp=0,
+            gq=0,
+            ab=0.0,
+            call_rate=0.0,
+            ht_giab_control=ht_giab_control,
+            pedigree=pedigree,
+            var_type=var_type,
+            mtdir=mtdir,
+            giab_sample_id=giab_sample_id,
+            json_dump_folder=json_dump_folder,
+            prec_recall_panel=prec_recall_panel,
+        )
+        results[var_type][filter_name] = var_counts
 
     mt_bin_path_previous = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.1.mt")
     mt_bin_path_current = os.path.join(mtdir, f"tmp.hard_filters_combs_{var_type}.bin.2.mt")
@@ -321,33 +367,27 @@ def filter_and_count(
     mtbin = mt
     mtbin.checkpoint(mt_bin_path_previous, overwrite=True)
 
-    for bin in sorted(bins, reverse=True):
-        bin_str = f"bin_{bin}"
-        print(f"=== Processing {var_type} bin: {bin} ===")
+    for rf_bin in sorted(bins, reverse=True):
+        print(f"=== Processing {var_type} bin: {rf_bin} ===")
         # Making next bin-filtered matrixtable form the previous matrixtable,
         # It works because we cycle from the most relaxed bin to the most stringent
-        mt_bin = mt.filter_rows(mtbin.info.rf_bin <= bin)
+        mt_bin = mt.filter_rows(mtbin.info.rf_bin <= rf_bin)
         mt_bin = mt_bin.checkpoint(mt_bin_path_current, overwrite=True)
         # Swapping paths
         # The current path becomes previous, and the old previous becomes current for the next bin
         mt_bin_path_previous, mt_bin_path_current = mt_bin_path_current, mt_bin_path_previous
 
         for dp in dp_vals:
-            dp_str = f"DP_{dp}"
             for gq in gq_vals:
-                gq_str = f"GQ_{gq}"
                 for ab in ab_vals:
-                    ab_str = f"AB_{ab}"
                     for call_rate in missing_vals:
-                        missing_str = f"missing_{call_rate}"
-
                         print(
-                            f"--- Testing {var_type} hard filter combination: bin={bin} DP={dp} GQ={gq} AB={ab} call_rate={call_rate}"
+                            f"--- Testing {var_type} hard filter combination: bin={rf_bin} DP={dp} GQ={gq} AB={ab} call_rate={call_rate}"
                         )
-                        logging.info(f"{dp_str} {gq_str} {ab_str} {missing_str}")
-                        filter_name = "_".join([bin_str, dp_str, gq_str, ab_str, missing_str])
+                        filter_name = get_filter_name(rf_bin, dp, gq, ab, call_rate)
                         # Running evaluation for the hardfilter combination
                         var_counts = process_filter_combination(
+                            filter_name=filter_name,
                             mt_bin=mt_bin,
                             dp=dp,
                             gq=gq,
@@ -358,8 +398,8 @@ def filter_and_count(
                             var_type=var_type,
                             mtdir=mtdir,
                             giab_sample_id=giab_sample_id,
-                            filter_name=filter_name,
                             json_dump_folder=json_dump_folder,
+                            prec_recall_panel=prec_recall_panel,
                         )
 
                         results[var_type][filter_name] = var_counts
@@ -433,28 +473,25 @@ def apply_hard_filters(
     return mt_tmp
 
 
-def count_prec_recall_indel(ht_giab_control: hl.Table, ht_giab_dataset: hl.Table, mtdir: str) -> tuple:
+def count_prec_recall_indel(
+    ht_giab_control: hl.Table, ht_giab_dataset: hl.Table, mtdir: str, prec_recall_panel: Optional[hl.Table] = None
+) -> tuple:
     """
     Get precison/recall vs GIAB for indels
     In fact, calls calculate_precision_recall for different subset of indels
-    :param hl.Table ht_giab_dataset: hail Table of variants in ALSPAC GIAB sample
-    :param hl.Table ht_giab_control: hail Table GIAB variants
-    :param str var_type: Variant type
-    :param str mtdir: matrixtable directory
-    :return: tuple
     """
     tmp_ht_giab_dataset_indels = os.path.join(mtdir, "tmp_pr_indel.ht")
     ht_giab_dataset_indels = ht_giab_dataset.checkpoint(tmp_ht_giab_dataset_indels, overwrite=True)
 
     # Regular precision-recall for the full set of indels
-    p, r = count_precision_recall(ht_giab_control, ht_giab_dataset_indels)
+    p, r = count_precision_recall(ht_giab_control, ht_giab_dataset_indels, prec_recall_panel)
 
     # Precision/recall for FrameShift indels
     ht_giab_control_frameshift = ht_giab_control.filter(ht_giab_control.consequence == "frameshift_variant")
     ht_giab_dataset_frameshift = ht_giab_dataset_indels.filter(
         ht_giab_dataset_indels.consequence == "frameshift_variant"
     )
-    p_f, r_f = count_precision_recall(ht_giab_control_frameshift, ht_giab_dataset_frameshift)
+    p_f, r_f = count_precision_recall(ht_giab_control_frameshift, ht_giab_dataset_frameshift, prec_recall_panel)
 
     # Precision/recall for In-Frame indels
     inframe_cqs = ["inframe_deletion", "inframe_insertion"]
@@ -462,18 +499,21 @@ def count_prec_recall_indel(ht_giab_control: hl.Table, ht_giab_dataset: hl.Table
     ht_giab_dataset_inframe = ht_giab_dataset_indels.filter(
         hl.literal(inframe_cqs).contains(ht_giab_dataset_indels.consequence)
     )
-    p_if, r_if = count_precision_recall(ht_giab_conrol_inframe, ht_giab_dataset_inframe)
+    p_if, r_if = count_precision_recall(ht_giab_conrol_inframe, ht_giab_dataset_inframe, prec_recall_panel)
 
     return p, r, p_f, r_f, p_if, r_if
 
 
-def count_precision_recall(ht_control: hl.Table, ht_dataset: hl.Table) -> tuple[float, float]:
+def count_precision_recall(
+    ht_control: hl.Table, ht_dataset: hl.Table, prec_recall_panel: Optional[hl.Table] = None
+) -> tuple[float, float]:
     """
-    Calculates precision/recall for the gived control and test Hail tables.
-    :param hl.Table ht_control: Control set
-    :paran hl.Table ht_test: Test set
-    :return tuple:
+    Calculates precision/recall for the given control and test Hail tables.
     """
+    if prec_recall_panel is not None:
+        # Control set has been filtered on the GIAB preparation stage
+        ht_dataset = filtering.filter_by_bed(ht_dataset, prec_recall_panel)
+
     vars_in_both = ht_control.semi_join(ht_dataset)
     control_only = ht_control.anti_join(ht_dataset)
     test_only = ht_dataset.anti_join(ht_control)
@@ -481,8 +521,8 @@ def count_precision_recall(ht_control: hl.Table, ht_dataset: hl.Table) -> tuple[
     fn = control_only.count()
     fp = test_only.count()
 
-    precision = tp / (tp + fp) if tp + fp > 0 else 0.0
-    recall = tp / (tp + fn) if tp + fn > 0 else 0.0
+    precision = tp / (tp + fp) if tp + fp > 0 else -1.0
+    recall = tp / (tp + fn) if tp + fn > 0 else -1.0
 
     return precision, recall
 
@@ -861,7 +901,7 @@ def get_options() -> Any:
 
 def main():
     # = STEP SETUP = #
-    config = parse_config()
+    config = get_config()
     args = get_options()
     if args.all:
         args.prepare = True
@@ -882,6 +922,7 @@ def main():
     # GIAB sample to compare
     giab_vcf: str = config["step4"]["evaluation"]["giab_vcf"]
     giab_cqfile: str = config["step4"]["evaluation"]["giab_cqfile"]
+    prec_recall_panel_bed = config["step4"]["evaluation"]["prec_recall_panel_bed"]
 
     # Files from VariantQC
     mtfile: str = config["step3"]["split_multi_and_var_qc"]["varqc_mtoutfile_split"]
@@ -898,10 +939,11 @@ def main():
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
     pedigree = hl.Pedigree.read(path_spark(pedfile)) if pedfile is not None else None
+    prec_recall_panel = hl.import_bed(path_spark(prec_recall_panel_bed)) if prec_recall_panel_bed is not None else None
 
     if args.prepare:
         print("=== Preparing control GIAB sample ===")
-        ht_giab_control = prepare_giab_ht(giab_vcf, giab_cqfile)
+        ht_giab_control = prepare_giab_ht(giab_vcf, giab_cqfile, prec_recall_panel)
         ht_giab_control.write(path_spark(giab_ht_file), overwrite=True)
 
         print("=== Annotating matrix table with RF bins ===")
@@ -926,6 +968,7 @@ def main():
             pedigree,
             mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="snv",
+            prec_recall_panel=prec_recall_panel,
             **config["step4"]["evaluation"],
         )
 
@@ -945,6 +988,7 @@ def main():
             pedigree,
             mtdir=path_spark(hardfilter_evaluate_workdir),
             var_type="indel",
+            prec_recall_panel=prec_recall_panel,
             **config["step4"]["evaluation"],
         )
 
