@@ -11,6 +11,8 @@ from hail.typecheck import oneof, typecheck
 
 """
 The modified version of Hail split_multi_hts() function.
+This version doesn't recalculate GQ score after splitting variants.
+One can revert to default behavior by setting recalculate_gq=True.
 Original code is here: https://hail.is/docs/0.2/_modules/hail/methods/statgen.html#split_multi_hts
 """
 
@@ -28,6 +30,9 @@ def split_multi_hts(
 ):
     """Split multiallelic variants for datasets that contain one or more fields
     from a standard high-throughput sequencing entry schema.
+
+    This version doesn't recalculate GQ score after splitting variants.
+    One can revert to default behavior by setting recalculate_gq=True.
 
     .. code-block:: text
 

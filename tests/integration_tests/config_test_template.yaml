@@ -288,6 +288,7 @@ step3:
     inbreeding_file: '${cvars.mtdir}/inbreeding.ht'
     mtfile: '${cvars.mtdir}/mt_varqc_splitmulti.mt'
     htoutfile_rf_var_type_all_cols: '${cvars.mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    variant_stats_plot_file : '${cvars.pltdir}/variant_stats_plot.html'
 
   # --- Step 3.3 --- #
   rf_test_interval: chr20 # used in multiple functions
