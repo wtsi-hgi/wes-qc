@@ -11,6 +11,7 @@
 ./metadata/control_set_small.trios.fam
 ./metadata/control_set_small.trios-withparents.fam
 ./metadata/control_set_small.verify_bam_id_result.selfSM.tsv
+./metadata/HG001_twistedexome_1kg.bed
 # Small control set VCFs
 ./control_set_small/control_set_small_chr1.vcf.bgz
 ./control_set_small/control_set_small_chr2.vcf.bgz

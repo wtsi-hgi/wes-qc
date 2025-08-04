@@ -473,4 +473,3 @@ step4:
     iqr_multiplier: 1.5
     width: 800
     height: 600
-    variant_stats_plot_file : '${cvars.pltdir}/variant_stats_afterqc.html'
