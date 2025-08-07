@@ -408,9 +408,15 @@ Because for a new dataset we don't have the real TP and FP, we use the following
 
 * For likely-true-positive variants, we use all variations that were found and reported
   in public databases: 1000 genomes, HapMap, Mills, etc (see the full list of sources on the step 0.2)
-* For likely-false-positive variants, we use variants with the lowest quality scores, provided py the variant caller.
+* For likely-false-positive variants, we use variants with low quality scores.
+  At this point we use quality metrics provided py the variant caller:
+  * [QualByDepth (QD)](https://gatk.broadinstitute.org/hc/en-us/articles/30331972014747-QualByDepth) — the QUAL score normalized by allele depth (AD) for a variant
+  * [FisherStrand (FS)](https://gatk.broadinstitute.org/hc/en-us/articles/30332004699931-FisherStrand) — strand bias estimated using Fisher's Exact Test
+  * [RMSMappingQuality (MQ)](https://gatk.broadinstitute.org/hc/en-us/articles/30332003370267-RMSMappingQuality) — root mean square of the mapping quality of reads across all samples
 
 In this documentation, the TP and FP abbreviations stand for likely-true-positive and likely-false-positive.
+Detailed information regarding all variant metrics produced by GATK is available here:
+https://gatk.broadinstitute.org/hc/en-us/articles/30331989211419--Tool-Documentation-Index
 
 Variant QC uses the optional pedigree file detailing trios existing in the dataset.
 The file should follow the [FAM file](https://www.cog-genomics.org/plink/1.9/formats#fam)
@@ -711,12 +717,22 @@ Alternatively, to export VCFs with only passing stringent hard filter, use the `
 python 4-genotype_qc/3b-export_vcfs_stringent_filters.py
 ```
 
-### (Optional) - calculate-per-sample statistics
-If you want to additionally evaluate the filter statistics
-(variant counts per consequence per sample and
-transmitted/untransmitted ratio of synonymous singletons (if trios are present in the data))
-use the following script.
-VEP annotation is required for this step in the following format:
+### (Optional) - calculate-per-sample statistics and variant statistics
+If you want to additionally evaluate the variant QC and genotypeQC statistics,
+use the following script:
+
+```shell
+python 4-genotype_qc/4-counts_per_sample.py
+```
+
+The script makes the summary table of variations by variation consequence
+and saves it the `annotations` by name defined in the `cq_stats_df` config section.
+Please note that one variant can be annotated by more than one consequence,
+so the sum of stats is not equal to the total number of variations.
+
+Also, the script outputs in the console the variant counts per sample
+
+This step requres a separate VEP annotation file in the following format:
 
 ```
 chr10   100199947   rs367984062 A   C   intron_variant
@@ -726,9 +742,6 @@ chr10   100200012   rs144642900 C   T   missense_variant
 chr1    100200019   .  C    A   stop_gained&splice_region_variant
 ```
 
-```shell
-python 4-genotype_qc/4-counts_per_sample.py
-```
 
 ### Plot mutations spectra
 
