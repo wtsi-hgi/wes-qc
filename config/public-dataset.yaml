@@ -464,7 +464,8 @@ step4:
     pedfile: '${cvars.resdir}/trios.ped'
 
   get_counts_per_cq:
-    cqfile: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
+    cq_out_file: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
+    cq_stats_df: '${cvars.anndir}/variant_stats_combined.tsv'
 
   # --- Step 4.5 --- #
   plot_mutation_spectra_afterqc:

@@ -378,7 +378,7 @@ step4:
       dp_vals: [5]
       gq_vals: [10]
       ab_vals: [0.2]
-      missing_vals: [0.0]
+      missing_vals: [0.1]
     json_dump_folder: '${cvars.anndir}/${general.rf_model_id}/json_dump'
     snp_json:   '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.tsv'
@@ -404,42 +404,42 @@ step4:
     hard_filters:
       snp:
         relaxed:
-          bin: 98
+          bin: 94
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         medium:
-          bin: 92
+          bin: 91
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.5
+          call_rate: 0.1
         stringent:
           bin: 88
           dp: 5
-          gq: 15
+          gq: 10
           ab: 0.2
           call_rate: 0.5
       indel:
         relaxed:
-          bin: 88
+          bin: 80
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         medium:
-          bin: 76
+          bin: 74
           dp: 5
-          gq: 15
+          gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         stringent:
-          bin: 68
+          bin: 72
           dp: 5
-          gq: 20
+          gq: 10
           ab: 0.3
-          call_rate: 0.5
+          call_rate: 0.1
 
   # used as an output of the whole step
   mtoutfile_annot: '${cvars.mtdir}/mt_hard_filter_combinations.mt'
@@ -464,7 +464,8 @@ step4:
     pedfile: '${cvars.resdir}/trios.ped'
 
   get_counts_per_cq:
-    cqfile: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
+    cq_out_file: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
+    cq_stats_df: '${cvars.anndir}/variant_stats_combined.tsv'
 
   # --- Step 4.5 --- #
   plot_mutation_spectra_afterqc:
