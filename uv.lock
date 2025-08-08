@@ -3210,9 +3210,11 @@ name = "wxs-qc"
 version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "bokeh" },
     { name = "gnomad" },
     { name = "hail" },
     { name = "omegaconf" },
+    { name = "pandas" },
 ]
 
 [package.dev-dependencies]
@@ -3230,9 +3232,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "bokeh", specifier = ">=3.3" },
     { name = "gnomad", specifier = ">=0.8.1" },
     { name = "hail", specifier = "==0.2.133" },
     { name = "omegaconf", specifier = ">=2.3.0" },
+    { name = "pandas", specifier = ">=2.2.3" },
 ]
 
 [package.metadata.requires-dev]

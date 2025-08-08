@@ -23,6 +23,8 @@ dependencies = [
     "hail==0.2.133",
     "gnomad>=0.8.1",
     "omegaconf>=2.3.0",
+    "pandas>=2.2.3",
+    "bokeh>=3.3",
 ]
 
 [dependency-groups]

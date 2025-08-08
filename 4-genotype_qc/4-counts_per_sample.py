@@ -274,10 +274,15 @@ def main():
         [cq_prefilter_stats, cq_afterfilter_stats_relaxed, cq_afterfilter_stats_medium, cq_afterfilter_stats_stringent],
         index=["unfiltered", "relaxed", "medium", "stringent"],
     )
-    cq_stats_df["total_coding"] = cq_stats_df[constants.VEP_CONSEQUENCE_CODING].sum(axis=1)
-    cq_stats_df["total_noncoding"] = cq_stats_df[constants.VEP_CONSEQUENCE_NON_CODING].sum(axis=1)
+    # Collecting consequences actually present in our data
+    vep_csq_coding_present = [csq for csq in constants.VEP_CONSEQUENCE_CODING if csq in cq_stats_df.columns]
+    vep_csq_non_coding_present = [csq for csq in constants.VEP_CONSEQUENCE_NON_CODING if csq in cq_stats_df.columns]
+
+    cq_stats_df["total_coding"] = cq_stats_df[vep_csq_coding_present].sum(axis=1)
+    cq_stats_df["total_noncoding"] = cq_stats_df[vep_csq_non_coding_present].sum(axis=1)
+
     cq_stats_df = cq_stats_df[
-        constants.VEP_CONSEQUENCE_CODING + ["total_coding"] + constants.VEP_CONSEQUENCE_NON_CODING + ["total_noncoding"]
+        vep_csq_coding_present + ["total_coding"] + vep_csq_non_coding_present + ["total_noncoding"]
     ]
     cq_stats_df.to_csv(config["step4"]["get_counts_per_cq"]["cq_stats_df"], sep="\t")
 

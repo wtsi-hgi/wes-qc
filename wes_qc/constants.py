@@ -1,5 +1,5 @@
 """
-Set of literals and constants used to finter and annotate variants
+Set of literals and constants used to filter and annotate variants
 """
 
 VEP_CONSEQUENCE_ALL = """
@@ -33,8 +33,13 @@ frameshift_variant
 missense_variant
 splice_acceptor_variant
 splice_donor_variant
+start_lost_variant
 start_retained_variant
 stop_retained_variant
+stop_gained_variant
+stop_lost_variant
+inframe_deletion_variant
+inframe_insertion_variant
 synonymous_variant
 """.split()
 
