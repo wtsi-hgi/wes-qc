@@ -134,14 +134,14 @@ step2:
     sex_ht_outfile: '${cvars.anndir}/sex_annotated.sex_check.tsv.bgz'
     sex_mt_outfile: '${cvars.mtdir}/mt_sex_annotated.mt'
     hail_impute_sex_params:  # https://hail.is/docs/0.2/methods/genetics.html#hail.methods.impute_sex
-      female_threshold: 0.5
+      female_threshold: 0.4
       male_threshold: 0.8
       aaf_threshold: 0.05
 
   f_stat_outliers:
     fstat_outliers_report_file: '${cvars.anndir}/sex_annotation_f_stat_outliers.tsv' # output
     fstat_hist_path: '${cvars.pltdir}/fstat_hist.html'
-    fstat_low: 0.2
+    fstat_low: 0.4
     fstat_high: 0.8
 
   sex_inconsistencies:
@@ -288,6 +288,7 @@ step3:
     inbreeding_file: '${cvars.mtdir}/inbreeding.ht'
     mtfile: '${cvars.mtdir}/mt_varqc_splitmulti.mt'
     htoutfile_rf_var_type_all_cols: '${cvars.mtdir}/ht_for_RF_by_variant_type_all_cols.ht'
+    variant_stats_plot_file : '${cvars.pltdir}/variant_stats_preqc.html'
 
   # --- Step 3.3 --- #
   rf_test_interval: chr20 # used in multiple functions
@@ -364,7 +365,7 @@ step4:
     giab_vcf: '${cvars.resdir}/HG001_GRCh38_benchmark.interval.illumina.vcf.gz'
     giab_cqfile: '${cvars.resdir}/HG001_GRCh38_benchmark.all.interval.illumina.vep.info.txt'
     # The list of overlaps between the high-confidence regions from giab_vcf and panel used for the dataset
-    prec_recall_panel_bed: '${cvars.metadir}/20130108.exome.targets.HG001_GRCh38_1_22_v4.2.1_benchmark.bed'
+    prec_recall_panel_bed: '${cvars.metadir}/HG001_twistedexome_1kg.bed'
     giab_ht_file: '${cvars.mtdir}/HG001_GRCh38_benchmark.interval.illumina.ht'
     # The ID of GIAB HG001 (NA12878) sample, if it presents in your sequencing data
     # If you don't have it, use null value instead
@@ -377,7 +378,7 @@ step4:
       dp_vals: [5]
       gq_vals: [10]
       ab_vals: [0.2]
-      missing_vals: [0.0]
+      missing_vals: [0.1]
     json_dump_folder: '${cvars.anndir}/${general.rf_model_id}/json_dump'
     snp_json:   '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.json'
     snp_tsv:    '${cvars.anndir}/${general.rf_model_id}/hard_filter_evaluation.snv.tsv'
@@ -403,42 +404,42 @@ step4:
     hard_filters:
       snp:
         relaxed:
-          bin: 92
+          bin: 94
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         medium:
+          bin: 91
+          dp: 5
+          gq: 10
+          ab: 0.2
+          call_rate: 0.1
+        stringent:
           bin: 88
           dp: 5
           gq: 10
           ab: 0.2
           call_rate: 0.5
-        stringent:
-          bin: 84
-          dp: 5
-          gq: 15
-          ab: 0.2
-          call_rate: 0.5
       indel:
         relaxed:
-          bin: 68
+          bin: 80
           dp: 5
           gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         medium:
-          bin: 66
+          bin: 74
           dp: 5
-          gq: 15
+          gq: 10
           ab: 0.2
-          call_rate: 0.0
+          call_rate: 0.1
         stringent:
-          bin: 58
+          bin: 72
           dp: 5
-          gq: 20
+          gq: 10
           ab: 0.3
-          call_rate: 0.5
+          call_rate: 0.1
 
   # used as an output of the whole step
   mtoutfile_annot: '${cvars.mtdir}/mt_hard_filter_combinations.mt'
@@ -463,7 +464,8 @@ step4:
     pedfile: '${cvars.resdir}/trios.ped'
 
   get_counts_per_cq:
-    cqfile: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
+    cq_out_file: '${cvars.anndir}/variant_counts_per_cq_post_qc.txt'
+    cq_stats_df: '${cvars.anndir}/variant_stats_combined.tsv'
 
   # --- Step 4.5 --- #
   plot_mutation_spectra_afterqc:

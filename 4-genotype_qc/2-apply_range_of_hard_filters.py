@@ -275,8 +275,9 @@ def main():
     # mt = remove_samples(mt, exclude_file)
 
     # annotate mt with consequence, gene, rf bin
+    print("=== Annotating mt with consequence, gene, rf bin ===")
     mt_annot = annotate_cq_rf(mt, rf_htfile, cqfile)
-
+    print("=== Applying hard filters ===")
     # annotate with all combinations of filters (pass/fail) and add missingness
     mt_annot = apply_hard_filters(mt_annot, hard_filters)
     mt_annot.write(path_spark(mtfile_annot), overwrite=True)

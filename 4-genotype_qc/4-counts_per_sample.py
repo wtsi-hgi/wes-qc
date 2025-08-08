@@ -1,9 +1,18 @@
 # median counts of variants of each consequence per sample plus transmitted/untransmitted
 # ratio for synonymous singletons
+import importlib
+import os
+
 import hail as hl
 import numpy as np
+import pandas as pd
 from utils.utils import parse_config, path_spark, path_local
-from wes_qc import hail_utils
+from wes_qc import hail_utils, stats, constants
+
+# We need to re-annotate the initial matrixtable, because step 4-2 annotates matrixtable
+# and drops variants passing the relaxed filter
+# To do it, we import module 4-2 and use annotation functions from it.
+step4_2 = importlib.import_module("4-genotype_qc.2-apply_range_of_hard_filters")
 
 
 def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable:
@@ -14,8 +23,6 @@ def annotate_gnomad(mt_in: hl.MatrixTable, gnomad_htfile: str) -> hl.MatrixTable
     :return: Annotated MatrixTable
     """
     gnomad_ht = hl.read_table(path_spark(gnomad_htfile))
-    # ac = gnomadht.freq[0].AC
-    # af = gnomadht.freq[0].AF
     mt_in = mt_in.annotate_rows(gnomad_AF=gnomad_ht[mt_in.row_key].freq[0].AF)
     mt_in = mt_in.annotate_rows(gnomad_AC=gnomad_ht[mt_in.row_key].freq[0].AC)
 
@@ -212,23 +219,79 @@ def counts_per_cq(mt_in: hl.MatrixTable, cqs: list) -> tuple:
 def main():
     # set up
     config = parse_config()
-
-    # initialise hail
     tmp_dir = config["general"]["tmp_dir"]
-    # = STEP LOGIC = #
-    _ = hail_utils.init_hl(tmp_dir)
+
+    # = STEP PARAMETERS = #
+    model_id = config["general"]["rf_model_id"]
+
+    # = STEP DEPENDENCIES = #
+    mt_prefiltered_file = config["step4"]["annotate_cq_rf"]["mtfile"]
+    cqfile = config["step4"]["annotate_cq_rf"]["cqfile"]
+    rf_dir = path_spark(config["general"]["var_qc_rf_dir"])
 
     mtfile = config["step4"]["annotate_gnomad"]["mtfile"]
     gnomad_htfile = config["step4"]["annotate_gnomad"]["gnomad_htfile"]
-    mt = hl.read_matrix_table(path_spark(mtfile))
-    mt = annotate_gnomad(mt, gnomad_htfile)
 
+    # = STEP LOGIC = #
+    _ = hail_utils.init_hl(tmp_dir)
+
+    print("=== Annotating-pre-filtered mt with consequence, gene, rf bin ===")
+    rf_htfile = os.path.join(rf_dir, model_id, "_gnomad_score_binning_tmp.ht")  # move runhash to config
+    mt = hl.read_matrix_table(path_spark(mt_prefiltered_file))
+    mt_annot = step4_2.annotate_cq_rf(mt, rf_htfile, cqfile)
+    print("--- Pre-filtering variants stats ---")
+
+    vars_preqc = mt_annot.rows()
+    vars_preqc = vars_preqc.repartition(24)
+    cq_prefilter_stats = stats.count_vars_per_cq(
+        vars_preqc, constants.VEP_CONSEQUENCE_CODING + constants.VEP_CONSEQUENCE_NON_CODING
+    )
+
+    print("=== Post-filtering variants stats ===")
+    mt = hl.read_matrix_table(path_spark(mtfile))
+    vars_afterqc = mt.rows()
+    vars_afterqc = vars_afterqc.repartition(24)
+    # Checkpointing table to speed up multiple time-consuming filtering
+    vars_afterqc = vars_afterqc.checkpoint(tmp_dir + "/step4_apply_hard_filters_vars_afterqc.ht", overwrite=True)
+
+    vars_afterqc_relaxed = vars_afterqc.filter(vars_afterqc.relaxed_pass_count > 0)
+    cq_afterfilter_stats_relaxed = stats.count_vars_per_cq(
+        vars_afterqc_relaxed, constants.VEP_CONSEQUENCE_CODING + constants.VEP_CONSEQUENCE_NON_CODING
+    )
+
+    vars_afterqc_medium = vars_afterqc.filter(vars_afterqc.medium_pass_count > 0)
+    cq_afterfilter_stats_medium = stats.count_vars_per_cq(
+        vars_afterqc_medium, constants.VEP_CONSEQUENCE_CODING + constants.VEP_CONSEQUENCE_NON_CODING
+    )
+
+    vars_afterqc_stringent = vars_afterqc.filter(vars_afterqc.stringent_pass_count > 0)
+    cq_afterfilter_stats_stringent = stats.count_vars_per_cq(
+        vars_afterqc_stringent, constants.VEP_CONSEQUENCE_CODING + constants.VEP_CONSEQUENCE_NON_CODING
+    )
+
+    # Combine the three dictionaries into a DataFrame
+    cq_stats_df = pd.DataFrame(
+        [cq_prefilter_stats, cq_afterfilter_stats_relaxed, cq_afterfilter_stats_medium, cq_afterfilter_stats_stringent],
+        index=["unfiltered", "relaxed", "medium", "stringent"],
+    )
+    # Collecting consequences actually present in our data
+    vep_csq_coding_present = [csq for csq in constants.VEP_CONSEQUENCE_CODING if csq in cq_stats_df.columns]
+    vep_csq_non_coding_present = [csq for csq in constants.VEP_CONSEQUENCE_NON_CODING if csq in cq_stats_df.columns]
+
+    cq_stats_df["total_coding"] = cq_stats_df[vep_csq_coding_present].sum(axis=1)
+    cq_stats_df["total_noncoding"] = cq_stats_df[vep_csq_non_coding_present].sum(axis=1)
+
+    cq_stats_df = cq_stats_df[
+        vep_csq_coding_present + ["total_coding"] + vep_csq_non_coding_present + ["total_noncoding"]
+    ]
+    cq_stats_df.to_csv(config["step4"]["get_counts_per_cq"]["cq_stats_df"], sep="\t")
+
+    mt = annotate_gnomad(mt, gnomad_htfile)
     # TODO: make optional as it only prints info to stdout
     # pedfile = config["step4"]["get_trans_untrans_synon_singleton_counts"]["pedfile"]
     # get_trans_untrans_synon_singleton_counts(mt, pedfile) # test data has no trios
-
-    cqfile = config["step4"]["get_counts_per_cq"]["cqfile"]
-    get_counts_per_cq(mt, cqfile)
+    cq_out_file = config["step4"]["get_counts_per_cq"]["cq_out_file"]
+    get_counts_per_cq(mt, cq_out_file)
 
 
 if __name__ == "__main__":

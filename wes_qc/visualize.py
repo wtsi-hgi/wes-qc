@@ -38,7 +38,7 @@ def plot_pop_pca(pca_scores: hl.Table, plot_file: str, n_pca: int = 3, pop: Opti
     bokeh.plotting.save(plots)
 
 
-def calculate_mutation_spectra(mt):
+def calculate_mutation_spectra(mt: hl.MatrixTable) -> pd.DataFrame:
     """
     Calculates the mutation spectra from the matritable and returns it in the pivoted Pandas dataframe
     """
@@ -89,7 +89,9 @@ def mutation_spectra_stats(df: pd.DataFrame, iqr_multiplier: float) -> Tuple[pd.
     return stats, outliers
 
 
-def plot_mutation_spectra_boxplots(stats: pd.DataFrame, outliers: pd.DataFrame, width=800, height=600, **kwargs):
+def plot_mutation_spectra_boxplots(
+    stats: pd.DataFrame, outliers: pd.DataFrame, width=800, height=600, **kwargs
+) -> bokeh.plotting.figure:
     """
     Plot mutation spectra by calculated table
     """
@@ -159,7 +161,7 @@ def plot_mutation_spectra_boxplots(stats: pd.DataFrame, outliers: pd.DataFrame, 
     return p
 
 
-def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **kwargs):
+def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **kwargs) -> bokeh.plotting.figure:
     """
     Plot mutation spectra from mutation spectra stats as a bar plot
     """
@@ -233,7 +235,7 @@ def plot_mutation_spectra_barplot(stats: pd.DataFrame, width=800, height=600, **
     return p
 
 
-def plot_mutation_spectra_combined(mut_spectra, iqr_multiplier: float = 1.5, **kwargs):
+def plot_mutation_spectra_combined(mut_spectra, iqr_multiplier: float = 1.5, **kwargs) -> bokeh.models.Tabs:
     stats, outliers = mutation_spectra_stats(mut_spectra, iqr_multiplier)
     # Make and save the plot
 
@@ -245,3 +247,27 @@ def plot_mutation_spectra_combined(mut_spectra, iqr_multiplier: float = 1.5, **k
     # Combine the panels into mut_spectra_plot
     mut_spectra_plot = bokeh.models.Tabs(tabs=[tab_boxplot, tab_barplot])
     return mut_spectra_plot
+
+
+def plot_variant_stats(
+    ht: hl.Table,
+    QD_threshold: float = -1,
+    FS_threshold: float = -1,
+    MQ_threshold: float = -1,
+    title: str = "",
+) -> bokeh.layouts.Column:
+    p1 = hl.plot.histogram(ht.info.QD, legend="QD", title=title)
+    if QD_threshold > 0:
+        hline1 = bokeh.models.Span(location=QD_threshold, dimension="height", line_color="red", line_width=2)
+        p1.add_layout(hline1)
+    p2 = hl.plot.histogram(ht.info.FS, range=(0.0, 100.0), legend="FS", title=title)
+    if FS_threshold > 0:
+        hline2 = bokeh.models.Span(location=FS_threshold, dimension="height", line_color="red", line_width=2)
+        p2.add_layout(hline2)
+    p3 = hl.plot.histogram(ht.info.MQ, range=(0.0, 81.0), legend="MQ", title=title)
+    if MQ_threshold > 0:
+        hline3 = bokeh.models.Span(location=MQ_threshold, dimension="height", line_color="red", line_width=2)
+        p3.add_layout(hline3)
+    # Arrange vertically
+    combined_plot = bokeh.layouts.column(p1, p2, p3)
+    return combined_plot

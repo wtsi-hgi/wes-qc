@@ -2,11 +2,12 @@
 from typing import Optional
 
 import hail as hl
+import bokeh
 import utils.constants as constants
 from utils.utils import parse_config, path_spark
 from gnomad.variant_qc.random_forest import median_impute_features
 
-from wes_qc import hail_utils
+from wes_qc import hail_utils, visualize
 
 
 def prepare_matrix_table(mt: hl.MatrixTable) -> hl.MatrixTable:
@@ -124,6 +125,7 @@ def create_rf_ht(
     ht = add_filters_and_singletons(
         ht, fail_hard_filters_QD_less_than, fail_hard_filters_FS_greater_than, fail_hard_filters_MQ_less_than, group
     )
+
     ht = select_final_features(
         ht, fail_hard_filters_QD_less_than, fail_hard_filters_FS_greater_than, fail_hard_filters_MQ_less_than, group
     )
@@ -136,6 +138,18 @@ def create_rf_ht(
     return ht
 
 
+def count_tp_fp_stats(ht: hl.Table, **kwargs):
+    fp_expr = ht.fail_hard_filters
+    tp_expr = ht.omni | ht.mills | ht.kgp_phase1_hc | ht.hapmap
+    ht = ht.annotate(tp=tp_expr, fp=fp_expr)
+
+    tp_count, fp_count, overlap_count = ht.aggregate(
+        (hl.agg.count_where(ht.tp), hl.agg.count_where(ht.fp), hl.agg.count_where(ht.fp & ht.tp))
+    )
+    print("=== Pre-training variations count")
+    print(f"TP: {tp_count}, FP: {fp_count}, overlap: {overlap_count}")
+
+
 def main():
     # set up
     config = parse_config()
@@ -143,6 +157,9 @@ def main():
 
     # = STEP PARAMETERS = #
     pedfile = config["step3"]["pedfile"]
+    fail_hard_filters_QD_less_than: float = config["step3"]["create_rf_ht"]["fail_hard_filters_QD_less_than"]
+    fail_hard_filters_FS_greater_than: float = config["step3"]["create_rf_ht"]["fail_hard_filters_FS_greater_than"]
+    fail_hard_filters_MQ_less_than: float = config["step3"]["create_rf_ht"]["fail_hard_filters_MQ_less_than"]
 
     # = STEP DEPENDENCIES = #
     truthset_file = config["step3"]["create_rf_ht"]["truthset_file"]
@@ -154,6 +171,7 @@ def main():
 
     # = STEP OUTPUTS = #
     htoutfile_rf_var_type_all_cols = config["step3"]["create_rf_ht"]["htoutfile_rf_var_type_all_cols"]
+    variant_stats_plot_file = config["step3"]["create_rf_ht"]["variant_stats_plot_file"]
 
     # = STEP LOGIC = #
     hail_utils.init_hl(tmp_dir)
@@ -179,6 +197,13 @@ def main():
         **config["step3"]["create_rf_ht"],
     )
     ht.write(path_spark(htoutfile_rf_var_type_all_cols), overwrite=True)
+
+    count_tp_fp_stats(ht)
+    variant_stats_plot = visualize.plot_variant_stats(
+        mt.rows(), fail_hard_filters_QD_less_than, fail_hard_filters_FS_greater_than, fail_hard_filters_MQ_less_than
+    )
+    bokeh.io.output_file(variant_stats_plot_file)
+    bokeh.io.save(variant_stats_plot)
 
 
 if __name__ == "__main__":
