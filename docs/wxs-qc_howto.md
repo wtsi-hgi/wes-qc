@@ -346,6 +346,7 @@ Then the script identifies F-stat outliers, and saves it in the
 Finally, if self-reported sex is available, the script identifies samples that have
 a conflict between self-reported sex and genetically imputed sex, and saves it in the table
 `conflicting_sex.tsv`.
+The `undefined` sex is treated as confliscting both for self-reported and for imputed sex.
 
 
 ### Identify samples from related individuals with PC-Relate
