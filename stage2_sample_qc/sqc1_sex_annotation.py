@@ -65,18 +65,22 @@ def identify_inconsistencies(
     mt: hl.MatrixTable,
 ) -> Optional[hl.Table]:
     """
-    Find samples where annotated sex conflicts with the sex in our metadata
+    Find samples where imputed sex does not exactly match the self-reported sex.
+    Samples with undefined or missing sex are reported as inconsistent.
     """
     qc_ht = mt.cols()
     if "self_reported_sex" not in qc_ht.row:
         print("=== No self-reported sex assigned - skipping sex consistency checking ===")
         return None
 
-    print("Annotating samples with inconsistencies:")
-    conflicting_sex_ht = qc_ht.filter(
-        ((qc_ht.imputed_sex == "male") & (qc_ht.self_reported_sex == "female"))
-        | ((qc_ht.imputed_sex == "female") & (qc_ht.self_reported_sex == "male"))
+    print("=== Annotating samples with inconsistencies: ===")
+    # Only an exact male/female match is consistent.
+    # Undefined or missing self-reported or imputed sex is reported as inconsistent.
+    is_consistent = hl.coalesce(
+        (qc_ht.imputed_sex == qc_ht.self_reported_sex) & (qc_ht.imputed_sex != "undefined"),
+        False,
     )
+    conflicting_sex_ht = qc_ht.filter(~is_consistent)
     return conflicting_sex_ht
 
 

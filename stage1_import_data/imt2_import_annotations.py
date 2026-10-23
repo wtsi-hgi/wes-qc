@@ -5,6 +5,7 @@ import bokeh
 from wxs_qc.config import get_config
 from wxs_qc.hail_utils import path_spark
 from wxs_qc import hail_utils, constants
+from wxs_qc.input_validation import validate_self_reported_sex
 
 verifybamid_types = {
     "#SEQ_ID": "str",
@@ -116,6 +117,7 @@ def annotate_self_reported_sex(mt: hl.MatrixTable, sex_metadata_file: str, **kwa
     """
     metadata_ht = hl.import_table(path_spark(sex_metadata_file), delimiter="\t").key_by("sample_id")
     metadata_ht = metadata_ht.transmute(self_reported_sex=metadata_ht.self_reported_sex.lower())
+    validate_self_reported_sex(metadata_ht)
     mt_sex_annotated = mt.annotate_cols(self_reported_sex=metadata_ht[mt.s].self_reported_sex)
 
     # Checking for the samples without self-reported sex
